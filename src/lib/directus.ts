@@ -13,7 +13,7 @@ export interface Schema {
     property: Property[];
 }
 
-const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL!;
+const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:8055';
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN || 'build-token-12345';
 
 const directus = createDirectus<Schema>(DIRECTUS_URL)
