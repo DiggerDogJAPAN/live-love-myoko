@@ -11,8 +11,13 @@ interface PropertyGalleryProps {
 export default function PropertyGallery({ gallery, title }: PropertyGalleryProps) {
     const [activeImage, setActiveImage] = useState<string | null>(null);
 
-    const getFullUrl = (id: string) => `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${id}`;
-    const getThumbUrl = (id: string) => `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${id}?width=600&height=400&fit=cover`;
+    const DIRECTUS_ASSETS_BASE = "http://localhost:8055/assets";
+
+    const getFullUrl = (id: string) =>
+        `${DIRECTUS_ASSETS_BASE}/${id}`;
+
+    const getThumbUrl = (id: string) =>
+        `${DIRECTUS_ASSETS_BASE}/${id}?width=600&height=400&fit=cover`;
 
     return (
         <>
