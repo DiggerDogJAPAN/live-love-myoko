@@ -6,9 +6,44 @@
   --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: 'Playfair Display', Georgia, serif;
 
-  --font-size-base: 16px;
-  --line-height-base: 1.6;
-  --line-height-heading: 1.25;
+  /* Font Sizes */
+  --text-xs: 0.875rem;
+  /* 14px */
+  --text-sm: 1rem;
+  /* 16px */
+  --text-md: 1.25rem;
+  /* 20px */
+  --text-lg: 1.563rem;
+  /* 25px */
+  --text-xl: 1.953rem;
+  /* 31px */
+  --text-2xl: 2.441rem;
+  /* 39px */
+  --text-3xl: 3.052rem;
+  /* 49px */
+
+  /* Line Heights */
+  --lh-body: 1.6;
+  --lh-heading: 1.2;
+  --lh-tight: 1.4;
+
+  /* Spacing Scale */
+  --space-2xs: 0.25rem;
+  /* 4px */
+  --space-xs: 0.5rem;
+  /* 8px */
+  --space-sm: 1rem;
+  /* 16px */
+  --space-md: 1.5rem;
+  /* 24px */
+  --space-lg: 2rem;
+  /* 32px */
+  --space-xl: 3rem;
+  /* 48px */
+  --space-2xl: 4rem;
+  /* 64px */
+  --space-3xl: 6rem;
+  /* 96px */
 
   /* Colors */
   --color-bg: #f9faf8;
@@ -47,8 +82,8 @@ body {
 
 body {
   font-family: var(--font-body);
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-base);
+  font-size: var(--text-sm);
+  line-height: var(--lh-body);
   color: var(--color-text-primary);
   background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
@@ -58,27 +93,40 @@ body {
 h1,
 h2,
 h3,
-h4 {
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
-  line-height: var(--line-height-heading);
+  line-height: var(--lh-heading);
+  font-weight: 400;
   margin: 0 0 1rem;
 }
 
 h1 {
-  font-size: 2.75rem;
+  font-size: var(--text-3xl);
 }
 
 h2 {
-  font-size: 2.1rem;
+  font-size: var(--text-2xl);
 }
 
 h3 {
-  font-size: 1.6rem;
+  font-size: var(--text-xl);
 }
 
 h4 {
-  font-size: 1.25rem;
+  font-size: var(--text-lg);
 }
+
+h5 {
+  font-size: var(--text-md);
+}
+
+h6 {
+  font-size: var(--text-sm);
+}
+
+
 
 p {
   margin: 0 0 1.25rem;
@@ -94,17 +142,51 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Layout Classes */
-.layout {}
+/* Typography Utilities */
+.text--small {
+  font-size: var(--text-xs);
+  line-height: var(--lh-tight);
+}
 
+.text--body {
+  font-size: var(--text-sm);
+}
+
+.text--lead {
+  font-size: var(--text-md);
+  line-height: var(--lh-body);
+}
+
+.text--heading {
+  font-family: var(--font-heading);
+}
+
+/* Layout Classes */
 .layout__container {
   max-width: var(--content-max-width);
   margin: 0 auto;
   padding: 0 1.5rem;
 }
 
+/* Container System */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
+}
+
+/* Section Spacing */
 .section {
-  padding: var(--section-padding) 0;
+  padding-top: var(--space-2xl);
+  padding-bottom: var(--space-2xl);
+}
+
+.section--narrow {
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
 }
 
 .section--muted {
@@ -115,36 +197,226 @@ a:hover {
   margin-bottom: 2rem;
 }
 
-.section__content {}
+/* Stack Utilities (Vertical Rhythm) */
+.stack>*+* {
+  margin-top: var(--space-md);
+}
+
+.stack--sm>*+* {
+  margin-top: var(--space-sm);
+}
+
+.stack--lg>*+* {
+  margin-top: var(--space-lg);
+}
+
+/* Card Spacing */
+.card {
+  background-color: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-accent-primary);
+  text-decoration: none;
+}
+
+.card__image-container {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background-color: var(--color-bg-muted);
+}
+
+.card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.card:hover .card__image {
+  transform: scale(1.05);
+}
+
+.card__content {
+  padding: var(--space-md);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card__header {
+  margin-bottom: var(--space-xs);
+}
+
+.card__header h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text-primary);
+}
+
+.card__body {
+  margin-bottom: var(--space-md);
+  flex-grow: 1;
+}
+
+.card__body p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.card__footer {
+  margin-top: auto;
+}
+
+.card__cta {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-accent-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: gap 0.3s ease;
+}
+
+.card:hover .card__cta {
+  gap: 0.75rem;
+}
+
+.card__cta::after {
+  content: '→';
+  font-size: 1.1rem;
+}
 
 /* Button Styles */
 .button {
   display: inline-block;
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-xs) var(--space-md);
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: var(--text-sm);
   font-weight: 500;
-  border-radius: 4px;
+  border-radius: 999px;
   border: 1px solid transparent;
   cursor: pointer;
   text-decoration: none;
-  /* Ensure links look like buttons */
+  transition: all 0.5s ease;
 }
 
 .button:hover {
   text-decoration: none;
-  opacity: 0.9;
 }
 
 .button--primary {
   background-color: var(--color-accent-primary);
   color: #ffffff;
+  border-color: var(--color-accent-primary);
+}
+
+.button--primary:hover {
+  background-color: #26594d;
+  border-color: #26594d;
 }
 
 .button--secondary {
   background-color: transparent;
-  border-color: var(--color-accent-primary);
+  border-color: var(--color-border);
   color: var(--color-accent-primary);
+}
+
+.button--secondary:hover {
+  background-color: var(--color-bg-muted);
+  border-color: var(--color-accent-primary);
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  background-color: var(--color-bg);
+  background-image: linear-gradient(to right, rgba(249, 250, 248, 0.9) 0%, rgba(249, 250, 248, 0.6) 50%, rgba(249, 250, 248, 0) 100%),
+    url('https://love-live-myoko.com/images/Myoko%20-%20Akakura%20Onsen.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.hero__content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-3xl) var(--space-md);
+}
+
+.hero__text {
+  max-width: 700px;
+}
+
+.hero__headline {
+  font-family: var(--font-heading);
+  font-size: var(--text-3xl);
+  font-weight: 400;
+  line-height: var(--lh-heading);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.hero__subheadline {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: var(--lh-body);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xl);
+  max-width: 600px;
+}
+
+.hero__actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+/* Hero Responsive */
+@media (max-width: 768px) {
+  .hero {
+    min-height: 50vh;
+    background-image: linear-gradient(to bottom, rgba(249, 250, 248, 0.8), rgba(249, 250, 248, 0.9)),
+      url('https://love-live-myoko.com/images/Myoko%20-%20Akakura%20Onsen.jpg');
+    background-attachment: scroll;
+  }
+
+  .hero__content {
+    padding: var(--space-2xl) var(--space-sm);
+  }
+
+  .hero__headline {
+    font-size: var(--text-2xl);
+  }
+
+  .hero__subheadline {
+    font-size: var(--text-sm);
+  }
+
+  .hero__actions {
+    flex-direction: column;
+  }
+
+  .hero__actions .button {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 /* Utility Helpers for BEM components if needed, keeping minimal */
@@ -628,5 +900,18 @@ a:hover {
 
   .grid--3-cols {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Responsive Spacing Adjustments */
+@media (max-width: 768px) {
+  .section {
+    padding-top: var(--space-xl);
+    padding-bottom: var(--space-xl);
+  }
+
+  .container {
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
   }
 }
