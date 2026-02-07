@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Lightbox from "./Lightbox";
 
 interface PropertyGalleryProps {
     gallery: { directus_files_id: string }[];
+    featuredImageId?: string | null;
     title: string;
 }
 
-export default function PropertyGallery({ gallery, title }: PropertyGalleryProps) {
-    const [activeImage, setActiveImage] = useState<string | null>(null);
+export default function PropertyGallery({ gallery, featuredImageId, title }: PropertyGalleryProps) {
+    const [currentIndex, setCurrentIndex] = useState<number | null>(null);
 
     const DIRECTUS_ASSETS_BASE = "http://localhost:8055/assets";
 
@@ -19,6 +20,36 @@ export default function PropertyGallery({ gallery, title }: PropertyGalleryProps
     const getThumbUrl = (id: string) =>
         `${DIRECTUS_ASSETS_BASE}/${id}?width=600&height=400&fit=cover`;
 
+    // Process all images into a single sequence, prioritizing the featured image
+    const allImages = useMemo(() => {
+        const images = [];
+
+        // Add featured image first if it exists
+        if (featuredImageId) {
+            images.push({
+                src: getFullUrl(featuredImageId),
+                alt: `${title} featured image`
+            });
+        }
+
+        // Add gallery images in their provided order
+        gallery.forEach((item, index) => {
+            images.push({
+                src: getFullUrl(item.directus_files_id),
+                alt: `${title} gallery image ${index + 1}`
+            });
+        });
+
+        return images;
+    }, [gallery, featuredImageId, title]);
+
+    // When a gallery thumbnail is clicked, open the lightbox at the correct index
+    const handleThumbnailClick = (galleryIndex: number) => {
+        // If featured image is at index 0, gallery index starts at 1
+        const actualIndex = featuredImageId ? galleryIndex + 1 : galleryIndex;
+        setCurrentIndex(actualIndex);
+    };
+
     return (
         <>
             <div className="property-gallery">
@@ -26,7 +57,7 @@ export default function PropertyGallery({ gallery, title }: PropertyGalleryProps
                     <button
                         key={item.directus_files_id}
                         className="property-gallery__item"
-                        onClick={() => setActiveImage(getFullUrl(item.directus_files_id))}
+                        onClick={() => handleThumbnailClick(index)}
                         aria-label={`View gallery image ${index + 1}`}
                     >
                         <div className="about__image-wrapper" style={{ aspectRatio: '16/10' }}>
@@ -41,11 +72,11 @@ export default function PropertyGallery({ gallery, title }: PropertyGalleryProps
                 ))}
             </div>
 
-            {activeImage && (
+            {currentIndex !== null && (
                 <Lightbox
-                    src={activeImage}
-                    alt={title}
-                    onClose={() => setActiveImage(null)}
+                    images={allImages}
+                    initialIndex={currentIndex}
+                    onClose={() => setCurrentIndex(null)}
                 />
             )}
         </>
