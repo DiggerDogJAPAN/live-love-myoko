@@ -6,7 +6,7 @@ export default async function PropertiesPage() {
 
     return (
         <div className="layout__container section">
-            <h1 className="section__header">Available Properties</h1>
+            <h1 className="section__header">Properties</h1>
 
             {properties.length === 0 ? (
                 <p>No properties found at this time.</p>
