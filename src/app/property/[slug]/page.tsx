@@ -33,8 +33,11 @@ export default async function PropertyPage({ params }: { params: { slug: string 
         notFound();
     }
 
+    const isProd = process.env.NODE_ENV === 'production';
     const featuredImageUrl = property.featured_image
-        ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${property.featured_image}`
+        ? (isProd
+            ? `/images/properties/${slug}/featured.jpg`
+            : `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${property.featured_image}`)
         : null;
 
     return (
@@ -193,6 +196,7 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                                 gallery={property.gallery}
                                 featuredImageId={property.featured_image}
                                 title={property.title}
+                                slug={slug}
                             />
                         </div>
                     )}

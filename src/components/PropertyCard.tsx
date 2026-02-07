@@ -6,8 +6,11 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
+    const isProd = process.env.NODE_ENV === 'production';
     const imageUrl = property.featured_image
-        ? `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${property.featured_image}?width=600&height=400&fit=cover`
+        ? (isProd
+            ? `/images/properties/${property.slug}/featured.jpg`
+            : `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${property.featured_image}?width=600&height=400&fit=cover`)
         : null;
 
     return (
