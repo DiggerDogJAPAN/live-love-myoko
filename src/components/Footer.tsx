@@ -41,6 +41,9 @@ export default function Footer() {
             {/* Bottom Copyright Bar */}
             <div className="footer__bottom">
                 <div className="layout__container">
+                    <p className="footer__license">
+                        Minpaku Management Licence: 国士交通大臣（01）第F05136号
+                    </p>
                     <p className="footer__copyright">
                         © {currentYear} LiveLoveMyoko. All rights reserved.
                     </p>

@@ -339,6 +339,131 @@ a:hover {
   border-color: var(--color-accent-primary);
 }
 
+/* About Section */
+.about__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .about__grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3xl);
+  }
+}
+
+.about__image-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-border);
+}
+
+.about__image {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.6s ease;
+}
+
+.about__image:hover {
+  transform: scale(1.02);
+}
+
+.about__content {
+  padding: var(--space-md) 0;
+}
+
+.about__content h2 {
+  margin-bottom: var(--space-md);
+}
+
+.about__content p {
+  color: var(--color-text-primary);
+  max-width: 600px;
+}
+
+/* Trust Highlights Section */
+.trust-highlights__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xl);
+}
+
+@media (min-width: 768px) {
+  .trust-highlights__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .trust-highlights__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.trust-item h3 {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.trust-item p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.trust-highlights__reinforcement {
+  font-family: var(--font-heading);
+  font-size: var(--text-md);
+  color: var(--color-text-primary);
+  max-width: 800px;
+  margin: 0 auto;
+  font-style: italic;
+}
+
+/* Final CTA Section */
+.final-cta__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2xl);
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .final-cta__grid {
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--space-3xl);
+  }
+}
+
+.final-cta__content {
+  padding-right: var(--space-md);
+}
+
+.final-cta__image-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--color-border);
+}
+
+.final-cta__image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.final-cta__actions {
+  padding-top: var(--space-md);
+}
+
 /* Hero Section */
 .hero {
   position: relative;
@@ -430,6 +555,10 @@ a:hover {
 
 .u-mb-8 {
   margin-bottom: 2rem;
+}
+
+.u-mt-8 {
+  margin-top: 2rem;
 }
 
 .u-flex {
@@ -813,6 +942,14 @@ a:hover {
   margin: 0;
 }
 
+.footer__license {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0 0 0.50rem;
+}
+
 /* Footer Responsive */
 @media (max-width: 768px) {
   .footer__grid {
@@ -913,5 +1050,93 @@ a:hover {
   .container {
     padding-left: var(--space-sm);
     padding-right: var(--space-sm);
+  }
+}
+
+/* =========================
+   Property Gallery
+   ========================= */
+
+.property-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.property-gallery__item {
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: zoom-in;
+  width: 100%;
+  text-align: left;
+}
+
+.property-gallery__item:hover .about__image {
+  transform: scale(1.05);
+}
+
+/* =========================
+   Lightbox
+   ========================= */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 20, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 2rem;
+  backdrop-filter: blur(8px);
+}
+
+.lightbox__content {
+  position: relative;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox__image {
+  max-width: 100%;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: block;
+}
+
+.lightbox__close {
+  position: absolute;
+  top: -60px;
+  right: 0;
+  font-size: 3.5rem;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 10px;
+  transition: transform 0.3s ease;
+}
+
+.lightbox__close:hover {
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .lightbox {
+    padding: 1rem;
+  }
+
+  .lightbox__close {
+    top: -50px;
+    font-size: 2.5rem;
   }
 }
