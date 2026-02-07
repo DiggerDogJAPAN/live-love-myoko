@@ -19,14 +19,14 @@ export default async function PropertyPage({ params }: { params: { slug: string 
     }
 
     return (
-        <main className="flex min-h-screen flex-col items-center p-24">
-            <div className="w-full max-w-3xl">
-                <Link href="/" className="text-blue-500 hover:underline mb-8 inline-block">&larr; Back to Properties</Link>
+        <main className="layout__container section">
+            <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+                <Link href="/" className="button button--secondary u-mb-8">&larr; Back to Properties</Link>
 
-                <h1 className="text-4xl font-bold mb-6">{property.title}</h1>
+                <h1 className="u-mb-4">{property.title}</h1>
 
                 <div
-                    className="prose dark:prose-invert max-w-none"
+                    className="section__content"
                     dangerouslySetInnerHTML={{ __html: property.content }}
                 />
             </div>
