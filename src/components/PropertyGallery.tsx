@@ -12,7 +12,7 @@ interface PropertyGalleryProps {
 export default function PropertyGallery({ gallery, featuredImageId, title }: PropertyGalleryProps) {
     const [currentIndex, setCurrentIndex] = useState<number | null>(null);
 
-    const DIRECTUS_ASSETS_BASE = "http://localhost:8055/assets";
+    const DIRECTUS_ASSETS_BASE = `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets`;
 
     const getFullUrl = (id: string) =>
         `${DIRECTUS_ASSETS_BASE}/${id}`;
