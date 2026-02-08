@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Property } from '@/lib/directus';
 
 interface PropertyCardProps {
-    property: Pick<Property, 'id' | 'title' | 'slug' | 'featured_image' | 'location' | 'price_display' | 'property_type'>;
+    property: Pick<Property, 'id' | 'title' | 'slug' | 'featured_image' | 'location' | 'price_display' | 'property_type' | 'status'>;
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
@@ -18,7 +18,25 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             href={`/property/${property.slug}`}
             className="card"
         >
-            <div className="card__image-container">
+            <div className="card__image-container" style={{ position: 'relative' }}>
+                {property.status && (
+                    <span style={{
+                        position: 'absolute',
+                        top: '10px',
+                        left: '10px',
+                        backgroundColor: property.status === 'for_sale' ? 'var(--color-accent-primary)' :
+                            property.status === 'sold' ? 'var(--color-error)' : 'var(--color-text-muted)',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        zIndex: 10
+                    }}>
+                        {property.status.replace('_', ' ')}
+                    </span>
+                )}
                 {imageUrl ? (
                     <img
                         src={imageUrl}
@@ -42,7 +60,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
                 <div className="card__body">
                     {property.price_display && (
                         <p className="text--lead" style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                            {property.price_display}
+                            &yen; {property.price_display}
                         </p>
                     )}
                 </div>

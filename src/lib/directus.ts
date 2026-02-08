@@ -42,10 +42,11 @@ export default directus;
 // Helper to fetch all properties (for listing and static params)
 export async function getProperties() {
     return await directus.request(readItems('properties', {
-        fields: ['slug', 'title', 'id', 'location', 'property_type', 'status', 'featured_image'],
+        fields: ['slug', 'title', 'id', 'location', 'property_type', 'status', 'featured_image', 'price_display'],
         filter: {
             published: { _eq: true }
-        }
+        },
+        sort: ['status']
     }));
 }
 

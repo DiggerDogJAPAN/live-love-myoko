@@ -63,7 +63,7 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                         <h1 className="u-mb-2">{property.title}</h1>
                         {property.price_display && (
                             <p className="text--lead" style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                                {property.price_display}
+                                &yen; {property.price_display}
                             </p>
                         )}
                     </div>
