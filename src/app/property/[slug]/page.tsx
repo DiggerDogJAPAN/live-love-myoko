@@ -202,6 +202,28 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                     )}
                 </div>
             </div>
+
+            {/* Contact CTA */}
+            <section className="section section--muted" style={{ borderTop: '1px solid var(--color-border)' }}>
+                <div className="layout__container">
+                    <div className="u-text-center">
+                        <div className="stack stack--lg">
+                            <h2>Interested in this property?</h2>
+                            <p className="text--lead" style={{ maxWidth: "700px", margin: "0 auto" }}>
+                                We'd love to show you around. Contact us for more details or to schedule a viewing.
+                            </p>
+                            <div style={{ marginTop: "2rem" }}>
+                                <a
+                                    href={`mailto:info@love-live-myoko.com?subject=Enquiry: ${property.title}`}
+                                    className="button button--primary"
+                                >
+                                    Enquire About This Property
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     );
 }

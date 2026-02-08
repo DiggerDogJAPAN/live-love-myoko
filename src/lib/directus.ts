@@ -24,6 +24,7 @@ export interface Property {
     seo_title?: string;
     seo_description?: string;
     published: boolean;
+    sort_order?: number;
 }
 
 export interface Schema {
@@ -42,11 +43,11 @@ export default directus;
 // Helper to fetch all properties (for listing and static params)
 export async function getProperties() {
     return await directus.request(readItems('properties', {
-        fields: ['slug', 'title', 'id', 'location', 'property_type', 'status', 'featured_image', 'price_display'],
+        fields: ['slug', 'title', 'id', 'location', 'property_type', 'status', 'featured_image', 'price_display', 'sort_order'],
         filter: {
             published: { _eq: true }
         },
-        sort: ['status']
+        sort: ['status', '-sort_order']
     }));
 }
 
