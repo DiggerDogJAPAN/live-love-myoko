@@ -62,5 +62,14 @@ export async function getProperty(slug: string) {
         ]
     }));
 
-    return (result[0] as Property) || null;
+    const property = result[0] as Property;
+    if (property && typeof property.amenities === 'string') {
+        try {
+            property.amenities = JSON.parse(property.amenities);
+        } catch (e) {
+            console.error('Failed to parse amenities:', e);
+            property.amenities = [];
+        }
+    }
+    return property || null;
 }
