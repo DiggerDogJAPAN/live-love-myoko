@@ -1,8 +1,6 @@
 import { getProperties } from '@/lib/directus';
 import PropertyCard from '@/components/PropertyCard';
 
-export const revalidate = 0; // Disable static caching to always fetch fresh data
-
 export default async function PropertiesPage() {
     const properties = await getProperties();
 
