@@ -42,29 +42,33 @@ export default directus;
 
 // Helper to fetch all properties (for listing and static params)
 export async function getProperties() {
-    return await directus.request(readItems('properties', {
-        fields: ['slug', 'title', 'id', 'location', 'property_type', 'status', 'featured_image', 'price_display', 'sort_order'],
-        filter: {
-            published: { _eq: true }
-        },
-        sort: ['status', '-sort_order']
-    }));
+    return await directus.request(
+        readItems('properties', {
+            fields: ['slug', 'title', 'id', 'location', 'property_type', 'status', 'featured_image', 'price_display', 'sort_order'],
+            filter: {
+                published: { _eq: true }
+            },
+            sort: ['status', '-sort_order']
+        })
+    );
 }
 
 // Helper to fetch single property by slug
 export async function getProperty(slug: string) {
-    const result = await directus.request(readItems('properties', {
-        filter: {
-            slug: { _eq: slug }
-        },
-        limit: 1,
-        fields: [
-            '*',
-            { gallery: ['directus_files_id'] }
-        ]
-    }));
+    const result = await directus.request(
+        readItems('properties', {
+            filter: {
+                slug: { _eq: slug }
+            },
+            limit: 1,
+            fields: [
+                '*',
+                { gallery: ['directus_files_id'] }
+            ]
+        })
+    );
 
-    const property = result[0] as Property;
+    const property = result[0] as unknown as Property;
     if (property && typeof property.amenities === 'string') {
         try {
             property.amenities = JSON.parse(property.amenities);
