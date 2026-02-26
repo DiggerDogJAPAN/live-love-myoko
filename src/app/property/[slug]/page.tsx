@@ -97,7 +97,7 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                         )}
                         {property.bathrooms && (
                             <div>
-                                <span className="text--xs" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Bathrooms</span>
+                                <span className="text--xs" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Toilets</span>
                                 <strong>{property.bathrooms}</strong>
                             </div>
                         )}
