@@ -1186,11 +1186,11 @@ a:hover {
 }
 
 .lightbox__prev {
-  left: -100px;
+  left: 20px;
 }
 
 .lightbox__next {
-  right: -100px;
+  right: 20px;
 }
 
 .lightbox__index {
@@ -1210,12 +1210,12 @@ a:hover {
 
 @media (max-width: 1200px) {
   .lightbox__prev {
-    left: -20px;
+    left: 10px;
     background: rgba(0, 0, 0, 0.3);
   }
 
   .lightbox__next {
-    right: -20px;
+    right: 10px;
     background: rgba(0, 0, 0, 0.3);
   }
 }
