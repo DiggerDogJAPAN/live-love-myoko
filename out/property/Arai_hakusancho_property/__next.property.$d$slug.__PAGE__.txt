@@ -1,0 +1,98 @@
+1:"$Sreact.fragment"
+2:I[22016,["/_next/static/chunks/e8dcc844ceeeade7.js","/_next/static/chunks/3ffe4e50527d7e89.js"],""]
+b:I[96435,["/_next/static/chunks/e8dcc844ceeeade7.js","/_next/static/chunks/3ffe4e50527d7e89.js"],"default"]
+c:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/d2be314c3ece3fbe.js"],"OutletBoundary"]
+d:"$Sreact.suspense"
+3:T785,<h3>Land Details</h3>
+<ul>
+<li>Total Land Area: 611.01 m&sup2; (184.83 tsubo)</li>
+<li>Comprised of 3 adjoining parcels:
+<ul>
+<li>576.89 m&sup2;</li>
+<li>12.11 m&sup2;</li>
+<li>22.01 m&sup2;</li>
+</ul>
+</li>
+</ul>
+<h3>Building Details</h3>
+<ul>
+<li>Type: Residential House</li>
+<li>Structure: 2-storey wooden construction with galvanized steel roofing</li>
+<li>Year Built: December 1978</li>
+<li>Total Floor Area: 171.08 m&sup2; (51.75 tsubo)
+<ul>
+<li>1st Floor: 116.44 m&sup2;</li>
+<li>2nd Floor: 54.64 m&sup2;</li>
+</ul>
+</li>
+<li>Layout: 6SDK (6 rooms + storage + dining/kitchen)</li>
+<li>Bathrooms/Toilets: 2 toilets</li>
+<li>Parking: 1 space</li>
+<li>Additional Features: Raised foundation</li>
+</ul>
+<h3>Additional Building</h3>
+<ul>
+<li>Type: Garage &amp; Storage Building</li>
+<li>Structure: 2-storey wooden construction</li>
+<li>Year Built: December 1978</li>
+<li>Total Floor Area: 29.8 m&sup2; (9.0 tsubo)
+<ul>
+<li>1st Floor: 14.90 m&sup2;</li>
+<li>2nd Floor: 14.90 m&sup2;</li>
+</ul>
+</li>
+</ul>
+<h3>Utilities &amp; Infrastructure</h3>
+<ul>
+<li>Public water supply</li>
+<li>City gas</li>
+<li>Septic system</li>
+<li>Electricity (Tohoku Electric)</li>
+<li>Firefighting water well on site</li>
+</ul>
+<h3>Road Access</h3>
+<ul>
+<li>North side: Public road (approx. 5.75 m wide, snow-cleared)</li>
+<li>West side: Public road (approx. 4 m wide)</li>
+</ul>
+<h3>Zoning</h3>
+<ul>
+<li>Category I Low-Rise Residential Zone</li>
+<li>Building Coverage Ratio: 50%</li>
+<li>Floor Area Ratio: 80%</li>
+</ul>
+<table border="1" cellspacing="0" cellpadding="8">
+<tbody>
+<tr>
+<th colspan="2">Purchase Information</th>
+</tr>
+<tr>
+<td>Our Fee</td>
+<td>&yen;500,000</td>
+</tr>
+<tr>
+<td>Agents Fee</td>
+<td>&yen;330,000</td>
+</tr>
+<tr>
+<td>Scrivener Fee</td>
+<td>&yen;150,000</td>
+</tr>
+<tr>
+<td>Real Estate Acquisition Tax</td>
+<td>Unknown</td>
+</tr>
+<tr>
+<td>Closing Costs</td>
+<td>Approx. &yen;6 million yen</td>
+</tr>
+</tbody>
+</table>0:{"buildId":"1774582904177","rsc":["$","$1","c",{"children":[["$","main",null,{"children":[["$","div",null,{"className":"hero","style":{"backgroundImage":"linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4)), url(/images/properties/Arai_hakusancho_property/featured.jpg)","minHeight":"50vh","backgroundAttachment":"scroll"}}],["$","div",null,{"className":"layout__container section","children":["$","div",null,{"style":{"maxWidth":"900px","margin":"0 auto"},"children":[["$","$L2",null,{"href":"/properties","className":"button button--secondary u-mb-8","children":"← Back to Listings"}],["$","div",null,{"className":"u-mb-8","children":[["$","span",null,{"className":"text--xs u-mb-2","style":{"display":"block","textTransform":"uppercase","letterSpacing":"0.1em","color":"var(--color-accent-primary)"},"children":["house"," • ","Arai - Hakusancho"]}],["$","h1",null,{"className":"u-mb-2","children":"Arai - Great potential property"}],["$","p",null,{"className":"text--lead","style":{"fontWeight":600,"color":"var(--color-text-primary)"},"children":["¥ ","5,000,000"]}]]}],["$","p",null,{"className":"text--lead u-mb-8","style":{"color":"var(--color-text-primary)","fontStyle":"italic"},"children":"This spacious property in Hakusan-cho, Myoko City sits on a generous 611 m² land parcel and features a two-storey, 6SDK wooden home built in 1978, offering a total floor area of 171 m². The house includes multiple living spaces, two toilets, and parking for one vehicle, making it well-suited for family use or renovation into a holiday home. An additional two-storey garage and storage building provides extra utility. The property benefits from public water, city gas, electricity, and a septic system, and is conveniently positioned on corner access with roads on both the north and west sides. Located in a quiet low-rise residential zone, this property is offered at an attractive price of ¥5 million."}],["$","div",null,{"className":"u-mb-8","style":{"display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(150px, 1fr))","gap":"1rem","borderTop":"1px solid var(--color-border)","borderBottom":"1px solid var(--color-border)","padding":"1.5rem 0"},"children":[["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Status"}],["$","strong",null,{"style":{"textTransform":"capitalize","color":"var(--color-accent-primary)"},"children":"for sale"}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Bedrooms"}],["$","strong",null,{"children":4}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Toilets"}],["$","strong",null,{"children":2}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Floor Area"}],["$","strong",null,{"children":[171," m²"]}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Land Area"}],["$","strong",null,{"children":[611," m²"]}]]}]]}],["$","div",null,{"className":"u-mb-12","children":[["$","h3",null,{"className":"u-mb-4","children":"Overview"}],["$","div",null,{"className":"section__content","style":{"color":"var(--color-text-primary)","lineHeight":"1.8"},"dangerouslySetInnerHTML":{"__html":"$3"}}]]}],"$L4","$L5","$L6","$L7"]}]}],"$L8"]}],["$L9"],"$La"]}],"loading":null,"isPartial":false}
+4:["$","div",null,{"className":"u-mb-16","children":[["$","h3",null,{"className":"u-mb-6","children":"Amenities"}],["$","div",null,{"style":{"display":"flex","flexWrap":"wrap","gap":"0.75rem"},"children":[["$","span","0",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"City Gas"}],["$","span","1",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"City Sewage"}]]}]]}]
+5:["$","div",null,{"className":"u-mb-16","children":[["$","h3",null,{"className":"u-mb-4","children":"Area & Access"}],["$","p",null,{"style":{"lineHeight":"1.8","color":"var(--color-text-primary)"},"children":"Quiet residential area with nice mountain views. Near supermarkets, convenience stores and local swimming pool. 20minutes to Lotte resort and Myoko Kogen resorts."}]]}]
+6:["$","div",null,{"className":"u-mb-12","children":[["$","h3",null,{"className":"u-mb-4","children":"Location"}],["$","p",null,{"className":"u-mb-6","style":{"color":"var(--color-text-muted)"},"children":"Arai - Hakusancho"}],["$","a",null,{"href":"https://maps.app.goo.gl/D7pefPEU7yqTxc6V7","target":"_blank","rel":"noopener noreferrer","className":"button button--primary","children":"View on Google Maps"}]]}]
+7:["$","div",null,{"className":"u-mt-12","children":[["$","h3",null,{"className":"u-mb-6","children":"Gallery"}],["$","$Lb",null,{"gallery":[{"directus_files_id":"e044d144-9869-432d-b154-43e30f606b0b"},{"directus_files_id":"ba1cc1ad-870a-4a89-b306-048735eec5e9"},{"directus_files_id":"ebab6689-2569-4345-b58e-0d3e633e1330"},{"directus_files_id":"348eb42e-a72e-47ad-841a-ae006dfb75ea"},{"directus_files_id":"28df1a4f-cded-475b-ae8d-5e0795ea4f08"},{"directus_files_id":"88ce625b-295b-4d13-bda2-02db4552f735"},{"directus_files_id":"e7b33e78-c54e-46fb-93fc-a5b3cd1f7099"},{"directus_files_id":"3dd7fccd-773c-4c04-b871-9593fab26283"},{"directus_files_id":"34cf395a-f99d-4c24-90e3-a2f5316e9878"},{"directus_files_id":"a1e5ac77-07b7-488e-8120-dabac7a56437"},{"directus_files_id":"f3cffe7c-13a8-462f-a358-f5670f577fdc"},{"directus_files_id":"7b8b2eca-929f-4adb-bd85-c7f838b38a7c"},{"directus_files_id":"efa00c20-b600-47f9-b7ab-5dc0c6adb39c"},{"directus_files_id":"2ae855b4-54e0-4dd6-abea-c9b7e76eba21"},{"directus_files_id":"e7aa498e-efa5-4973-b29f-03fcae96e584"},{"directus_files_id":"0dbd6c5b-49e5-4811-9fb1-1911aaf449a4"},{"directus_files_id":"6e5c43b6-dcb8-4add-88a1-e33fa38ae303"},{"directus_files_id":"f315d775-8a27-433e-a456-dfd3876481c4"}],"featuredImageId":"56289f0f-5077-48e5-a4db-8183d9c37452","title":"Arai - Great potential property","slug":"Arai_hakusancho_property"}]]}]
+8:["$","section",null,{"className":"section section--muted","style":{"borderTop":"1px solid var(--color-border)"},"children":["$","div",null,{"className":"layout__container","children":["$","div",null,{"className":"u-text-center","children":["$","div",null,{"className":"stack stack--lg","children":[["$","h2",null,{"children":"Interested in this property?"}],["$","p",null,{"className":"text--lead","style":{"maxWidth":"700px","margin":"0 auto"},"children":"We'd love to show you around. Contact us for more details or to schedule a viewing."}],["$","div",null,{"style":{"marginTop":"2rem"},"children":["$","a",null,{"href":"mailto:info@love-live-myoko.com?subject=Enquiry: Arai - Great potential property","className":"button button--primary","children":"Enquire About This Property"}]}]]}]}]}]}]
+9:["$","script","script-0",{"src":"/_next/static/chunks/3ffe4e50527d7e89.js","async":true}]
+a:["$","$Lc",null,{"children":["$","$d",null,{"name":"Next.MetadataOutlet","children":"$@e"}]}]
+e:null

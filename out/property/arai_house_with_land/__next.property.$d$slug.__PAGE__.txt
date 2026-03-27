@@ -1,0 +1,60 @@
+1:"$Sreact.fragment"
+2:I[22016,["/_next/static/chunks/e8dcc844ceeeade7.js","/_next/static/chunks/3ffe4e50527d7e89.js"],""]
+b:I[96435,["/_next/static/chunks/e8dcc844ceeeade7.js","/_next/static/chunks/3ffe4e50527d7e89.js"],"default"]
+c:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/d2be314c3ece3fbe.js"],"OutletBoundary"]
+d:"$Sreact.suspense"
+3:T645,<p>The house has a newly fitted boiler that should still be in good working order. The down stairs will need renovation butu the bedrooms on the second floor are clean and would not need much work. The house is spacious on both floors allowing for a modern open plan style of renovation.</p>
+<h4>Land</h4>
+<ul>
+<li><strong>Residential Land (宅地):</strong>
+<ul>
+<li>301.99 m&sup2;</li>
+<li>5.13 m&sup2;</li>
+</ul>
+</li>
+<li><strong>Other Land (雑種地):</strong>
+<ul>
+<li>83 m&sup2;</li>
+<li>3.58 m&sup2;</li>
+</ul>
+</li>
+<li><strong>Total Land Size:</strong> Approx. 393.7 m&sup2;</li>
+</ul>
+<h4>Building</h4>
+<ul>
+<li><strong>Type:</strong> Residential House</li>
+<li><strong>Structure:</strong> Wooden structure with galvanized steel roofing</li>
+<li><strong>Floors:</strong> 3-storey</li>
+</ul>
+<p><strong>Floor Areas:</strong></p>
+<ul>
+<li>1st Floor: 80.67 m&sup2;</li>
+<li>2nd Floor: 90.16 m&sup2;</li>
+<li>3rd Floor: 69.38 m&sup2;</li>
+</ul>
+<h4>Highlights</h4>
+<ul>
+<li>Plenty of rooms for flexible renovation</li>
+<li>plot of land for car parking</li>
+<li>Quiet residential setting with strong natural surroundings</li>
+<li>Suitable for family home, holiday house, or rental investment (subject to approvals)</li>
+<li>Located in a growing tourism area with international appeal</li>
+</ul>
+<h4>Location Benefits</h4>
+<ul>
+<li>World-class skiing and snowboarding in winter</li>
+<li>Hiking, cycling, and outdoor activities year-round</li>
+<li>Easy access from Tokyo and major transport hubs</li>
+</ul>
+<h4>Additional Information</h4>
+<ul>
+<li>Includes both land and building ownership</li>
+</ul>0:{"buildId":"1774582904177","rsc":["$","$1","c",{"children":[["$","main",null,{"children":[["$","div",null,{"className":"hero","style":{"backgroundImage":"linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4)), url(/images/properties/arai_house_with_land/featured.jpg)","minHeight":"50vh","backgroundAttachment":"scroll"}}],["$","div",null,{"className":"layout__container section","children":["$","div",null,{"style":{"maxWidth":"900px","margin":"0 auto"},"children":[["$","$L2",null,{"href":"/properties","className":"button button--secondary u-mb-8","children":"← Back to Listings"}],["$","div",null,{"className":"u-mb-8","children":[["$","span",null,{"className":"text--xs u-mb-2","style":{"display":"block","textTransform":"uppercase","letterSpacing":"0.1em","color":"var(--color-accent-primary)"},"children":["house"," • ","Arai - Oizumo"]}],["$","h1",null,{"className":"u-mb-2","children":"Arai house with land"}],["$","p",null,{"className":"text--lead","style":{"fontWeight":600,"color":"var(--color-text-primary)"},"children":["¥ ","5,000,000"]}]]}],["$","p",null,{"className":"text--lead u-mb-8","style":{"color":"var(--color-text-primary)","fontStyle":"italic"},"children":"This unique property in Myoko City, Arai offers a rare combination of multiple land parcels and an existing 2 storey residential building, making it ideal for a private residence, renovation project, or investment opportunity.\n\nSituated in a quiet, nature-rich area, the property provides excellent access to Myoko’s famous resorts while maintaining privacy and space."}],["$","div",null,{"className":"u-mb-8","style":{"display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(150px, 1fr))","gap":"1rem","borderTop":"1px solid var(--color-border)","borderBottom":"1px solid var(--color-border)","padding":"1.5rem 0"},"children":[["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Status"}],["$","strong",null,{"style":{"textTransform":"capitalize","color":"var(--color-accent-primary)"},"children":"for sale"}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Bedrooms"}],["$","strong",null,{"children":4}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Toilets"}],["$","strong",null,{"children":2}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Floor Area"}],["$","strong",null,{"children":[240," m²"]}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Land Area"}],["$","strong",null,{"children":[393," m²"]}]]}]]}],["$","div",null,{"className":"u-mb-12","children":[["$","h3",null,{"className":"u-mb-4","children":"Overview"}],["$","div",null,{"className":"section__content","style":{"color":"var(--color-text-primary)","lineHeight":"1.8"},"dangerouslySetInnerHTML":{"__html":"$3"}}]]}],"$L4","$L5","$L6","$L7"]}]}],"$L8"]}],["$L9"],"$La"]}],"loading":null,"isPartial":false}
+4:["$","div",null,{"className":"u-mb-16","children":[["$","h3",null,{"className":"u-mb-6","children":"Amenities"}],["$","div",null,{"style":{"display":"flex","flexWrap":"wrap","gap":"0.75rem"},"children":[["$","span","0",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"Parking"}],["$","span","1",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"City Gas"}],["$","span","2",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"City Sewage"}]]}]]}]
+5:["$","div",null,{"className":"u-mb-16","children":[["$","h3",null,{"className":"u-mb-4","children":"Area & Access"}],["$","p",null,{"style":{"lineHeight":"1.8","color":"var(--color-text-primary)"},"children":"A quiet residential area with great access to local services. Only 20-25min to all resorts in the area and 25min to Joetsu city."}]]}]
+6:["$","div",null,{"className":"u-mb-12","children":[["$","h3",null,{"className":"u-mb-4","children":"Location"}],["$","p",null,{"className":"u-mb-6","style":{"color":"var(--color-text-muted)"},"children":"Arai - Oizumo"}],["$","a",null,{"href":"https://maps.app.goo.gl/RYbAZENXZS1xGhrT8","target":"_blank","rel":"noopener noreferrer","className":"button button--primary","children":"View on Google Maps"}]]}]
+7:["$","div",null,{"className":"u-mt-12","children":[["$","h3",null,{"className":"u-mb-6","children":"Gallery"}],["$","$Lb",null,{"gallery":[{"directus_files_id":"6d833c29-84e2-4b45-b607-5f81fe29bbec"},{"directus_files_id":"8987ae75-3f22-46f9-89ce-cd0f5a9b4359"},{"directus_files_id":"72ccf6aa-9a12-49c2-a0de-adf4f22308aa"},{"directus_files_id":"f8cd9e55-c39e-4570-bddd-4a46b76635c0"},{"directus_files_id":"8e70726f-89a7-42d7-b250-41da4c296a87"},{"directus_files_id":"e0bc8ebb-f067-4288-909e-9153ef62ca8b"},{"directus_files_id":"829a4be6-61fd-448f-9c5f-9d45ba97aca8"},{"directus_files_id":"26fd0bd6-3623-468c-bbb7-e72bdf28b614"},{"directus_files_id":"8431c2f0-3680-4b87-ac8f-911722acf65c"},{"directus_files_id":"48fbf3e9-f069-4fe2-9593-a016a371c69a"},{"directus_files_id":"0d1e5e44-129b-4a08-9d54-7c59e81474d9"},{"directus_files_id":"13476d8d-eb89-4d09-b7b2-261053140ffd"},{"directus_files_id":"b64457e2-810c-4dd4-a6d7-d9114278340d"},{"directus_files_id":"857ac366-6e0a-4095-8728-07dfb4706b30"},{"directus_files_id":"c4997b64-8e7f-4378-aa6d-c082cc1a042e"},{"directus_files_id":"9aba867d-c553-4a5f-88b9-8d15d4f0c20f"},{"directus_files_id":"6cc9f6cb-44ae-476c-8619-1118942dc304"}],"featuredImageId":"b2f77816-600a-4360-a0ac-4144a8033c52","title":"Arai house with land","slug":"arai_house_with_land"}]]}]
+8:["$","section",null,{"className":"section section--muted","style":{"borderTop":"1px solid var(--color-border)"},"children":["$","div",null,{"className":"layout__container","children":["$","div",null,{"className":"u-text-center","children":["$","div",null,{"className":"stack stack--lg","children":[["$","h2",null,{"children":"Interested in this property?"}],["$","p",null,{"className":"text--lead","style":{"maxWidth":"700px","margin":"0 auto"},"children":"We'd love to show you around. Contact us for more details or to schedule a viewing."}],["$","div",null,{"style":{"marginTop":"2rem"},"children":["$","a",null,{"href":"mailto:info@love-live-myoko.com?subject=Enquiry: Arai house with land","className":"button button--primary","children":"Enquire About This Property"}]}]]}]}]}]}]
+9:["$","script","script-0",{"src":"/_next/static/chunks/3ffe4e50527d7e89.js","async":true}]
+a:["$","$Lc",null,{"children":["$","$d",null,{"name":"Next.MetadataOutlet","children":"$@e"}]}]
+e:null
