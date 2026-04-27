@@ -1,0 +1,46 @@
+1:"$Sreact.fragment"
+2:I[22016,["/_next/static/chunks/e8dcc844ceeeade7.js","/_next/static/chunks/3ffe4e50527d7e89.js"],""]
+a:I[96435,["/_next/static/chunks/e8dcc844ceeeade7.js","/_next/static/chunks/3ffe4e50527d7e89.js"],"default"]
+b:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/d2be314c3ece3fbe.js"],"OutletBoundary"]
+c:"$Sreact.suspense"
+3:T830,<p>This is not your typical small plot, it&rsquo;s a rare opportunity to secure a large, flexible piece of land in Myoko at an extremely accessible price point. There is one sleeping cabin and two other smaller huts on the land as well as a large garage/store space. The land has road access and electricity. No water. The road is next to a tunnel that in winter functions as your own private covered car park area. City clears up to the tunnel making winter access very easy. The storage garage can be leased back to the current owner after sale if wished.</p>
+<p>With over 1,400㎡ of measured land, this property offers serious potential for a wide range of uses:</p>
+<ul>
+<li>Private use, cabin building</li>
+<li>Storage or workshop use with existing warehouse</li>
+<li>Long-term land banking in a growing resort region</li>
+<li>Redevelopment or creative projects</li>
+</ul>
+<p>The mix of forest and open land gives the site character and versatility, while the existing steel-frame warehouse provides immediate utility.</p>
+<p>One standout point is the significant upside in actual usable land (measured vs registered) &mdash; something experienced buyers will immediately recognize as value.</p>
+<h3>Land</h3>
+<ul>
+<li>Registered Land Area (Official Record): 1,127 m&sup2; (approx. 340.91 tsubo)</li>
+<li>Measured Land Area: 1,493.97 m&sup2; (approx. 451.92 tsubo)</li>
+<li>Land Classification: Forest (山林) / Uncultivated Land (原野)</li>
+<li>Current Condition: Sold as-is</li>
+<li>Handover: Negotiable</li>
+</ul>
+<h3>Land Breakdown</h3>
+<ul>
+<li>334-3: 26 m&sup2; (Forest)</li>
+<li>334-4: 231 m&sup2; (Forest)</li>
+<li>341-1: 701 m&sup2; (Uncultivated land)</li>
+<li>341-8: 147 m&sup2; (Uncultivated land)</li>
+<li>341-9: 22 m&sup2; (Uncultivated land)</li>
+</ul>
+<h3>Building</h3>
+<ul>
+<li>Type: Warehouse</li>
+<li>Structure: Steel-frame, single-story</li>
+<li>Floor Area: 45.61 m&sup2;</li>
+<li>Year Built: Unknown</li>
+</ul>
+<p><strong>Forest (山林)</strong>: Land with trees<br><strong>Uncultivated Land (原野)</strong>: Unused open land, easier to convert to residential</p>0:{"buildId":"1777291203488","rsc":["$","$1","c",{"children":[["$","main",null,{"children":[["$","div",null,{"className":"hero","style":{"backgroundImage":"linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4)), url(/images/properties/land-myokokogen-keiwaizaka/featured.jpg)","minHeight":"50vh","backgroundAttachment":"scroll"}}],["$","div",null,{"className":"layout__container section","children":["$","div",null,{"style":{"maxWidth":"900px","margin":"0 auto"},"children":[["$","$L2",null,{"href":"/properties","className":"button button--secondary u-mb-8","children":"← Back to Listings"}],["$","div",null,{"className":"u-mb-8","children":[["$","span",null,{"className":"text--xs u-mb-2","style":{"display":"block","textTransform":"uppercase","letterSpacing":"0.1em","color":"var(--color-accent-primary)"},"children":["land"," • ","Myoko Kogen"]}],["$","h1",null,{"className":"u-mb-2","children":"Land - Myoko Kogen, Kewaizaka"}],["$","p",null,{"className":"text--lead","style":{"fontWeight":600,"color":"var(--color-text-primary)"},"children":["¥ ","15,000,000"]}]]}],["$","p",null,{"className":"text--lead u-mb-8","style":{"color":"var(--color-text-primary)","fontStyle":"italic"},"children":"This large land parcel in Myoko offers over 1,400㎡ of usable space across a mix of forest and open land, providing flexibility for a variety of uses. With an existing steel-frame warehouse already in place, the property is well-suited for storage, a private retreat, or future development projects. "}],["$","div",null,{"className":"u-mb-8","style":{"display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(150px, 1fr))","gap":"1rem","borderTop":"1px solid var(--color-border)","borderBottom":"1px solid var(--color-border)","padding":"1.5rem 0"},"children":[["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Status"}],["$","strong",null,{"style":{"textTransform":"capitalize","color":"var(--color-accent-primary)"},"children":"for sale"}]]}],null,null,null,["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Land Area"}],["$","strong",null,{"children":[1400," m²"]}]]}]]}],["$","div",null,{"className":"u-mb-12","children":[["$","h3",null,{"className":"u-mb-4","children":"Overview"}],["$","div",null,{"className":"section__content","style":{"color":"var(--color-text-primary)","lineHeight":"1.8"},"dangerouslySetInnerHTML":{"__html":"$3"}}]]}],null,"$L4","$L5","$L6"]}]}],"$L7"]}],["$L8"],"$L9"]}],"loading":null,"isPartial":false}
+4:["$","div",null,{"className":"u-mb-16","children":[["$","h3",null,{"className":"u-mb-4","children":"Area & Access"}],["$","p",null,{"style":{"lineHeight":"1.8","color":"var(--color-text-primary)"},"children":"5min to Akakura Onsen ski resorts. Also close to the center of Myoko Kogen village with 7-11 in sight, Route 18 just down the road and a 2-3min drive to the supermarket and train station."}]]}]
+5:["$","div",null,{"className":"u-mb-12","children":[["$","h3",null,{"className":"u-mb-4","children":"Location"}],["$","p",null,{"className":"u-mb-6","style":{"color":"var(--color-text-muted)"},"children":"Myoko Kogen"}],["$","a",null,{"href":"https://maps.app.goo.gl/BDmu9F36Y2GjQ51M6","target":"_blank","rel":"noopener noreferrer","className":"button button--primary","children":"View on Google Maps"}]]}]
+6:["$","div",null,{"className":"u-mt-12","children":[["$","h3",null,{"className":"u-mb-6","children":"Gallery"}],["$","$La",null,{"gallery":[{"directus_files_id":"f81bff2f-a558-49ac-8e83-116b73517549"},{"directus_files_id":"359c7bc0-025b-4668-b655-124531388140"},{"directus_files_id":"a98b69bc-5dc1-4828-8a8a-9128c6a53eb2"},{"directus_files_id":"cb6e4e88-3df7-452f-b1d5-6d1bb1e00cab"},{"directus_files_id":"560e3d16-bfff-4225-8698-37f98180eb2f"},{"directus_files_id":"afecba36-4057-4f64-b11c-b20e6f68dd9e"},{"directus_files_id":"42804a9c-17a0-41ec-b656-2961fce99436"},{"directus_files_id":"be490b17-01d9-49aa-9673-ba2bce024399"},{"directus_files_id":"07bcd785-2139-4436-b53e-1ff2414dedbd"}],"featuredImageId":"3667c613-e84f-4308-aa5f-f21ac21bfd4d","title":"Land - Myoko Kogen, Kewaizaka","slug":"land-myokokogen-keiwaizaka"}]]}]
+7:["$","section",null,{"className":"section section--muted","style":{"borderTop":"1px solid var(--color-border)"},"children":["$","div",null,{"className":"layout__container","children":["$","div",null,{"className":"u-text-center","children":["$","div",null,{"className":"stack stack--lg","children":[["$","h2",null,{"children":"Interested in this property?"}],["$","p",null,{"className":"text--lead","style":{"maxWidth":"700px","margin":"0 auto"},"children":"We'd love to show you around. Contact us for more details or to schedule a viewing."}],["$","div",null,{"style":{"marginTop":"2rem"},"children":["$","a",null,{"href":"mailto:info@love-live-myoko.com?subject=Enquiry: Land - Myoko Kogen, Kewaizaka","className":"button button--primary","children":"Enquire About This Property"}]}]]}]}]}]}]
+8:["$","script","script-0",{"src":"/_next/static/chunks/3ffe4e50527d7e89.js","async":true}]
+9:["$","$Lb",null,{"children":["$","$c",null,{"name":"Next.MetadataOutlet","children":"$@d"}]}]
+d:null
