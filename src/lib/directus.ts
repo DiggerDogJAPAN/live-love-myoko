@@ -27,8 +27,29 @@ export interface Property {
     sort_order?: number;
 }
 
+export interface Accommodation {
+    id: number;
+    title: string;
+    slug: string;
+    summary?: string;
+    about?: string;
+    rooms?: number;
+    beds?: number;
+    baths?: number;
+    max_guests?: number;
+    parking?: number;
+    price?: number;
+    price_display?: string;
+    featured_image: string; // This is a file ID
+    gallery?: { directus_files_id: string }[]; // M2M junction structure
+    website_url?: string;
+    map_url?: string;
+    published: boolean;
+}
+
 export interface Schema {
     properties: Property[];
+    accommodations: Accommodation[];
 }
 
 const DIRECTUS_URL = process.env.NEXT_PUBLIC_DIRECTUS_URL || 'http://localhost:8055';
@@ -78,4 +99,34 @@ export async function getProperty(slug: string) {
         }
     }
     return property || null;
+}
+
+// Helper to fetch all accommodations (for listing and static params)
+export async function getAccommodations() {
+    return await directus.request(
+        readItems('accommodations', {
+            fields: ['slug', 'title', 'id', 'featured_image', 'summary', 'price_display', 'max_guests', 'rooms', 'parking'],
+            filter: {
+                published: { _eq: true }
+            }
+        })
+    );
+}
+
+// Helper to fetch single accommodation by slug
+export async function getAccommodation(slug: string) {
+    const result = await directus.request(
+        readItems('accommodations', {
+            filter: {
+                slug: { _eq: slug }
+            },
+            limit: 1,
+            fields: [
+                '*',
+                { gallery: ['directus_files_id'] }
+            ]
+        })
+    );
+
+    return result[0] || null;
 }

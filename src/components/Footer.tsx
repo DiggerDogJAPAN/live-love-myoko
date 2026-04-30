@@ -21,6 +21,7 @@ export default function Footer() {
                     <div className="footer__section footer__section--nav">
                         <h4 className="footer__heading">Navigation</h4>
                         <nav className="footer__nav">
+                            <Link href="/accommodation" className="footer__link">Accommodation</Link>
                             <Link href="/properties" className="footer__link">Properties</Link>
                             <Link href="/management" className="footer__link">Management</Link>
                             <Link href="/maintenance" className="footer__link">Maintenance</Link>

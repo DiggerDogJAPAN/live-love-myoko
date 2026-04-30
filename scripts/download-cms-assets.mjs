@@ -57,6 +57,30 @@ async function run() {
                 }
             }
         }
+
+        console.log('--- Downloading Accommodation Assets ---');
+        const accommodations = await directus.request(readItems('accommodations', {
+            fields: ['slug', 'featured_image', { gallery: ['directus_files_id'] }],
+            filter: { published: { _eq: true } }
+        }));
+
+        for (const acc of accommodations) {
+            const accDir = path.join(__dirname, '../public/images/accommodations', acc.slug);
+
+            // Download featured image
+            if (acc.featured_image) {
+                await downloadImage(acc.featured_image, path.join(accDir, 'featured.jpg'));
+            }
+
+            // Download gallery images
+            if (acc.gallery && acc.gallery.length > 0) {
+                for (let i = 0; i < acc.gallery.length; i++) {
+                    const fileId = acc.gallery[i].directus_files_id;
+                    await downloadImage(fileId, path.join(accDir, `gallery-${i + 1}.jpg`));
+                }
+            }
+        }
+
         console.log('--- Assets Downloaded Successfully ---');
     } catch (error) {
         console.error('Error downloading assets:', error);

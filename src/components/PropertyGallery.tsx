@@ -8,9 +8,10 @@ interface PropertyGalleryProps {
     featuredImageId?: string | null;
     title: string;
     slug: string;
+    collection?: 'properties' | 'accommodations';
 }
 
-export default function PropertyGallery({ gallery, featuredImageId, title, slug }: PropertyGalleryProps) {
+export default function PropertyGallery({ gallery, featuredImageId, title, slug, collection = 'properties' }: PropertyGalleryProps) {
     const [currentIndex, setCurrentIndex] = useState<number | null>(null);
 
     const isProd = process.env.NODE_ENV === 'production';
@@ -23,15 +24,15 @@ export default function PropertyGallery({ gallery, featuredImageId, title, slug 
 
     const getFullUrl = (id: string, index?: number, isFeatured?: boolean) => {
         if (isProd) {
-            if (isFeatured) return `/images/properties/${slug}/featured.jpg`;
-            return `/images/properties/${slug}/gallery-${index}.jpg`;
+            if (isFeatured) return `/images/${collection}/${slug}/featured.jpg`;
+            return `/images/${collection}/${slug}/gallery-${index}.jpg`;
         }
         return `${DIRECTUS_ASSETS_BASE}/${id}`;
     };
 
     const getThumbUrl = (id: string, index: number) => {
         if (isProd) {
-            return `/images/properties/${slug}/gallery-${index + 1}.jpg`;
+            return `/images/${collection}/${slug}/gallery-${index + 1}.jpg`;
         }
         return `${DIRECTUS_ASSETS_BASE}/${id}?width=600&height=400&fit=cover`;
     };

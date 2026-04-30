@@ -14,6 +14,9 @@ export default function Header() {
                 </div>
 
                 <nav className="header__nav">
+                    <Link href="/accommodation" className="header__link">
+                        Accommodation
+                    </Link>
                     <Link href="/management" className="header__link">
                         Management
                     </Link>
@@ -58,6 +61,13 @@ export default function Header() {
                 </button>
 
                 <nav className="header__mobile-nav">
+                    <Link
+                        href="/accommodation"
+                        className="header__mobile-link"
+                        onClick={() => setMobileMenuOpen(false)}
+                    >
+                        Accommodation
+                    </Link>
                     <Link
                         href="/management"
                         className="header__mobile-link"
