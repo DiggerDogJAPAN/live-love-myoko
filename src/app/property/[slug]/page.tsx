@@ -4,6 +4,17 @@ import Link from 'next/link';
 import PropertyGallery from '@/components/PropertyGallery';
 import { Metadata } from 'next';
 
+function getCleanMapUrl(url: string) {
+    if (!url) return '';
+    if (url.includes('<iframe')) {
+        const match = url.match(/src=["']([^"'\s>]+)/i);
+        if (match && match[1]) {
+            url = match[1];
+        }
+    }
+    return url;
+}
+
 // Generate dynamic metadata for SEO
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
     const { slug } = await params;
@@ -178,7 +189,7 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                             <h3 className="u-mb-4">Location</h3>
                             <p className="u-mb-6" style={{ color: 'var(--color-text-muted)' }}>{property.location}</p>
                             <a
-                                href={property.map_url}
+                                href={getCleanMapUrl(property.map_url)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="button button--primary"

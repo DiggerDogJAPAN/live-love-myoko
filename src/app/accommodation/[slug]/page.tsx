@@ -6,23 +6,41 @@ import { Metadata } from 'next';
 
 function getEmbedUrl(url: string, fallbackTitle: string) {
     if (!url) return '';
-    if (url.includes('output=embed')) return url;
+
+    // If the user pasted a full iframe code, extract the src URL
+    // Handles case where the iframe code might be truncated
+    if (url.includes('<iframe')) {
+        const match = url.match(/src=["']([^"'\s>]+)/i);
+        if (match && match[1]) {
+            url = match[1];
+        }
+    }
+
+    if (url.includes('output=embed') || url.includes('/maps/embed') || url.includes('/maps/d/embed')) {
+        // Adjust zoom level for Google Maps pb-based embed URLs
+        if (url.includes('pb=')) {
+            // !1d followed by a number is the camera scale (height of map in meters).
+            // Larger number = zoomed out further. Setting it to 4000 (4km span) provides a good view of the village context.
+            url = url.replace(/!1d([0-9\.]+)/, '!1d4000');
+        }
+        return url;
+    }
 
     try {
         const urlObj = new URL(url);
         const placeMatch = url.match(/\/place\/([^\/\?]+)/);
         if (placeMatch && placeMatch[1]) {
-            return `https://www.google.com/maps?q=${placeMatch[1]}&output=embed`;
+            return `https://www.google.com/maps?q=${placeMatch[1]}&z=14&output=embed`;
         }
         if (urlObj.searchParams.has('q')) {
-            return `https://www.google.com/maps?q=${urlObj.searchParams.get('q')}&output=embed`;
+            return `https://www.google.com/maps?q=${urlObj.searchParams.get('q')}&z=14&output=embed`;
         }
     } catch (e) {
         // Invalid URL or unparseable, fallback below
     }
 
-    // Fallback: Use the accommodation title as the query
-    return `https://www.google.com/maps?q=${encodeURIComponent(fallbackTitle)}&output=embed`;
+    // Fallback: Use the accommodation title + region as the query to be precise, with zoom level z=14 (moderate zoom-out)
+    return `https://www.google.com/maps?q=${encodeURIComponent(`${fallbackTitle}, Myoko Kogen, Japan`)}&z=14&output=embed`;
 }
 
 // Generate dynamic metadata for SEO
@@ -164,28 +182,31 @@ export default async function AccommodationPage({ params }: { params: { slug: st
                     </div>
 
                     {/* Map Section */}
-                    {accommodation.map_url && (
-                        <div className="u-mb-12">
-                            <h3 className="u-mb-4">Location</h3>
-                            <div className="embed-map u-mb-4">
-                                <iframe
-                                    src={getEmbedUrl(accommodation.map_url, accommodation.title)}
-                                    allowFullScreen
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer-when-downgrade"
-                                    title={`Map showing location of ${accommodation.title}`}
-                                ></iframe>
+                    {accommodation.map_url && (() => {
+                        const embedUrl = getEmbedUrl(accommodation.map_url, accommodation.title);
+                        return (
+                            <div className="u-mb-12">
+                                <h3 className="u-mb-4">Location</h3>
+                                <div className="embed-map u-mb-4">
+                                    <iframe
+                                        src={embedUrl}
+                                        allowFullScreen
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        title={`Map showing location of ${accommodation.title}`}
+                                    ></iframe>
+                                </div>
+                                <a 
+                                    href={embedUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="embed-map__link"
+                                >
+                                    View on Google Maps &rarr;
+                                </a>
                             </div>
-                            <a 
-                                href={accommodation.map_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="embed-map__link"
-                            >
-                                View on Google Maps &rarr;
-                            </a>
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
             </div>
 

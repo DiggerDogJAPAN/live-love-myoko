@@ -98,7 +98,7 @@ async function main() {
         // Extras
         { field: 'amenities', type: 'json', meta: { interface: 'select-multiple-checkbox', sort: 15, options: { choices: [{ text: 'Fireplace', value: 'fireplace' }, { text: 'Parking', value: 'parking' }, { text: 'Ski-in / Ski-out', value: 'ski_in_out' }, { text: 'Onsen Nearby', value: 'onsen_nearby' }, { text: 'Balcony / Terrace', value: 'balcony_terrace' }, { text: 'Furnished', value: 'furnished' }, { text: 'Staff Accommodation', value: 'staff_accommodation' }] } } },
         { field: 'location', type: 'string', meta: { interface: 'input', sort: 16 } },
-        { field: 'map_url', type: 'string', meta: { interface: 'input', sort: 17 } },
+        { field: 'map_url', type: 'text', meta: { interface: 'input', sort: 17 } },
         { field: 'area_notes', type: 'text', meta: { interface: 'textarea', sort: 18 } },
         { field: 'seo_title', type: 'string', meta: { interface: 'input', sort: 19 } },
         { field: 'seo_description', type: 'text', meta: { interface: 'textarea', sort: 20 } },

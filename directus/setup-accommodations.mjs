@@ -75,7 +75,7 @@ async function main() {
 
         // Links
         { field: 'website_url', type: 'string', meta: { interface: 'input' } },
-        { field: 'map_url', type: 'string', meta: { interface: 'input' } },
+        { field: 'map_url', type: 'text', meta: { interface: 'input' } },
 
         // Publishing
         { field: 'published', type: 'boolean', schema: { default_value: false }, meta: { interface: 'boolean', special: ['cast-boolean'] } }
