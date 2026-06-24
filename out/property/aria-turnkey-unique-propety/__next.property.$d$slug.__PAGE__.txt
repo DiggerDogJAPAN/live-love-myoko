@@ -1,0 +1,90 @@
+1:"$Sreact.fragment"
+2:I[22016,["/_next/static/chunks/9b3cd1422636327c.js","/_next/static/chunks/5c082de4c156eafb.js"],""]
+b:I[96435,["/_next/static/chunks/9b3cd1422636327c.js","/_next/static/chunks/5c082de4c156eafb.js"],"default"]
+c:I[97367,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/d2be314c3ece3fbe.js"],"OutletBoundary"]
+d:"$Sreact.suspense"
+3:T1306,<h3>Spacious Home in Myoko</h3>
+<p>This well-maintained two-storey residence combines generous living spaces with a flexible floor plan that can easily be customised to suit a new owner's vision.</p>
+<p>The home's standout feature is its unique open-plan layout, creating bright and versatile spaces that can be configured as large family living areas, entertainment zones, workspaces, or guest accommodation. Unlike many traditional Japanese homes, the interior offers excellent flexibility for modern living and future renovations.</p>
+<p>Built in 1998 and offering over 204m&sup2; of internal floor space, the property is equipped with solar panels, radiator heating, and air conditioning, providing comfort throughout all seasons while helping to improve energy efficiency.</p>
+<p>Located in a quiet residential area of Myoko City, the home enjoys easy access to local amenities, ski resorts, outdoor recreation, and year-round mountain activities. Whether used as a permanent residence or holiday home this home offers outstanding versatility and value.</p>
+<h3>Property Features</h3>
+<ul>
+<li>204.22m&sup2; total floor area</li>
+<li>264.87m&sup2; land area</li>
+<li>Three-storey residence</li>
+<li>Built in February 1998</li>
+<li style="font-weight: bold;"><strong>Solar panel system</strong></li>
+<li style="font-weight: bold;"><strong>Radiator heating throughout the home</strong></li>
+<li style="font-weight: bold;"><strong>Air conditioning units installed</strong></li>
+<li>City water connection</li>
+<li>City gas connection</li>
+<li>Flexible open-plan layout</li>
+<li>Parking for up to 5 vehicles</li>
+<li>2 covered garage parking spaces</li>
+<li>3 additional off-street parking spaces</li>
+<li>Quiet residential neighbourhood</li>
+<li>Easy access to Myoko's ski resorts and outdoor activities</li>
+</ul>
+<h3>Parking &amp; Storage</h3>
+<p>The property offers exceptional parking capacity with space for up to five vehicles. Two vehicles can be parked in the covered garage, while three additional vehicles can be accommodated in the outdoor parking area. This makes the home ideal for larger families, holiday groups, or those requiring extra storage and vehicle space.</p>
+<h3>Running Costs</h3>
+<p>Annual fixed asset tax (property tax) is approximately <strong>&yen;50,000 per year</strong>.</p>
+<h3>Availability</h3>
+<p>The property is currently owner-occupied and is expected to be available for handover from late October.</p>
+<h3>Estimated Purchase Costs</h3>
+<p>In addition to the purchase price, buyers should budget for the following transaction costs. These figures are estimates and may vary slightly depending on the final purchase price and individual circumstances.</p>
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-family: Arial, sans-serif;">
+<thead>
+<tr style="background-color: #f8f6f2;">
+<th style="padding: 12px 16px; border: 1px solid #E5E7EB; text-align: left;">Item</th>
+<th style="padding: 12px 16px; border: 1px solid #E5E7EB; text-align: right;">Estimated Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB;">Purchase Price</td>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB; text-align: right;">&yen;23,000,000</td>
+</tr>
+<tr>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB;">Real Estate Agent Fee</td>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB; text-align: right;">&yen;825,000</td>
+</tr>
+<tr>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB;">Buyer Support Fee</td>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB; text-align: right;">&yen;500,000</td>
+</tr>
+<tr>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB;">Scrivener Fee</td>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB; text-align: right;">Approx. &yen;150,000</td>
+</tr>
+<tr>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB;">Real Estate Acquisition Tax</td>
+<td style="padding: 12px 16px; border: 1px solid #E5E7EB; text-align: right;">Approx. &yen;50,000 &ndash; &yen;150,000</td>
+</tr>
+</tbody>
+<tfoot>
+<tr style="background-color: #1f3a5f; color: #ffffff;">
+<td style="padding: 14px 16px; border: 1px solid #1F3A5F; font-weight: bold;">Estimated Total Funds Required</td>
+<td style="padding: 14px 16px; border: 1px solid #1F3A5F; text-align: right; font-weight: bold;">&yen;24,525,000 &ndash; &yen;24,625,000</td>
+</tr>
+</tfoot>
+</table>
+<h3>Buyer Support Fee Includes</h3>
+<ul>
+<li>Liaison with the seller and real estate agent</li>
+<li>Translation and document assistance</li>
+<li>Utility transfer support</li>
+<li>Tax and insurance guidance</li>
+<li>Settlement and handover assistance</li>
+<li>Local support throughout the purchase process</li>
+</ul>
+<p>Our goal is to make purchasing property in Japan as simple and stress-free as possible, providing support throughout the entire transaction process.</p>0:{"buildId":"1782269302386","rsc":["$","$1","c",{"children":[["$","main",null,{"children":[["$","div",null,{"className":"hero","style":{"backgroundImage":"linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4)), url(/images/properties/aria-turnkey-unique-propety/featured.jpg)","minHeight":"50vh","backgroundAttachment":"scroll"}}],["$","div",null,{"className":"layout__container section","children":["$","div",null,{"style":{"maxWidth":"900px","margin":"0 auto"},"children":[["$","$L2",null,{"href":"/properties","className":"button button--secondary u-mb-8","children":"← Back to Listings"}],["$","div",null,{"className":"u-mb-8","children":[["$","span",null,{"className":"text--xs u-mb-2","style":{"display":"block","textTransform":"uppercase","letterSpacing":"0.1em","color":"var(--color-accent-primary)"},"children":["house"," • ","Myoko City - Arai"]}],["$","h1",null,{"className":"u-mb-2","children":"Arai Turnkey Property"}],["$","p",null,{"className":"text--lead","style":{"fontWeight":600,"color":"var(--color-text-primary)"},"children":["¥ ","23,000,000"]}]]}],["$","p",null,{"className":"text--lead u-mb-8","style":{"color":"var(--color-text-primary)","fontStyle":"italic"},"children":"Located in a quiet residential area of Myoko City, this spacious three-storey home offers over 204m² of internal living space on a 264.87m² land parcel. Built in 1998, the property features a unique open-plan design that can be adapted to suit a wide range of lifestyles, whether as a family residence, holiday home, staff accommodation, or tourism investment property.\n\nThe house benefits from modern utilities including city water, city gas, and mains electricity, together with energy-saving solar panels and comfortable radiator heating throughout the colder months. Air conditioning units provide year-round climate control.\n\nWith parking for up to five vehicles, including two covered garage spaces and three additional off-street parking spaces, the property offers excellent convenience for families or groups.\n\nLocated in one of Japan's premier mountain resort regions, the property provides easy access to skiing, outdoor activities, and local amenities while remaining in a quiet residential setting."}],["$","div",null,{"className":"u-mb-8","style":{"display":"grid","gridTemplateColumns":"repeat(auto-fit, minmax(150px, 1fr))","gap":"1rem","borderTop":"1px solid var(--color-border)","borderBottom":"1px solid var(--color-border)","padding":"1.5rem 0"},"children":[["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Status"}],["$","strong",null,{"style":{"textTransform":"capitalize","color":"var(--color-accent-primary)"},"children":"for sale"}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Bedrooms"}],["$","strong",null,{"children":4}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Toilets"}],["$","strong",null,{"children":2}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Floor Area"}],["$","strong",null,{"children":[204," m²"]}]]}],["$","div",null,{"children":[["$","span",null,{"className":"text--xs","style":{"display":"block","color":"var(--color-text-muted)"},"children":"Land Area"}],["$","strong",null,{"children":[265," m²"]}]]}]]}],["$","div",null,{"className":"u-mb-12","children":[["$","h3",null,{"className":"u-mb-4","children":"Overview"}],["$","div",null,{"className":"section__content","style":{"color":"var(--color-text-primary)","lineHeight":"1.8"},"dangerouslySetInnerHTML":{"__html":"$3"}}]]}],"$L4","$L5","$L6","$L7"]}]}],"$L8"]}],["$L9"],"$La"]}],"loading":null,"isPartial":false}
+4:["$","div",null,{"className":"u-mb-16","children":[["$","h3",null,{"className":"u-mb-6","children":"Amenities"}],["$","div",null,{"style":{"display":"flex","flexWrap":"wrap","gap":"0.75rem"},"children":[["$","span","0",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"Turnkey"}],["$","span","1",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"Parking"}],["$","span","2",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"City Gas"}],["$","span","3",{"style":{"background":"var(--color-bg-alt)","padding":"0.5rem 1rem","borderRadius":"2rem","fontSize":"var(--text-xs)","border":"1px solid var(--color-border)"},"children":"City Sewage"}]]}]]}]
+5:["$","div",null,{"className":"u-mb-16","children":[["$","h3",null,{"className":"u-mb-4","children":"Area & Access"}],["$","p",null,{"style":{"lineHeight":"1.8","color":"var(--color-text-primary)"},"children":"Located in a peaceful residential neighbourhood of Myoko City, this property enjoys an excellent balance of convenience and locality to resorts. Daily amenities including supermarkets, restaurants, cafés, convenience stores etc are all within easy reach.\n\nThe property's central location makes it an ideal base for enjoying everything the Myoko region has to offer. All major ski resorts, including Akakura Onsen, Akakura Kanko, Ikenotaira, Suginohara, and Lotte Arai Resort, can be reached in approximately 25 minutes by car.\n\nWhether used as a permanent residence or holiday home, this location offers the perfect combination of accessibility and convenience."}]]}]
+6:["$","div",null,{"className":"u-mb-12","children":[["$","h3",null,{"className":"u-mb-4","children":"Location"}],["$","p",null,{"className":"u-mb-6","style":{"color":"var(--color-text-muted)"},"children":"Myoko City - Arai"}],["$","a",null,{"href":"https://maps.app.goo.gl/dL4uh6dCHDPTUCpVA","target":"_blank","rel":"noopener noreferrer","className":"button button--primary","children":"View on Google Maps"}]]}]
+7:["$","div",null,{"className":"u-mt-12","children":[["$","h3",null,{"className":"u-mb-6","children":"Gallery"}],["$","$Lb",null,{"gallery":[{"directus_files_id":"2f071092-695a-4bc5-8be7-50e45ae6ba6c"},{"directus_files_id":"8c05d039-7476-437f-b1fa-22317fb1782c"},{"directus_files_id":"c557c899-e305-44f9-8fd2-e0f3b3ecb729"},{"directus_files_id":"b3f45a47-de2f-4438-a0e2-185371c612a9"},{"directus_files_id":"77b3f2a4-1c3b-409d-913d-4ef39ecd3097"},{"directus_files_id":"8a6dffcc-d2ee-46e6-b590-4980cbec435e"},{"directus_files_id":"692c2b87-26d1-4d1c-b30b-31f2e3a92f9d"},{"directus_files_id":"bc5765e5-a034-45f4-b61a-230a1ad18cbe"},{"directus_files_id":"0cddfed9-9329-4c0b-ba52-1e562820c4cc"},{"directus_files_id":"c8f27360-199e-449d-aaeb-826486324aa1"},{"directus_files_id":"92de7743-7ed5-4f1f-9f80-8bbf2469fb89"},{"directus_files_id":"35af102f-20e9-462a-862f-2f7381c2ff6e"},{"directus_files_id":"8e49de25-ed7a-48c6-91ec-0a0f8f778b27"},{"directus_files_id":"ed9ee949-c268-41dd-96df-2cddceaa78bc"},{"directus_files_id":"14d2abe2-5fc6-426d-909e-dc98627200e6"},{"directus_files_id":"f2f25129-067c-4421-9dfe-f18a10e67b0d"},{"directus_files_id":"2964e05f-c8c1-4ede-9a51-26fbeeeac680"},{"directus_files_id":"088209e7-929d-4915-9ab9-98836529473c"},{"directus_files_id":"62052cee-5d64-4501-861d-0e741920a2e7"}],"featuredImageId":"f9a4c442-5a5f-4252-9018-76ee5251f7ae","title":"Arai Turnkey Property","slug":"aria-turnkey-unique-propety"}]]}]
+8:["$","section",null,{"className":"section section--muted","style":{"borderTop":"1px solid var(--color-border)"},"children":["$","div",null,{"className":"layout__container","children":["$","div",null,{"className":"u-text-center","children":["$","div",null,{"className":"stack stack--lg","children":[["$","h2",null,{"children":"Interested in this property?"}],["$","p",null,{"className":"text--lead","style":{"maxWidth":"700px","margin":"0 auto"},"children":"We'd love to show you around. Contact us for more details or to schedule a viewing."}],["$","div",null,{"style":{"marginTop":"2rem"},"children":["$","a",null,{"href":"mailto:info@love-live-myoko.com?subject=Enquiry: Arai Turnkey Property","className":"button button--primary","children":"Enquire About This Property"}]}]]}]}]}]}]
+9:["$","script","script-0",{"src":"/_next/static/chunks/5c082de4c156eafb.js","async":true}]
+a:["$","$Lc",null,{"children":["$","$d",null,{"name":"Next.MetadataOutlet","children":"$@e"}]}]
+e:null
