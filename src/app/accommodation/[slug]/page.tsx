@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import AirbnbGallery from '@/components/AirbnbGallery';
 import { Metadata } from 'next';
+import { generateAccommodationSchema } from '@/lib/schema';
 
 function getEmbedUrl(url: string, fallbackTitle: string) {
     if (!url) return '';
@@ -79,8 +80,16 @@ export default async function AccommodationPage({ params }: { params: { slug: st
             : `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${accommodation.featured_image}`)
         : null;
 
+    const jsonLd = generateAccommodationSchema(accommodation, slug);
+
     return (
         <main>
+            {jsonLd && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                />
+            )}
             <div className="layout__container section">
                 <div className="container" style={{ maxWidth: "1200px", padding: 0 }}>
                     <Link href="/accommodation" className="button button--secondary u-mb-8">&larr; Back to Accommodations</Link>

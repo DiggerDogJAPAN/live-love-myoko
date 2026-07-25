@@ -16,6 +16,7 @@ export default function RootLayout({
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": "https://love-live-myoko.com/#organization",
     "name": "Love Live Myoko",
     "url": "https://love-live-myoko.com",
     "logo": "https://love-live-myoko.com/logo.png",
@@ -36,6 +37,7 @@ export default function RootLayout({
   const localBusinessSchema = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
+    "@id": "https://love-live-myoko.com/#localbusiness",
     "name": "Love Live Myoko",
     "url": "https://love-live-myoko.com",
     "areaServed": "Myoko, Niigata, Japan",
@@ -45,6 +47,7 @@ export default function RootLayout({
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": "https://love-live-myoko.com/#website",
     "name": "Love Live Myoko",
     "url": "https://love-live-myoko.com"
   };

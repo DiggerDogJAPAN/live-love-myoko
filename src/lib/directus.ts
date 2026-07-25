@@ -4,21 +4,33 @@ import { createDirectus, rest, staticToken, readItems, readItem } from '@directu
 export interface Property {
     id: number;
     status: 'for_sale' | 'managed' | 'sold';
+    listing_status?: 'available' | 'under_offer' | 'sold' | 'withdrawn';
     property_type: 'house' | 'apartment' | 'lodge' | 'land';
+    schema_property_type?: 'SingleFamilyResidence' | 'House' | 'Apartment' | 'Residence' | 'Place';
     title: string;
     slug: string;
     summary?: string;
+    rooms?: number;
     bedrooms?: number;
     bathrooms?: number;
     floor_area_sqm?: number;
+    floor_area?: number;
+    floor_area_unit?: string;
     land_area_sqm?: number;
     price?: number;
     price_display?: string;
     description?: string;
     featured_image: string; // This is a file ID
     gallery?: { directus_files_id: string }[]; // M2M junction structure
-    amenities?: string[];
+    amenities?: string[] | string;
     location?: string;
+    street_address?: string;
+    address_locality?: string;
+    address_region?: string;
+    postal_code?: string;
+    address_country?: string;
+    latitude?: number;
+    longitude?: number;
     map_url?: string;
     area_notes?: string;
     seo_title?: string;
@@ -42,6 +54,14 @@ export interface Accommodation {
     price_display?: string;
     featured_image: string; // This is a file ID
     gallery?: { directus_files_id: string }[]; // M2M junction structure
+    amenities?: string[];
+    street_address?: string;
+    address_locality?: string;
+    address_region?: string;
+    postal_code?: string;
+    address_country?: string;
+    latitude?: number;
+    longitude?: number;
     website_url?: string;
     map_url?: string;
     published: boolean;

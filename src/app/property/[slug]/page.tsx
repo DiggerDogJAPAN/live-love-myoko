@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import PropertyGallery from '@/components/PropertyGallery';
 import { Metadata } from 'next';
+import { generatePropertySchema } from '@/lib/schema';
 
 function getCleanMapUrl(url: string) {
     if (!url) return '';
@@ -51,8 +52,16 @@ export default async function PropertyPage({ params }: { params: { slug: string 
             : `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${property.featured_image}`)
         : null;
 
+    const jsonLd = generatePropertySchema(property, slug);
+
     return (
         <main>
+            {jsonLd && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                />
+            )}
             {/* Hero Image Section */}
             {featuredImageUrl && (
                 <div className="hero" style={{
@@ -138,13 +147,15 @@ export default async function PropertyPage({ params }: { params: { slug: string 
 
                     {/* Amenities Section */}
                     {(() => {
-                        let amenities: string[] | undefined = property.amenities;
-                        if (typeof amenities === 'string') {
+                        let amenities: string[] | undefined;
+                        if (typeof property.amenities === 'string') {
                             try {
-                                amenities = JSON.parse(amenities) as string[];
+                                amenities = JSON.parse(property.amenities) as string[];
                             } catch (e) {
                                 amenities = undefined;
                             }
+                        } else if (Array.isArray(property.amenities)) {
+                            amenities = property.amenities;
                         }
 
                         if (amenities && Array.isArray(amenities) && amenities.length > 0) {

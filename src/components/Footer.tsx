@@ -9,8 +9,9 @@ export default function Footer() {
         <footer className="footer">
             <div className="layout__container footer__content">
                 <div className="footer__grid">
-                    {/* Brand Section */}
-                    <div className="footer__section footer__section--brand">
+                    {/* Company Section */}
+                    <div className="footer__section footer__section--company">
+                        <h4 className="footer__heading">Company</h4>
                         <h3 className="footer__brand">LiveLoveMyoko</h3>
                         <p className="footer__description">
                             Property management, maintenance, and purchasing support for homes in Japan.
@@ -26,6 +27,17 @@ export default function Footer() {
                             <Link href="/management" className="footer__link">Management</Link>
                             <Link href="/maintenance" className="footer__link">Maintenance</Link>
                             <Link href="/purchase-property" className="footer__link">Purchase Property</Link>
+                        </nav>
+                    </div>
+
+                    {/* Additional Information */}
+                    <div className="footer__section footer__section--info">
+                        <h4 className="footer__heading">Additional Information</h4>
+                        <nav className="footer__nav">
+                            <Link href="/about" className="footer__link">About</Link>
+                            <Link href="/why-myoko" className="footer__link">Why Myoko?</Link>
+                            <Link href="/buying-property-japan" className="footer__link">Buying Property in Japan</Link>
+                            <Link href="/property-ownership-costs" className="footer__link">Cost of Owning Property</Link>
                         </nav>
                     </div>
 
