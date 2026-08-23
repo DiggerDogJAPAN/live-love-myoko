@@ -12,7 +12,7 @@ export default function Footer() {
                     {/* Company Section */}
                     <div className="footer__section footer__section--company">
                         <h4 className="footer__heading">Company</h4>
-                        <h3 className="footer__brand">LiveLoveMyoko</h3>
+                        <h3 className="footer__brand">Love Live Myoko</h3>
                         <p className="footer__description">
                             Property management, maintenance, and purchasing support for homes in Japan.
                         </p>
@@ -58,7 +58,7 @@ export default function Footer() {
                         Minpaku Management Licence: 国士交通大臣（01）第F05136号
                     </p>
                     <p className="footer__copyright">
-                        © {currentYear} LiveLoveMyoko. All rights reserved.
+                        © {currentYear} Love Live Myoko. All rights reserved.
                     </p>
                 </div>
             </div>

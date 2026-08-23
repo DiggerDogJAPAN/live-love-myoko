@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-    title: 'Property Maintenance | Live Love Myoko',
+    title: 'Property Maintenance | Love Live Myoko',
     description: 'Reliable, year-round property maintenance in Myoko. Snow clearing, inspections, and repairs for homes and lodges.',
 };
 

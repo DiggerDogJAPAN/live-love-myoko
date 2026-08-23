@@ -8,7 +8,7 @@ export default function Home() {
         <div className="hero__content">
           <div className="hero__text">
             <h1 className="hero__headline">
-              Live Love Myoko — Property, Lodges & Management in Myoko
+              Love Live Myoko — Property, Lodges & Management in Myoko
             </h1>
             <p className="hero__subheadline">
               Whether you already own a home or lodge in Myoko, or are looking to purchase a holiday property, we’re here to guide you every step of the way.
@@ -106,7 +106,7 @@ export default function Home() {
               <div className="stack">
                 <h2>Local expertise to rely on</h2>
                 <p>
-                  Live Love Myoko is based in the Myoko region, working closely with property
+                  Love Live Myoko is based in the Myoko region, working closely with property
                   owners, buyers, and guests to provide thoughtful property support year-round.
                 </p>
                 <p>
@@ -127,7 +127,7 @@ export default function Home() {
       <section className="section section--muted trust-highlights">
         <div className="container">
           <div className="u-text-center u-mb-8">
-            <h2>Why Owners Trust Live Love Myoko</h2>
+            <h2>Why Owners Trust Love Live Myoko</h2>
             <p className="text--lead">
               Local expertise, hands-on management, and clear communication — everything you need to feel confident your property is in good hands.
             </p>
@@ -165,7 +165,7 @@ export default function Home() {
 
           <div className="u-text-center u-mt-8">
             <p className="trust-highlights__reinforcement">
-              Whether you’re nearby or overseas, Live Love Myoko provides dependable, professional management you can trust year-round.
+              Whether you’re nearby or overseas, Love Live Myoko provides dependable, professional management you can trust year-round.
             </p>
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function Home() {
               <div className="stack stack--lg">
                 <h2>Find Your Place in Myoko</h2>
                 <p className="text--lead">
-                  Whether you’re looking to purchase a mountain home, invest in a lodge, or explore managed properties in the region, Live Love Myoko is here to guide you every step of the way.
+                  Whether you’re looking to purchase a mountain home, invest in a lodge, or explore managed properties in the region, Love Live Myoko is here to guide you every step of the way.
                 </p>
                 <div className="final-cta__actions">
                   <Link href="/properties" className="button button--primary">

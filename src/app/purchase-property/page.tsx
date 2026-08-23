@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-    title: 'Purchase Property | Live Love Myoko',
+    title: 'Purchase Property | Love Live Myoko',
     description: 'Expert guidance for purchasing property in Myoko. Local insight and professional support for international buyers.',
 };
 
@@ -163,7 +163,7 @@ export default function PurchasePropertyPage() {
             <section className="section section--muted trust-highlights">
                 <div className="layout__container">
                     <div className="u-text-center u-mb-8">
-                        <h2>Why Choose Live Love Myoko?</h2>
+                        <h2>Why Choose Love Live Myoko?</h2>
                         <p className="text--lead">
                             Reliable local partners for your property journey.
                         </p>

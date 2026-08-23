@@ -4,8 +4,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "LiveLove - Property Management",
-  description: "LiveLove Properties",
+  title: "Love Live Myoko - Property Management",
+  description: "Love Live Myoko Properties",
 };
 
 export default function RootLayout({

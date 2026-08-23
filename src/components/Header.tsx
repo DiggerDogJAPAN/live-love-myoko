@@ -10,7 +10,7 @@ export default function Header() {
         <header className="header">
             <div className="layout__container header__inner">
                 <div className="header__logo">
-                    <Link href="/">LiveLoveMyoko</Link>
+                    <Link href="/">LoveLiveMyoko</Link>
                 </div>
 
                 <nav className="header__nav">

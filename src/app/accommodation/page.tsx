@@ -2,7 +2,7 @@ import { getAccommodations } from '@/lib/directus';
 import AccommodationCard from '@/components/AccommodationCard';
 
 export const metadata = {
-    title: 'Accommodation | Live Love Myoko',
+    title: 'Accommodation | Love Live Myoko',
 };
 
 export default async function AccommodationPage() {

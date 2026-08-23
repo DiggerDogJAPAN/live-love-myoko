@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     if (!property) return { title: 'Property Not Found' };
 
     return {
-        title: property.seo_title || `${property.title} | LiveLove Myoko`,
+        title: property.seo_title || `${property.title} | Love Live Myoko`,
         description: property.seo_description || property.summary || `View details for ${property.title} in ${property.location}.`,
     };
 }

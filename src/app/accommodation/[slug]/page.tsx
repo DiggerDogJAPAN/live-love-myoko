@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     if (!accommodation) return { title: 'Accommodation Not Found' };
 
     return {
-        title: `${accommodation.title} | LiveLove Myoko`,
+        title: `${accommodation.title} | Love Live Myoko`,
         description: accommodation.summary || `View details for ${accommodation.title}.`,
     };
 }
@@ -182,7 +182,7 @@ export default async function AccommodationPage({ params }: { params: { slug: st
                                 </a>
                             )}
                             <a
-                                href={`mailto:info@live-love-myoko.com?subject=Book ${encodeURIComponent(accommodation.title)}&body=${encodeURIComponent(`We wish to enquire for a stay at ${accommodation.title}\n\nCheck in:\nCheck out:\nNo. of guests:\nNo. of cars:\n`)}`}
+                                href={`mailto:info@love-live-myoko.com?subject=Book ${encodeURIComponent(accommodation.title)}&body=${encodeURIComponent(`We wish to enquire for a stay at ${accommodation.title}\n\nCheck in:\nCheck out:\nNo. of guests:\nNo. of cars:\n`)}`}
                                 className={accommodation.website_url ? "button button--secondary" : "button button--primary"}
                             >
                                 Book Now
@@ -230,7 +230,7 @@ export default async function AccommodationPage({ params }: { params: { slug: st
                             </p>
                             <div className="u-mt-8">
                                 <a
-                                    href={`mailto:info@live-love-myoko.com?subject=Enquiry: ${accommodation.title}`}
+                                    href={`mailto:info@love-live-myoko.com?subject=Enquiry: ${accommodation.title}`}
                                     className="button button--primary"
                                 >
                                     Contact Us

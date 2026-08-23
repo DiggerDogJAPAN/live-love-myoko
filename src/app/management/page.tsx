@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export const metadata = {
-    title: 'Property Management | Live Love Myoko',
+    title: 'Property Management | Love Live Myoko',
     description: 'Boutique property management in Myoko. We limit our portfolio to ensure quality, compliance, and personal care for your home.',
 };
 

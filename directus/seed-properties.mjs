@@ -57,7 +57,7 @@ async function main() {
             amenities: ['Onsen Access', 'Professional Kitchen', 'Mountain Views', 'Staff Accomodation'],
             area_notes: 'Central location in Akakura Onsen, close to restaurants and bars.',
             map_url: 'https://maps.app.goo.gl/9yGvFzHzs8JbQzR2A',
-            description: '<p>Experience the ultimate alpine lifestyle in this recently renovated lodge. Currently under full management by LiveLove Myoko.</p>'
+            description: '<p>Experience the ultimate alpine lifestyle in this recently renovated lodge. Currently under full management by Love Live Myoko.</p>'
         }
     ];
 
