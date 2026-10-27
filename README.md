@@ -34,3 +34,21 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Maintenance URL redirect
+
+The site remains a static export. `/management/` contains the combined management
+and maintenance content; the old Maintenance page has been removed.
+
+The website is hosted on Cloudflare Pages. `public/_redirects` defines permanent
+HTTP 301 redirects from `/maintenance` and `/maintenance/` to `/management`.
+Next.js copies this static asset to `out/_redirects` during export; no Apache
+or Nginx configuration is needed.
+
+Deploy a **fresh** `out/` export so the old `maintenance/` directory and its
+HTML/RSC files are absent. Before deployment, confirm `out/_redirects` contains
+the rules from `public/_redirects`.
+
+After deployment, verify both old URLs return HTTP `301` with
+`Location: /management` and that following each redirect reaches the combined
+Management page. Live redirect verification remains pending deployment.

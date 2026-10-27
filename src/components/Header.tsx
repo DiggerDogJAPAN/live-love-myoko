@@ -18,10 +18,7 @@ export default function Header() {
                         Accommodation
                     </Link>
                     <Link href="/management" className="header__link">
-                        Management
-                    </Link>
-                    <Link href="/maintenance" className="header__link">
-                        Maintenance
+                        Property Management
                     </Link>
                     <Link href="/purchase-property" className="header__link">
                         Purchase Property
@@ -73,14 +70,7 @@ export default function Header() {
                         className="header__mobile-link"
                         onClick={() => setMobileMenuOpen(false)}
                     >
-                        Management
-                    </Link>
-                    <Link
-                        href="/maintenance"
-                        className="header__mobile-link"
-                        onClick={() => setMobileMenuOpen(false)}
-                    >
-                        Maintenance
+                        Property Management
                     </Link>
                     <Link
                         href="/purchase-property"

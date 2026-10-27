@@ -391,7 +391,7 @@ export default function BuyingPropertyJapanPage() {
 
             <div style={{ textAlign: 'center', padding: '1.5rem' }}>
               <h4 className="u-mb-2">Budget for Ongoing Maintenance</h4>
-              <p className="text--small">Factor in winterizing, heating system maintenance, and regular building upkeep. See our <Link href="/maintenance">maintenance guide</Link>.</p>
+              <p className="text--small">Factor in winterizing, heating system maintenance, and regular building upkeep. See our <Link href="/management">property care services</Link>.</p>
             </div>
           </div>
         </div>

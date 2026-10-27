@@ -216,7 +216,7 @@ export default function PropertyOwnershipCostsPage() {
               <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>🛠️</span>
               <h3 className="u-mb-2" style={{ fontSize: '1.25rem' }}>Routine Maintenance</h3>
               <p className="text--small" style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
-                Preventative building maintenance including roof paint touch-ups, plumbing checks, gutter clearing, heating system servicing, and deck sealing. See our <Link href="/maintenance">maintenance services</Link>.
+                Preventative building maintenance including roof paint touch-ups, plumbing checks, gutter clearing, heating system servicing, and deck sealing. See our <Link href="/management">maintenance services</Link>.
               </p>
             </div>
 
@@ -364,7 +364,7 @@ export default function PropertyOwnershipCostsPage() {
               Managing a property from afar can be challenging, especially during winter.
             </p>
             <p style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
-              Love Live Myoko brings ~25 years of local living, strong relationships with municipal offices and local contractors, and deep experience with heavy snow country management. We provide peace of mind for non-resident owners through regular inspections, transparent communication, and reliable emergency care. Explore our <Link href="/management">property management plans</Link> or <Link href="/maintenance">maintenance capabilities</Link>.
+              Love Live Myoko brings ~25 years of local living, strong relationships with municipal offices and local contractors, and deep experience with heavy snow country management. We provide peace of mind for non-resident owners through regular inspections, transparent communication, and reliable emergency care. Explore our <Link href="/management">property management and maintenance services</Link>.
             </p>
           </div>
         </div>

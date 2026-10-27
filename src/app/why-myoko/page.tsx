@@ -358,7 +358,7 @@ export default function WhyMyokoPage() {
                 How much snow does Myoko receive?
               </h2>
               <p style={{ lineHeight: "1.8", color: "var(--color-text-primary)" }}>
-                Myoko is world-famous for receiving extraordinary volumes of light, dry powder snow. The region averages between 13 and 15+ meters of snowfall annually at village level, with even higher accumulations on upper slopes. Cold seasonal winds blowing across the Sea of Japan drop consistent, heavy snowfall throughout the winter from December through April. To protect your home during heavy winter snowfall, learn about our <Link href="/maintenance">year-round maintenance services</Link>.
+                Myoko is world-famous for receiving extraordinary volumes of light, dry powder snow. The region averages between 13 and 15+ meters of snowfall annually at village level, with even higher accumulations on upper slopes. Cold seasonal winds blowing across the Sea of Japan drop consistent, heavy snowfall throughout the winter from December through April. To protect your home during heavy winter snowfall, learn about our <Link href="/management">year-round maintenance services</Link>.
               </p>
             </div>
 
@@ -538,7 +538,7 @@ export default function WhyMyokoPage() {
                 Is owning a holiday home practical?
               </h2>
               <p style={{ lineHeight: "1.8", color: "var(--color-text-primary)" }}>
-                Owning a holiday home in Myoko is practical when supported by reliable local management. Having an on-the-ground manager ensures your house is snow-cleared, heated prior to arrival, inspected regularly during typhoon or heavy snow events, and fully maintained when you are away. Check out our <Link href="/maintenance">maintenance services</Link>.
+                Owning a holiday home in Myoko is practical when supported by reliable local management. Having an on-the-ground manager ensures your house is snow-cleared, heated prior to arrival, inspected regularly during typhoon or heavy snow events, and fully maintained when you are away. Check out our <Link href="/management">maintenance services</Link>.
               </p>
             </div>
 
