@@ -13,9 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Shinano is implemented but held until website verification and final import approval.
-        # Keep both scheduled and manual runs Myoko-only in this release.
-        source: [myoko_akiya_bank]
+        source: [myoko_akiya_bank, shinano_akiya_bank]
     name: Crawl ${{ matrix.source }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
