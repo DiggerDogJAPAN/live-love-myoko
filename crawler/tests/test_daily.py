@@ -14,7 +14,7 @@ class DailyTests(TestCase):
 
     def test_failed_fetch_never_calls_database_apply(self):
         with patch('myoko_property_crawler.daily.crawl_live', side_effect=ValueError('bad source')), patch('myoko_property_crawler.daily._apply') as apply:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(PreflightError):
                 apply_live(Mock(), State())
             apply.assert_not_called()
 

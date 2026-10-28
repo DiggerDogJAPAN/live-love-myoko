@@ -3,6 +3,8 @@ from dataclasses import fields
 from datetime import datetime, timezone
 import json
 import os
+import re
+from urllib.error import HTTPError, URLError
 from pathlib import Path
 from uuid import uuid4
 
@@ -27,7 +29,14 @@ def database_state(connection):
 
 
 def apply_live(connection, state, *, client=None):
-    result = crawl_live(state, client=client)
+    try:
+        result = crawl_live(state, client=client)
+    except ValueError as error:
+        raise PreflightError('Source validation failed: '+str(error)) from None
+    except HTTPError as error:
+        raise PreflightError('Source returned HTTP '+str(error.code)+'; no bypass attempted') from None
+    except URLError:
+        raise PreflightError('Source network/TLS request failed') from None
     if not result.complete:
         raise PreflightError('Partial snapshot rejected; all existing property records preserved')
     props, events, checked, snapshot = prepare_sync(result.reconciliation.state)
@@ -46,7 +55,9 @@ def main():
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except Exception as error:
-        message = str(error) if isinstance(error, PreflightError) else 'Crawler operation failed; no incomplete snapshot applied'
+        code = getattr(error, 'sqlstate', '') or ''
+        code = code if re.fullmatch('[0-9A-Z]{5}', code) else type(error).__name__
+        message = str(error) if isinstance(error, PreflightError) else 'Crawler operation failed ['+code+']; no incomplete snapshot applied'
         if connection is not None:
             try:
                 now = datetime.now(timezone.utc)
