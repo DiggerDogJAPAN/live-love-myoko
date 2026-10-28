@@ -14,7 +14,7 @@ export interface FinderProperty {
     areaJa?: string | null;
     locationNeedsReview?: boolean;
     askingPriceJpy: number | null;
-    propertyType: 'House' | 'Land' | 'Apartment' | 'Lodge' | null;
+    propertyType: 'House' | 'Land' | 'Apartment' | 'Lodge' | 'Pension/Lodge' | 'Commercial' | 'Other' | null;
     availability: 'Available' | 'Under negotiation' | 'Unavailable' | 'Unknown';
     sourceName: string;
     /** Must be the property's original listing, never a source homepage. */
@@ -30,46 +30,38 @@ export function visibleThumbnail(thumbnail: FinderProperty['thumbnail'], failedS
     return thumbnail?.permission === 'permitted' && thumbnail.src !== failedSrc ? thumbnail : null;
 }
 
-const SOURCE_AREAS = new Map<string, string>([
-    ['Arai', 'Arai'], ['新井', 'Arai'],
-    ['Myoko Kogen', 'Myoko Kogen'], ['妙高高原', 'Myoko Kogen'],
-    ['Myoko', 'Myoko'], ['妙高', 'Myoko'],
-]);
+/** Keep stored municipality names intact; shorten only for visitors. */
+export function municipalityLabel(value: string | null): string | null {
+    const name = value?.trim() || null;
+    return name === 'Shinano Town' ? 'Shinano' : name;
+}
 
-/** Use the bank's regional grouping, never infer Arai from a similar place name.
- * Missing/conflicting regional evidence retains the original location as fallback.
+/** One location label for cards, filters, image descriptions and enquiries.
+ * District tags never override the actual locality, including Japanese fallbacks.
  */
-function sourceArea(property: FinderProperty): string | null {
-    if (property.sourceName !== 'Myoko Akiya Bank' || property.municipality !== 'Myoko') return null;
-    const english = SOURCE_AREAS.get(property.regionEn || '');
-    const japanese = SOURCE_AREAS.get(property.regionJa || '');
-    if (english && japanese && english !== japanese) return null;
-    return english || japanese || null;
+export function propertyLocation(property: FinderProperty): string {
+    const municipality = municipalityLabel(property.municipality);
+    const value = property.neighbourhood ?? (property.locationNeedsReview ? property.areaJa : property.area);
+    const neighbourhood = typeof value === 'string' ? value.trim() : '';
+    const valid = neighbourhood && !/^(unknown|undefined|null|n[/.]?a|not (provided|available))$/i.test(neighbourhood)
+        && !/[<>()[\]{}]/.test(neighbourhood);
+    if (!valid) return municipality || '';
+    if (!municipality) return neighbourhood;
+    if ([municipality, property.municipality].some(name => name?.trim().toLowerCase() === neighbourhood.toLowerCase())) return municipality;
+    return `${municipality} (${neighbourhood})`;
 }
 
 export function propertyArea(property: FinderProperty): string | null {
-    return sourceArea(property) || property.neighbourhood || property.area;
+    return propertyLocation(property) || null;
 }
 
-/** Display-only label. Filters continue to use the unadorned propertyArea. */
 export function propertyDisplayArea(property: FinderProperty): string | null {
-    const area = propertyArea(property);
-    const neighbourhood = typeof property.neighbourhood === 'string' ? property.neighbourhood.trim() : '';
-    if (!area || property.locationNeedsReview || !neighbourhood
-        || !/^\p{Script=Latin}[\p{Script=Latin}\p{M}0-9 .’'-]*$/u.test(neighbourhood)
-        || /^(unknown|undefined|null|n[/.]?a|not (provided|available))$/i.test(neighbourhood)
-        || neighbourhood.toLowerCase() === area.trim().toLowerCase()) return area;
-    return `${area} (${neighbourhood})`;
+    return propertyArea(property);
 }
 
 export function propertyTitle(property: FinderProperty): string {
-    const area = sourceArea(property);
-    if (area) return `Property in ${propertyDisplayArea(property)}`;
-    return property.title || [propertyArea(property), property.municipality].filter(Boolean).join(', ') || 'Property listing';
-}
-
-export function propertyLocation(property: FinderProperty): string {
-    return [propertyDisplayArea(property), property.municipality].filter(Boolean).join(' / ');
+    const location = propertyLocation(property);
+    return location ? `Property in ${location}` : property.title || 'Property listing';
 }
 
 export function formatPrice(price: number | null): string {

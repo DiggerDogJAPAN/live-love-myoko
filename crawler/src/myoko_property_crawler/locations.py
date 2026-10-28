@@ -6,6 +6,14 @@ from .normalize import clean_text
 
 # Readings verified against Myoko City docs/801.html and Japan Post's
 # city=1152170 directory on 2026-10-28. ASCII Hepburn; no guessed kanji readings.
+SHINANO_LOCATIONS = {
+    '野尻': 'Nojiri', '柏原': 'Kashiwabara', '古間': 'Furuma',
+    '古海': 'Furumi', '富濃': 'Tomino', '穂波': 'Honami',
+    # Town source area slug fujisato; town English guide docs/209.html names Kurohime.
+    '富士里': 'Fujisato', '黒姫': 'Kurohime',
+}
+SHINANO_REGIONS = {**SHINANO_LOCATIONS, '別荘地': 'Villa area'}
+
 LOCATION_DICTIONARY_VERSION = '2026-10-28'
 
 LOCATION_NAMES = {

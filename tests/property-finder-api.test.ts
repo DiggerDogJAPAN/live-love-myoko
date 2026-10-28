@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createRequire } from 'node:module';
 import { before, test } from 'node:test';
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyGetKey } from 'jose';
 import { authenticateAdministrator, FinderHttpError } from '../server/property-finder/access';
@@ -13,9 +16,16 @@ const env: FinderEnv = {
     FINDER_ACCESS_AUD: 'test-application-audience',
     FINDER_ADMIN_EMAILS: 'admin@example.com',
 };
+let PropertyFinderCard: typeof import('../src/components/property-finder/PropertyFinderCard').default;
+let PropertyFinderDirectory: typeof import('../src/components/property-finder/PropertyFinderDirectory').default;
 let privateKey: CryptoKey;
 let keys: JWTVerifyGetKey;
 before(async () => {
+    // Node renders the real components; CSS is handled by Next in production.
+    const require = createRequire(`${process.cwd()}/package.json`);
+    require.extensions['.css'] = (module) => { module.exports = {}; };
+    PropertyFinderCard = (await import('../src/components/property-finder/PropertyFinderCard')).default;
+    PropertyFinderDirectory = (await import('../src/components/property-finder/PropertyFinderDirectory')).default;
     const pair = await generateKeyPair('RS256', { extractable: true });
     privateKey = pair.privateKey;
     keys = createLocalJWKSet({ keys: [{ ...await exportJWK(pair.publicKey), kid: 'test-key', alg: 'RS256' }] });
@@ -30,6 +40,7 @@ function request(jwt?: string, path = '/properties') {
     return new Request(`https://website.example/api/property-finder${path}`, { headers: jwt ? { 'Cf-Access-Jwt-Assertion': jwt } : {} });
 }
 const row: CustomerViewRow = {
+    municipality: 'Myoko', property_type: null, transaction_type: null,
     title: 'Property in Test Area', asking_price_jpy: '12500000',
     location_en: 'Test Area', location_display: 'Test Area', location_ja: 'テスト',
     publication_status: 'active', availability_status: 'active',
@@ -94,13 +105,13 @@ test('View mapping excludes unavailable rows, keeps absent fields null and prese
     assert.equal(customerProperty({ ...row, availability_status: 'negotiating' }), null);
     assert.equal(customerProperty({ ...row, publication_status: 'withdrawn' }), null);
     assert.equal(customerProperty({ ...row, asking_price_jpy: null })!.askingPriceJpy, null);
-    assert.equal(customerProperty({ ...row, source_attribution: 'Source: Another agency' })!.municipality, null);
+    assert.equal(customerProperty({ ...row, source_attribution: 'Source: Another agency', municipality: 'Another town' })!.municipality, 'Another town');
     assert.equal(customerProperty({ ...row, original_pdf_url: 'https://example.com/' })!.originalListingUrl, null);
     assert.throws(() => customerProperty({ ...row, asking_price_jpy: '9007199254740992' }));
     const email = new URL(enquiryMailto(property)).searchParams;
-    assert.equal(email.get('subject'), 'Property Enquiry — Property in Test Area');
+    assert.equal(email.get('subject'), 'Property Enquiry — Property in Myoko (Test Area)');
     assert.match(email.get('body')!, /Price: ¥12,500,000/);
-    assert.match(email.get('body')!, /Area: Test Area \/ Myoko/);
+    assert.match(email.get('body')!, /Area: Myoko \(Test Area\)/);
     assert(email.get('body')!.includes(`Original listing: ${row.original_pdf_url}`));
     assert.equal(searchProperties([property], { ...initialFilters, municipality: 'Myoko', keyword: 'test', maxPrice: '12500000' }).length, 1);
     assert.equal(searchProperties([property], { ...initialFilters, maxPrice: '1000000' }).length, 0);
@@ -129,7 +140,7 @@ test('Only dedicated login/expected Supabase host allowed; TLS cannot be downgra
 test('Permitted city thumbnail is mapped without exposing private data or changing source links', () => {
     const url = 'https://www.city.myoko.niigata.jp/fs/offline-test/house.jpg';
     const property = customerProperty({ ...row, thumbnail_url: url })!;
-    assert.deepEqual(property.thumbnail, { src: url, alt: row.title, permission: 'permitted' });
+    assert.deepEqual(property.thumbnail, { src: url, alt: propertyTitle(property), permission: 'permitted' });
     assert.equal(property.originalListingUrl, row.original_pdf_url);
     assert.equal(property.sourceName, 'Myoko Akiya Bank');
     for (const thumbnail_url of [null, '', 'not-a-url', 'http://www.city.myoko.niigata.jp/fs/house.jpg',
@@ -155,7 +166,7 @@ test('English card/filter names retain Japanese references and unknown-name revi
     assert.equal(property.area, 'Hidanomori');
     assert.equal(property.areaJa, '美守');
     assert.equal(property.locationNeedsReview, false);
-    assert.equal(searchProperties([property], { ...initialFilters, area: 'Hidanomori' }).length, 1);
+    assert.equal(searchProperties([property], { ...initialFilters, area: 'Myoko (Hidanomori)' }).length, 1);
     assert.equal(searchProperties([property], { ...initialFilters, keyword: '美守' }).length, 1);
     const unknown = customerProperty({ ...row, location_en: null, location_display: '未確認地区',
         location_ja: '未確認地区', location_needs_review: true })!;
@@ -190,65 +201,154 @@ function regionalProperty(ja: string, en: string, region_en: string, region_ja: 
         thumbnail_url: `https://www.city.myoko.niigata.jp/fs/offline-test/region-${id}.jpg` })!;
 }
 
-test('All 16 neighbourhoods append English names while keeping their broad filter areas', () => {
+test('All Myoko neighbourhoods use municipality and locality consistently', () => {
     for (const [ja, en, region, regionJa] of reviewedAreas) {
         const property = regionalProperty(ja, en, region, regionJa);
-        assert.equal(property.area, region);
-        assert.equal(propertyArea(property), region);
-        assert.equal(propertyDisplayArea(property), `${region} (${en})`);
-        assert.equal(propertyLocation(property), `${region} (${en}) / Myoko`);
-        assert.equal(propertyTitle(property), `Property in ${region} (${en})`);
-        assert.equal(property.thumbnail!.alt, `Property in ${region} (${en})`);
-        assert.equal(property.neighbourhood, en);
-        assert.equal(property.areaJa, ja);
-        assert(new URL(enquiryMailto(property)).searchParams.get('body')!.includes(`Area: ${region} (${en}) / Myoko`));
+        const label = `Myoko (${en})`;
+        assert.equal(property.area, en);
+        assert.equal(propertyArea(property), label);
+        assert.equal(propertyDisplayArea(property), label);
+        assert.equal(propertyLocation(property), label);
+        assert.equal(propertyTitle(property), `Property in ${label}`);
+        assert.equal(property.thumbnail!.alt, `Property in ${label}`);
+        assert.equal(searchProperties([property], { ...initialFilters, area: label }).length, 1);
+        assert(new URL(enquiryMailto(property)).searchParams.get('body')!.includes(`Area: ${label}`));
     }
 });
 
-test('Arai filter collects 17 listings while the three Myoko Kogen listings remain separate', () => {
-    let id = 0;
-    const properties = reviewedAreas.flatMap(([ja, en, region, regionJa, count]) =>
-        Array.from({ length: count }, () => regionalProperty(ja, en, region, regionJa, ++id)));
-    assert.equal(properties.length, 20);
-    assert.deepEqual([...new Set(properties.map(propertyArea))].sort(), ['Arai', 'Myoko Kogen']);
-    assert.equal(searchProperties(properties, { ...initialFilters, area: 'Arai' }).length, 17);
-    const kogen = searchProperties(properties, { ...initialFilters, area: 'Myoko Kogen' });
-    assert.equal(kogen.length, 3);
-    assert.deepEqual(kogen.map(p => p.neighbourhood).sort(), ['Sekigawa', 'Suginosawa', 'Taguchi']);
-    assert.equal(searchProperties(properties, { ...initialFilters, keyword: '白山町' }).length, 2);
-    assert.equal(searchProperties(properties, { ...initialFilters, keyword: 'Hakusancho' }).length, 2);
-    const descending = searchProperties(properties, { ...initialFilters, sort: 'price-desc' });
-    assert.equal(descending.length, 20);
-    assert.equal(descending[0].askingPriceJpy, 2000000);
-    assert.equal(descending[19].askingPriceJpy, 100000);
-    assert.equal(new Set(descending.map(p => p.originalListingUrl)).size, 20);
-    assert(descending.every(p => p.thumbnail?.permission === 'permitted'));
-});
+const shinano: CustomerViewRow = {
+    ...row, municipality: 'Shinano Town', property_type: 'lodge', transaction_type: 'sale',
+    source_attribution: 'Source: Shinano Town Akiya Bank', location_en: 'Nojiri', location_ja: '野尻',
+    region_en: 'Kurohime, Fujisato', region_ja: '黒姫、富士里',
+    original_pdf_url: 'https://shinanomachi-iju.jp/akiya/offline-test/',
+    thumbnail_url: 'https://shinanomachi-iju.jp/shinanomachi/wordpress/wp-content/uploads/offline-test/pension.jpg',
+};
 
-test('Outside Arai, missing metadata and conflicting regions are not guessed as Arai', () => {
-    const sekiyama = regionalProperty('関山', 'Sekiyama', 'Myoko', '妙高');
-    assert.equal(sekiyama.area, 'Myoko');
-    const missing = customerProperty({ ...row, location_en: 'Hakusancho', location_display: 'Hakusancho', location_ja: '白山町' })!;
-    assert.equal(propertyArea(missing), 'Hakusancho');
-    const conflict = regionalProperty('関川', 'Sekigawa', 'Arai', '妙高高原');
-    assert.equal(propertyArea(conflict), 'Sekigawa');
-    const other = { ...missing, municipality: 'Joetsu', regionEn: 'Arai', regionJa: '新井' };
-    assert.equal(propertyArea(other), 'Hakusancho');
-});
-
-
-test('Display neighbourhoods omit duplicate, missing, unreviewed and invalid English values', () => {
-    const property = regionalProperty('白山町', 'Hakusancho', 'Arai', '新井');
-    for (const neighbourhood of [undefined, null, '', '   ', 'Arai', ' arai ', '白山町',
-        'Unknown', 'N/A', 'null', '<Hakusancho>', 'Hakusancho (Arai)', 42]) {
-        const invalid = { ...property, neighbourhood } as typeof property;
-        assert.equal(propertyDisplayArea(invalid), 'Arai');
-        assert.equal(propertyLocation(invalid), 'Arai / Myoko');
-        assert.equal(propertyTitle(invalid), 'Property in Arai');
-        assert.equal(propertyArea(invalid), 'Arai');
+test('Shinano uses structured municipality, explicit pension type, original links and image URLs', () => {
+    const property = customerProperty({ ...shinano, source_facts: { private: 'must-not-leak' } } as CustomerViewRow)!;
+    assert.equal(property.municipality, 'Shinano Town');
+    assert.equal(propertyLocation(property), 'Shinano (Nojiri)');
+    assert.equal(propertyTitle(property), 'Property in Shinano (Nojiri)');
+    assert.equal(property.propertyType, 'Pension/Lodge');
+    assert.equal(property.thumbnail?.src, shinano.thumbnail_url);
+    assert.equal(property.thumbnail?.alt, propertyTitle(property));
+    assert.equal(property.originalListingUrl, shinano.original_pdf_url);
+    assert.equal(property.sourceName, 'Shinano Town Akiya Bank');
+    assert(!JSON.stringify(property).includes('must-not-leak'));
+    const body = new URL(enquiryMailto(property)).searchParams.get('body')!;
+    assert(body.includes('Area: Shinano (Nojiri)'));
+    assert(body.includes(`Original listing: ${shinano.original_pdf_url}`));
+    assert(body.includes('Source: Shinano Town Akiya Bank'));
+    for (const [kind, label] of [['house', 'House'], ['apartment', 'Apartment'], ['commercial', 'Commercial']]) {
+        assert.equal(customerProperty({ ...shinano, property_type: kind })!.propertyType, label);
     }
-    assert.equal(propertyDisplayArea({ ...property, locationNeedsReview: true }), 'Arai');
-    assert.equal(propertyDisplayArea({ ...property, neighbourhood: ' Hakusancho ' }), 'Arai (Hakusancho)');
-    assert.equal(property.neighbourhood, 'Hakusancho');
-    assert.equal(property.areaJa, '白山町');
+    assert.equal(customerProperty({ ...row, property_type: 'unknown' })!.propertyType, null);
+    assert.equal(customerProperty({ ...row, municipality: null })!.municipality, null);
+});
+
+test('Shinano excludes restricted, terminal, rental and unclassified buildings', () => {
+    for (const availability_status of ['under_negotiation', 'sold', 'unknown', 'viewings_closed']) {
+        assert.equal(customerProperty({ ...shinano, availability_status }), null);
+    }
+    for (const publication_status of ['sold', 'withdrawn', 'not_found']) {
+        assert.equal(customerProperty({ ...shinano, publication_status }), null);
+    }
+    for (const transaction_type of [null, 'rent', 'unknown']) {
+        assert.equal(customerProperty({ ...shinano, transaction_type }), null);
+    }
+    for (const property_type of [null, 'land', 'other', 'unknown', 'future-kind']) {
+        assert.equal(customerProperty({ ...shinano, property_type }), null);
+    }
+    // Myoko requires no sale backfill and retains its previous eligibility.
+    assert(customerProperty({ ...row, transaction_type: null, property_type: 'land' }));
+});
+
+test('Thumbnail source, HTTPS host, upload path and file format must all match', () => {
+    const valid = shinano.thumbnail_url!;
+    for (const extension of ['jpg', 'jpeg', 'PNG', 'webp']) {
+        const thumbnail_url = valid.replace('jpg', extension) + '?original=1';
+        assert.equal(customerProperty({ ...shinano, thumbnail_url })!.thumbnail?.src, thumbnail_url);
+    }
+    for (const thumbnail_url of [null, '', 'invalid', valid.replace('https:', 'http:'),
+        valid.replace('/shinanomachi/wordpress/wp-content/uploads/', '/uploads/'),
+        valid.replace('shinanomachi-iju.jp/', 'shinanomachi-iju.jp.evil.example/'),
+        valid.replace('https://', 'https://user:password@'), valid.replace('.jpg', '.svg'),
+        valid.replace('shinanomachi-iju.jp/', 'shinanomachi-iju.jp:8443/'),
+        'https://www.city.myoko.niigata.jp/fs/offline-test/house.jpg']) {
+        assert.equal(customerProperty({ ...shinano, thumbnail_url })!.thumbnail, null);
+    }
+    assert.equal(customerProperty({ ...row, thumbnail_url: valid })!.thumbnail, null);
+    const thumbnail = customerProperty(shinano)!.thumbnail;
+    assert.equal(visibleThumbnail(thumbnail, valid), null);
+});
+
+test('Mixed sources filter by municipality, combined location, Japanese, type and price; sorting retains actions', () => {
+    const myoko = regionalProperty('田口', 'Taguchi', 'Myoko Kogen', '妙高高原');
+    const pension = customerProperty(shinano)!;
+    const unknownPrice = customerProperty({ ...shinano, asking_price_jpy: null })!;
+    const properties = [pension, myoko, unknownPrice];
+    assert.equal(searchProperties(properties, { ...initialFilters, municipality: 'Myoko' }).length, 1);
+    assert.equal(searchProperties(properties, { ...initialFilters, municipality: 'Shinano' }).length, 2);
+    assert.equal(searchProperties(properties, { ...initialFilters, area: 'Shinano (Nojiri)' }).length, 2);
+    assert.equal(searchProperties(properties, { ...initialFilters, municipality: 'Myoko', area: 'Shinano (Nojiri)' }).length, 0);
+    for (const keyword of ['野尻', 'Nojiri', 'Shinano (Nojiri)', 'pension']) {
+        assert.equal(searchProperties(properties, { ...initialFilters, keyword }).length, 2);
+    }
+    assert.deepEqual(searchProperties(properties, { ...initialFilters, propertyType: 'Pension/Lodge', minPrice: '12500000', maxPrice: '12500000' }), [pension]);
+    assert.deepEqual(searchProperties(properties, { ...initialFilters }), [myoko, pension, unknownPrice]);
+    assert.deepEqual(searchProperties(properties, { ...initialFilters, sort: 'price-desc' }), [pension, myoko, unknownPrice]);
+    assert.equal(searchProperties(properties, { ...initialFilters, minPrice: '20', maxPrice: '10' }).length, 0);
+    assert.deepEqual(searchProperties([{ ...pension, listedAt: '2026-10-28' }, myoko], { ...initialFilters, sort: 'newest' }).map(p => p.sourceName), [pension.sourceName, myoko.sourceName]);
+});
+
+test('Location uses Japanese for unknown readings and ignores district tags; duplicates and missing locality collapse', () => {
+    for (const location_en of [null, '']) {
+        const property = customerProperty({ ...shinano, location_en, location_needs_review: true, location_ja: '未確認地区' })!;
+        assert.equal(propertyLocation(property), 'Shinano (未確認地区)');
+        assert.equal(property.locationNeedsReview, true);
+    }
+    const reviewedLocality = customerProperty({ ...shinano, location_needs_review: true, region_ja: '未確認地区' })!;
+    assert.equal(propertyLocation(reviewedLocality), 'Shinano (Nojiri)');
+    assert.equal(reviewedLocality.locationNeedsReview, true);
+    const unknown = customerProperty({ ...shinano, location_en: null, location_needs_review: false })!;
+    assert.equal(unknown.locationNeedsReview, true);
+    assert.equal(propertyLocation(unknown), 'Shinano (野尻)');
+    for (const location_en of [null, '', 'Shinano', 'Shinano Town', 'Unknown', '<Nojiri>']) {
+        const property = customerProperty({ ...shinano, location_en, location_ja: null })!;
+        assert.equal(propertyArea(property), 'Shinano');
+    }
+    assert.equal(propertyLocation(customerProperty({ ...shinano, location_en: ' Furumi ' })!), 'Shinano (Furumi)');
+    assert.equal(propertyLocation(regionalProperty('関川', 'Sekigawa', 'Arai', '妙高高原')), 'Myoko (Sekigawa)');
+});
+
+
+test('Rendered Shinano card hotlinks permitted originals and shows conditions, source and enquiry actions', () => {
+    const property = customerProperty(shinano)!;
+    const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+    assert(html.includes(`src="${shinano.thumbnail_url}"`));
+    assert(!html.includes('/_next/image'));
+    assert(html.includes('Property in Shinano (Nojiri)'));
+    assert(html.includes('Pension/Lodge'));
+    assert(html.includes('Source: Shinano Town Akiya Bank'));
+    assert(html.includes(`href="${shinano.original_pdf_url}"`));
+    assert(html.includes('href="mailto:info@myokoworks.com'));
+    assert(html.includes('https://www.town.shinano.lg.jp/docs/369.html'));
+    assert(html.includes('Investment or commercial use is not assured.'));
+    assert(!renderToStaticMarkup(createElement(PropertyFinderCard, { property: customerProperty(row)! })).includes('Programme conditions'));
+    const placeholder = renderToStaticMarkup(createElement(PropertyFinderCard, { property: { ...property, thumbnail: null } }));
+    assert(placeholder.includes('Property image unavailable'));
+});
+
+test('Rendered live directory offers Myoko/Shinano municipalities and consistent location/type options', () => {
+    const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, {
+        mode: 'live', properties: [regionalProperty('田口', 'Taguchi', 'Myoko Kogen', '妙高高原'), customerProperty(shinano)!],
+    }));
+    for (const label of ['Myoko', 'Shinano', 'Myoko (Taguchi)', 'Shinano (Nojiri)', 'Pension/Lodge']) {
+        assert(html.includes(`<option>${label}</option>`));
+    }
+    assert(!html.includes('<option>Shinano Town</option>'));
+    assert(html.includes('id="finder-min"'));
+    assert(html.includes('id="finder-max"'));
+    assert(html.includes('Price: low to high'));
+    assert(html.includes('Price: high to low'));
 });

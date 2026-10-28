@@ -1,6 +1,6 @@
 import { Client, type ClientConfig } from 'pg';
 import { checkServerIdentity, type ConnectionOptions } from 'node:tls';
-import { originalListingUrl, propertyArea, propertyTitle, type FinderProperty } from '../../src/lib/property-finder/model';
+import { originalListingUrl, propertyTitle, type FinderProperty } from '../../src/lib/property-finder/model';
 
 export interface FinderDatabaseEnv {
     FINDER_DATABASE_URL?: string;
@@ -63,6 +63,9 @@ export function databaseClientConfiguration(env: FinderDatabaseEnv): ClientConfi
 }
 
 export interface CustomerViewRow {
+    municipality: string | null;
+    property_type: string | null;
+    transaction_type: string | null;
     title: string | null;
     asking_price_jpy: string | number | null;
     location_en: string | null;
@@ -79,16 +82,21 @@ export interface CustomerViewRow {
 }
 
 /** The restricted view returns null unless the stored image permission is permitted.
- * Only this reviewed source/host is enabled; unknown future sources keep placeholders.
+ * Only reviewed source/host/path pairs are enabled; unknown sources keep placeholders.
  */
 function permittedThumbnail(src: string | null, sourceName: string, title: string | null): FinderProperty['thumbnail'] {
-    if (!src || sourceName !== 'Myoko Akiya Bank') return null;
+    if (!src) return null;
+    const source = new Map([
+        ['Myoko Akiya Bank', { host: 'www.city.myoko.niigata.jp', path: '/fs/' }],
+        ['Shinano Town Akiya Bank', { host: 'shinanomachi-iju.jp', path: '/shinanomachi/wordpress/wp-content/uploads/' }],
+    ]).get(sourceName);
+    if (!source) return null;
     try {
         const url = new URL(src);
-        if (url.protocol !== 'https:' || url.hostname !== 'www.city.myoko.niigata.jp'
-            || url.username || url.password || url.port || !url.pathname.startsWith('/fs/')
+        if (url.protocol !== 'https:' || url.hostname !== source.host
+            || url.username || url.password || url.port || !url.pathname.startsWith(source.path)
             || !/\.(jpe?g|png|webp)$/i.test(url.pathname)) return null;
-        return { src: url.href, alt: title || 'Myoko Akiya Bank property photograph', permission: 'permitted' };
+        return { src, alt: title || `${sourceName} property photograph`, permission: 'permitted' };
     } catch {
         return null;
     }
@@ -98,28 +106,37 @@ export function customerProperty(row: CustomerViewRow): FinderProperty | null {
     if (row.publication_status !== 'active' || row.availability_status !== 'active') return null;
     if (!row.source_attribution.startsWith('Source: ') || !row.source_attribution.slice(8).trim()) throw new Error('Invalid source attribution');
     const sourceName = row.source_attribution.slice(8).trim();
+    // Defence in depth alongside migration 003's view and RLS predicate.
+    if (sourceName === 'Shinano Town Akiya Bank' && (row.transaction_type !== 'sale'
+        || !['house', 'apartment', 'lodge', 'commercial'].includes(row.property_type || ''))) return null;
+    const types: Record<string, FinderProperty['propertyType']> = {
+        house: 'House', land: 'Land', apartment: 'Apartment', lodge: 'Pension/Lodge',
+        commercial: 'Commercial', other: 'Other',
+    };
+    const english = row.location_en?.trim() || null;
+    const needsReview = row.location_needs_review || (!english && Boolean(row.location_ja?.trim()));
+    // The review flag can also concern district tags; location_en is verified locality.
+    const neighbourhood = english || row.location_ja?.trim() || null;
     const price = row.asking_price_jpy === null ? null : Number(row.asking_price_jpy);
     if (price !== null && (!Number.isSafeInteger(price) || price < 0)) throw new Error('Invalid asking price');
     const property: FinderProperty = {
         title: row.title,
-        // The current view omits municipality. This source is explicitly Myoko City.
-        // Do not infer future sources' municipalities from a neighbourhood or region.
-        municipality: sourceName === 'Myoko Akiya Bank' ? 'Myoko' : null,
-        area: row.location_en || row.location_display || row.location_ja || null,
-        neighbourhood: row.location_en || row.location_display || row.location_ja || null,
+        municipality: row.municipality?.trim() || null,
+        area: neighbourhood,
+        neighbourhood,
         regionEn: row.region_en,
         regionJa: row.region_ja,
         areaJa: row.location_ja,
-        locationNeedsReview: row.location_needs_review,
+        locationNeedsReview: needsReview,
         askingPriceJpy: price,
         availability: 'Available',
         sourceName,
         originalListingUrl: row.original_pdf_url,
         // The view gates thumbnail_url on permitted display rights; no copies are made.
         thumbnail: null,
-        propertyType: null, listedAt: null,
+        propertyType: row.property_type && Object.hasOwn(types, row.property_type) ? types[row.property_type] : null,
+        listedAt: null,
     };
-    property.area = propertyArea(property);
     property.title = propertyTitle(property);
     property.thumbnail = permittedThumbnail(row.thumbnail_url, sourceName, property.title);
     property.originalListingUrl = originalListingUrl(property);
@@ -144,7 +161,8 @@ export async function loadCustomerProperties(env: FinderDatabaseEnv): Promise<Fi
         await client.query("SET LOCAL statement_timeout = '5s'");
         const result = await client.query<CustomerViewRow>(`
             SELECT title, asking_price_jpy, location_en, location_display, location_ja,
-                publication_status, availability_status, source_attribution, original_pdf_url, thumbnail_url, location_needs_review, region_en, region_ja
+                publication_status, availability_status, source_attribution, original_pdf_url, thumbnail_url, location_needs_review, region_en, region_ja,
+                municipality, property_type, transaction_type
             FROM property_api.customer_properties
             WHERE publication_status = 'active' AND availability_status = 'active'
             ORDER BY asking_price_jpy ASC NULLS LAST, original_pdf_url ASC

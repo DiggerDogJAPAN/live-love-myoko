@@ -34,6 +34,10 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
                     {property.propertyType && <span>{property.propertyType}</span>}
                     {property.listedAt && <span>Listed {new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(property.listedAt))}</span>}
                 </div>
+                {property.sourceName === 'Shinano Town Akiya Bank' && <p className={styles.source}>
+                    Enquiries and viewings are subject to the original programme’s eligibility and registration requirements. Investment or commercial use is not assured.{' '}
+                    <a href="https://www.town.shinano.lg.jp/docs/369.html" target="_blank" rel="noopener noreferrer">Programme conditions ↗</a>
+                </p>}
                 <p className={styles.source}>Source: {property.sourceName}</p>
                 <div className={styles.cardActions}>
                     <a href={enquiryMailto(property)} className="button button--primary">Ask Us for Help</a>

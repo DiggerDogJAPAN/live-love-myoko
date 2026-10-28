@@ -10,6 +10,13 @@ concurrency:
   cancel-in-progress: false
 jobs:
   crawl:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Shinano is implemented but held until website verification and final import approval.
+        # Keep both scheduled and manual runs Myoko-only in this release.
+        source: [myoko_akiya_bank]
+    name: Crawl ${{ matrix.source }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -50,4 +57,4 @@ jobs:
           MYOKO_SUPABASE_PROJECT_NAME: Myoko Property Finder
           MYOKO_USER_AGENT: 'MyokoPropertyCrawler/1.0 (+https://love-live-myoko.com; info@myokoworks.com)'
           MYOKO_TRANSLATION_PROVIDER: disabled
-        run: python -m myoko_property_crawler.daily
+        run: python -m myoko_property_crawler.daily --source "${{ matrix.source }}"

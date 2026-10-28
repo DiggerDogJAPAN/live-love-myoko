@@ -31,8 +31,11 @@ class HTMLClient:
         self.user_agent = user_agent
         self.opener = opener if opener is not None else build_opener(_NoRedirect())
 
+    def _allowed(self, url):
+        return url in {INDEX_URL, ROBOTS_URL}
+
     def _read(self, url: str, limit: int, content_type: str) -> str:
-        if url not in {INDEX_URL, ROBOTS_URL}:
+        if not self._allowed(url):
             raise ValueError("Transport permits only robots.txt and the HTML index")
         request = Request(url, headers={"User-Agent": self.user_agent, "Accept": content_type,
                                         "Accept-Encoding": "identity"})
@@ -75,6 +78,7 @@ class LiveResult:
     reconciliation: ReconcileResult
     complete: bool
     warnings: tuple
+    records_extracted: Optional[int] = None
 
 
 def crawl_live(state: State, *, client: Optional[HTMLClient] = None) -> LiveResult:
@@ -88,4 +92,4 @@ def crawl_live(state: State, *, client: Optional[HTMLClient] = None) -> LiveResu
     if previous and len(previous - current) / len(previous) > 0.25:
         warnings.append("More than 25% of prior listings are absent; treated as partial, with no absence changes. Review the source.")
         batch = replace(batch, complete=False)
-    return LiveResult(reconcile(state, batch), batch.complete, tuple(warnings))
+    return LiveResult(reconcile(state, batch), batch.complete, tuple(warnings), len(batch.properties))

@@ -17,6 +17,7 @@ from .db_connection import PreflightError, connect_database, load_settings
 from .models import ContentPermission, Property
 from .locations import LOCATION_DISPLAY_FIELDS, reviewed_location
 from .storage import load_state
+from .sources import SOURCES
 
 SOURCE = 'myoko_akiya_bank'
 PROPERTY_COLUMNS = tuple(f.name for f in fields(Property) if f.name not in ('source_agency_name', 'source_website'))
@@ -32,22 +33,23 @@ def digest(value):
                                     separators=(',', ':')).encode('utf-8')).hexdigest()
 
 
-def prepare_sync(state):
-    properties = sorted((reviewed_location(p) for p in state.properties if p.source_key == SOURCE), key=lambda p: p.identity)
+def prepare_sync(state, source_key=SOURCE):
+    profile = SOURCES[source_key]
+    properties = sorted((reviewed_location(p) for p in state.properties if p.source_key == source_key), key=lambda p: p.identity)
     if not properties:
-        raise SyncError('No Myoko Akiya Bank records found; nothing synchronized')
-    checked_at = state.source_checked_at.get(SOURCE)
+        raise SyncError('No source records found; nothing synchronized')
+    checked_at = state.source_checked_at.get(source_key)
     if checked_at is None or any(p.last_checked_at > checked_at for p in properties):
         raise SyncError('State source checkpoint is missing or predates its property observations')
     for p in properties:
         url = urlsplit(p.original_listing_url)
-        if (p.source_agency_name != 'Myoko Akiya Bank'
-                or url.hostname != 'www.city.myoko.niigata.jp' or not url.path.startswith('/fs/')
+        if (p.source_agency_name != profile.agency
+                or url.scheme != 'https' or url.hostname != profile.host or not url.path.startswith(profile.listing_prefix)
                 or 'fixture' in url.path.lower() or not p.source_property_id or not p.source_property_id.isdigit()
                 or p.image_permission == ContentPermission.SYNTHETIC
                 or p.description_permission == ContentPermission.SYNTHETIC):
-            raise SyncError('Only real Myoko Akiya Bank inventory is accepted; fixture/source mismatch rejected')
-    events = sorted((e for e in state.price_changes if e.source_key == SOURCE),
+            raise SyncError('Only reviewed real source inventory is accepted; fixture/source mismatch rejected')
+    events = sorted((e for e in state.price_changes if e.source_key == source_key),
                     key=lambda e: (e.detected_at, e.identity_token, e.old_price_jpy, e.new_price_jpy, e.original_listing_url))
     identities = {p.identity[1]: p for p in properties}
     for e in events:
@@ -55,7 +57,7 @@ def prepare_sync(state):
         if (prop is None or e.old_price_jpy == e.new_price_jpy
                 or e.detected_at > prop.last_checked_at or e.detected_at < prop.first_discovered_at):
             raise SyncError('Price history does not match the retained inventory observations')
-    snapshot = digest({'source': SOURCE, 'checked_at': checked_at.isoformat(),
+    snapshot = digest({'source': source_key, 'checked_at': checked_at.isoformat(),
         'properties': [p.to_dict() for p in properties], 'price_changes': [e.to_dict() for e in events]})
     return properties, events, checked_at, snapshot
 
@@ -64,7 +66,10 @@ def values_for_property(prop):
     values = {}
     for name in PROPERTY_COLUMNS:
         value = getattr(prop, name)
-        if isinstance(value, Enum):
+        if isinstance(value, dict):
+            from psycopg.types.json import Jsonb
+            value = Jsonb(value)
+        elif isinstance(value, Enum):
             value = value.value
         elif isinstance(value, tuple):
             value = list(value)
@@ -80,16 +85,19 @@ def history_covers_transition(old, prop, events):
     return price == prop.asking_price_jpy
 
 
-def _count(connection):
+def _count(connection, source_key=SOURCE):
     return connection.execute("""SELECT
         (SELECT count(*) FROM crawler.properties WHERE source_key=%s) AS internal_properties,
         (SELECT count(*) FROM crawler.properties p JOIN crawler.sources s USING(source_key)
-         WHERE p.source_key=%s AND NOT s.synthetic AND crawler.customer_eligible(
-             p.listing_status,p.availability_status,p.source_status_ja)) AS customer_properties""", (SOURCE,SOURCE)).fetchone()
+         WHERE p.source_key=%s AND NOT s.synthetic AND crawler.source_customer_eligible(
+             p.source_key,p.listing_status,p.availability_status,p.source_status_ja,p.transaction_type,p.property_type)) AS customer_properties""", (source_key,source_key)).fetchone()
 
 
-def _apply(connection, properties, events, checked_at, snapshot, *, complete=False, warnings=()):
+def _apply(connection, properties, events, checked_at, snapshot, *, complete=False, warnings=(), source_key=SOURCE, records_extracted=None):
     from psycopg.types.json import Jsonb
+    profile = SOURCES[source_key]
+    if any(p.source_key != source_key for p in properties) or any(e.source_key != source_key for e in events):
+        raise SyncError('Cross-source apply rejected')
     now = datetime.now(timezone.utc)
     with connection.transaction():
         connection.execute("SET LOCAL search_path=pg_catalog")
@@ -101,25 +109,25 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
         websites = {p.source_website for p in properties}
         if len(websites) != 1:
             raise SyncError('Conflicting source websites in local inventory')
-        if identity['actor'] == 'postgres':
+        if identity['actor'] == 'postgres' and source_key == SOURCE:
             connection.execute("""INSERT INTO crawler.sources (source_key,agency_name,website,access_notes,
                 content_rights_basis,permissions,crawl_config)
                 VALUES (%s,'Myoko Akiya Bank',%s,%s,%s,%s,%s) ON CONFLICT (source_key) DO NOTHING""",
-                (SOURCE, properties[0].source_website,
+                (source_key, properties[0].source_website,
                  'Saved HTML-card inventory sync only; no network requests or scheduled crawling enabled.',
                  'User confirmed permission for this project; individual records retain their recorded rights basis.',
                  Jsonb({'project_permission_confirmed': True}), Jsonb({'input': 'reconciled_local_json'})))
         # The source-row lock serializes concurrent imports and run/history keys.
-        source = connection.execute('SELECT * FROM crawler.sources WHERE source_key=%s FOR UPDATE', (SOURCE,)).fetchone()
+        source = connection.execute('SELECT * FROM crawler.sources WHERE source_key=%s FOR UPDATE', (source_key,)).fetchone()
         if source is None:
             raise SyncError('Source must be provisioned before routine crawler sync')
-        if source['agency_name'] != 'Myoko Akiya Bank' or source['website'] not in websites or source['synthetic']:
+        if source['agency_name'] != profile.agency or source['website'] not in websites or source['synthetic']:
             raise SyncError('Existing source metadata conflicts with the real inventory; import rolled back')
         key = 'json-sync:v1:' + snapshot
         run = connection.execute('SELECT * FROM crawler.crawl_runs WHERE source_key=%s AND idempotency_key=%s',
-                                 (SOURCE,key)).fetchone()
+                                 (source_key,key)).fetchone()
         if run and run['status'] in ('partial','complete'):
-            return {**_count(connection), 'already_applied': True, 'inserted': 0, 'updated': 0,
+            return {**_count(connection, source_key), 'already_applied': True, 'inserted': 0, 'updated': 0,
                     'price_events_added': 0, 'status_events_added': 0, 'snapshot_sha256': snapshot}
         if source['last_successful_check_at'] and checked_at < source['last_successful_check_at']:
             raise SyncError('Input is older than the last successful source sync; no changes applied')
@@ -130,9 +138,9 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
         else:
             run_id = connection.execute("""INSERT INTO crawler.crawl_runs
                 (source_key,idempotency_key,snapshot_sha256,started_at,status)
-                VALUES (%s,%s,%s,%s,'running') RETURNING id""", (SOURCE,key,snapshot,now)).fetchone()['id']
+                VALUES (%s,%s,%s,%s,'running') RETURNING id""", (source_key,key,snapshot,now)).fetchone()['id']
         existing = {p['identity_token']: p for p in connection.execute(
-            'SELECT * FROM crawler.properties WHERE source_key=%s FOR UPDATE', (SOURCE,)).fetchall()}
+            'SELECT * FROM crawler.properties WHERE source_key=%s FOR UPDATE', (source_key,)).fetchall()}
         existing_urls = {p['original_listing_url']: p['identity_token'] for p in existing.values()}
         by_identity = {}
         for event in events:
@@ -150,7 +158,7 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
                     raise SyncError('An incoming property observation is older than its stored version')
                 # Preserve database identity and the original discovery date.
                 values['first_discovered_at'] = old['first_discovered_at']
-                changed_fields = {k for k,v in values.items() if old[k] != v}
+                changed_fields = {k for k,v in values.items() if old[k] != (prop.source_facts if k == 'source_facts' else v)}
                 changes = bool(changed_fields)
                 display_only = changed_fields <= set(LOCATION_DISPLAY_FIELDS)
                 if changes and not display_only and prop.last_checked_at == old['last_checked_at']:
@@ -172,7 +180,7 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
                             (property_id,source_key,crawl_run_id,old_listing_status,new_listing_status,
                              old_availability_status,new_availability_status,old_source_status_ja,new_source_status_ja,detected_at)
                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (property_id,crawl_run_id) DO NOTHING""",
-                            (property_id,SOURCE,run_id,old['listing_status'],values['listing_status'],
+                            (property_id,source_key,run_id,old['listing_status'],values['listing_status'],
                              old['availability_status'],values['availability_status'],old['source_status_ja'],
                              values['source_status_ja'],prop.last_checked_at))
                         status_events += 1
@@ -182,7 +190,7 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
                         connection.execute("""INSERT INTO crawler.price_changes
                             (property_id,source_key,crawl_run_id,original_listing_url,old_price_jpy,new_price_jpy,detected_at)
                             VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (property_id,crawl_run_id) DO NOTHING""",
-                            (property_id,SOURCE,run_id,prop.original_listing_url,old['asking_price_jpy'],prop.asking_price_jpy,prop.last_checked_at))
+                            (property_id,source_key,run_id,prop.original_listing_url,old['asking_price_jpy'],prop.asking_price_jpy,prop.last_checked_at))
                         price_events += 1
             else:
                 columns = ','.join(PROPERTY_COLUMNS)+',last_seen_at'
@@ -199,7 +207,7 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
                 WHERE NOT EXISTS (SELECT 1 FROM crawler.price_changes WHERE property_id=%s
                     AND old_price_jpy=%s AND new_price_jpy=%s AND detected_at=%s)
                 ON CONFLICT (property_id,legacy_event_key) DO NOTHING""",
-                (property_ids[event.identity_token],SOURCE,digest(event.to_dict()),event.original_listing_url,
+                (property_ids[event.identity_token],source_key,digest(event.to_dict()),event.original_listing_url,
                  event.old_price_jpy,event.new_price_jpy,event.detected_at,
                  property_ids[event.identity_token],event.old_price_jpy,event.new_price_jpy,event.detected_at))
             price_events += result.rowcount
@@ -209,22 +217,22 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
         finished = datetime.now(timezone.utc)
         connection.execute("""UPDATE crawler.crawl_runs SET status=%s,warnings=%s,checked_at=%s,finished_at=%s,
             records_extracted=%s,records_processed=%s,summary=%s WHERE id=%s""",
-            ('complete' if complete else 'partial',list(warnings),finished,finished,len(properties),len(properties),Jsonb(summary),run_id))
-        connection.execute('UPDATE crawler.sources SET last_successful_check_at=%s WHERE source_key=%s', (checked_at,SOURCE))
+            ('complete' if complete else 'partial',list(warnings),finished,finished,len(properties) if records_extracted is None else records_extracted,len(properties),Jsonb(summary),run_id))
+        connection.execute('UPDATE crawler.sources SET last_successful_check_at=%s WHERE source_key=%s', (checked_at,source_key))
         if complete:
-            connection.execute('UPDATE crawler.sources SET last_complete_check_at=%s WHERE source_key=%s', (checked_at,SOURCE))
-        return {**_count(connection), **summary, 'already_applied': False, 'snapshot_sha256': snapshot}
+            connection.execute('UPDATE crawler.sources SET last_complete_check_at=%s WHERE source_key=%s', (checked_at,source_key))
+        return {**_count(connection, source_key), **summary, 'already_applied': False, 'snapshot_sha256': snapshot}
 
 
-def sync_database(path: Path, env_file: Path = Path('.env.supabase.local')):
+def sync_database(path: Path, env_file: Path = Path('.env.supabase.local'), source_key=SOURCE):
     """Sync one atomic state snapshot; return only operational counts, not secrets."""
     # Read one immutable byte snapshot, rather than multiple racing file reads.
     state = load_state(path)
-    properties, events, checked_at, snapshot = prepare_sync(state)
+    properties, events, checked_at, snapshot = prepare_sync(state,source_key)
     settings = load_settings(env_file)
     connection = connect_database(settings)
     try:
-        return _apply(connection, properties, events, checked_at, snapshot)
+        return _apply(connection, properties, events, checked_at, snapshot,source_key=source_key)
     except Exception as error:
         code = getattr(error, 'sqlstate', '') or ''
         safe_code = code if re.fullmatch('[0-9A-Z]{5}', code) else 'client'
@@ -243,7 +251,7 @@ def sync_database(path: Path, env_file: Path = Path('.env.supabase.local')):
                 SELECT source_key,%s,%s,%s,%s,'failed',%s,%s FROM crawler.sources WHERE source_key=%s
                 ON CONFLICT (source_key,idempotency_key) DO NOTHING""",
                 ('json-sync:v1:'+snapshot,snapshot,now,now,message+' ['+safe_code+']',
-                 Jsonb({'input':'reconciled_local_json','records_requested':len(properties)}),SOURCE))
+                 Jsonb({'input':'reconciled_local_json','records_requested':len(properties)}),source_key))
         except Exception:
             pass  # A disconnected database cannot log a failure; CLI still fails.
         raise SyncError(message+' ['+safe_code+']; property changes rolled back') from None

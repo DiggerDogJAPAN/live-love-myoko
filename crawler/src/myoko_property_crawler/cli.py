@@ -15,6 +15,7 @@ from .translation import DisabledTranslator, translate_property
 from .adapters.base import CrawlBatch
 from .customer import customer_properties
 from .live import HTMLClient, USER_AGENT, crawl_live
+from .sources import SOURCES
 
 
 def main(argv=None) -> int:
@@ -38,6 +39,7 @@ def main(argv=None) -> int:
     export.add_argument("--output", type=Path, help="Atomic JSON output; default: stdout")
     sync = commands.add_parser('sync-db', help='Atomically sync saved real Myoko inventory to the private development database')
     sync.add_argument('--state', type=Path, default=Path(os.getenv('MYOKO_DATA_DIR', 'data')) / 'myoko-akiya-state.json')
+    sync.add_argument('--source', choices=tuple(SOURCES), default='myoko_akiya_bank')
     sync.add_argument('--env-file', type=Path, default=Path('.env.supabase.local'))
     args = parser.parse_args(argv)
     try:
@@ -45,7 +47,7 @@ def main(argv=None) -> int:
             from .database import sync_database
             if not args.state.is_file():
                 raise ValueError('State file does not exist; nothing synchronized')
-            result = sync_database(args.state, args.env_file)
+            result = sync_database(args.state, args.env_file,source_key=args.source)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
         if os.getenv("MYOKO_TRANSLATION_PROVIDER", "disabled") != "disabled":

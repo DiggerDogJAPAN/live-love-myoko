@@ -25,6 +25,7 @@ class PropertyType(str, Enum):
     COMMERCIAL = "commercial"
     OTHER = "other"
     UNKNOWN = "unknown"
+    LODGE = "lodge"
 
 
 class AvailabilityStatus(str, Enum):
@@ -95,8 +96,15 @@ class Property:
     unmapped_locations: Tuple[str, ...] = ()
     availability_status: AvailabilityStatus = AvailabilityStatus.UNKNOWN
     source_status_ja: Optional[str] = None
+    transaction_type: Optional[str] = None
+    construction_details: Optional[str] = None
+    source_facts: Optional[Dict[str, str]] = None
 
     def __post_init__(self) -> None:
+        if self.source_facts is not None and (not isinstance(self.source_facts, dict) or any(not isinstance(k,str) or not isinstance(v,str) for k,v in self.source_facts.items())):
+            raise ValueError("Source facts must be a string-to-string mapping")
+        if self.transaction_type not in {None, "sale", "rent"}:
+            raise ValueError("Unknown transaction classification")
         if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", self.source_key):
             raise ValueError("source_key must be a stable lowercase slug")
         if not self.source_agency_name.strip() or not self.title_ja.strip():
