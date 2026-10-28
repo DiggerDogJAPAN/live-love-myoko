@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "target": "supabase_project",
+  "project_name": "Myoko Property Finder",
+  "approval_required": true,
+  "readonly_preflight_required": true,
+  "real_property_import": false,
+  "schema": [
+    {
+      "path": "sql/001_proposed_schema.sql",
+      "sha256": "eca82251807d8f04579162e25339006aab24afbe300c6325572d219d9e98dee8"
+    }
+  ],
+  "checks": [
+    {
+      "path": "sql/supabase/001_synthetic_validation.sql",
+      "sha256": "d515f1c38acf1802165ee52c77bc4fdc8daccf5475083686533f80939969d7d7"
+    }
+  ]
+}

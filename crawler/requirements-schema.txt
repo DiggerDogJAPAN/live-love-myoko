@@ -1,0 +1,2 @@
+# Development-only syntax parser. Never executes SQL or connects to PostgreSQL.
+pglast==7.21

@@ -1,0 +1,55 @@
+"""Central eligibility and display allowlist for the public Myoko feed."""
+
+import re
+from typing import Iterable
+from .models import AvailabilityStatus, ListingStatus, ContentPermission, Property
+from .locations import reviewed_location
+from .normalize import clean_text
+
+
+def is_customer_eligible(prop: Property) -> bool:
+    """Only confirmed active cards with known unrestricted labels may be public.
+
+    Unknown labels fail closed even if normalized statuses incorrectly say active.
+    Empty labels represent ordinary published cards; NEW/price badges do not
+    restrict enquiries. Unmapped place names are unrelated to availability.
+    """
+    if (prop.source_key != "myoko_akiya_bank" or prop.listing_status != ListingStatus.ACTIVE
+            or prop.availability_status != AvailabilityStatus.ACTIVE):
+        return False
+    label = prop.source_status_ja
+    if label is None:
+        return True
+    if not isinstance(label, str):
+        return False
+    return re.fullmatch(r"(?:(?:募集中|値下げ|新着|NEW|Price Reduced)\s*)*",
+                        clean_text(label), re.IGNORECASE) is not None
+
+
+def customer_properties(properties: Iterable[Property]) -> list:
+    """Filter in the same module as projection so callers share one policy."""
+    return [customer_property(prop) for prop in properties if is_customer_eligible(prop)]
+
+
+def customer_property(prop: Property) -> dict:
+    if prop.source_key != "myoko_akiya_bank":
+        raise ValueError("This customer projection is specific to Myoko Akiya Bank")
+    if not is_customer_eligible(prop):
+        raise ValueError("Property is not eligible for the customer feed")
+    prop = reviewed_location(prop)
+    return {
+        "title": "Property in " + (prop.area_en or prop.area or prop.region_en or "Myoko"),
+        "asking_price_jpy": prop.asking_price_jpy,
+        "location_ja": prop.area, "location_en": prop.area_en,
+        "location_display": prop.area_en or prop.area,
+        "region_ja": prop.region_ja, "region_en": prop.region_en,
+        "location_needs_review": bool(prop.unmapped_locations),
+        "thumbnail_url": prop.main_image_url if prop.image_permission == ContentPermission.PERMITTED else None,
+        "original_pdf_url": prop.original_listing_url,
+        "publication_status": prop.listing_status.value,
+        "availability_status": prop.availability_status.value,
+        "status": "Active",
+        "source_status_ja": prop.source_status_ja,
+        "source_attribution": "Source: Myoko Akiya Bank",
+        "last_checked_at": prop.last_checked_at.isoformat(),
+    }

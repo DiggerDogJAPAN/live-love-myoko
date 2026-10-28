@@ -1,0 +1,3 @@
+# Optional administrative tooling only. No database server is installed.
+# 3.2 supports the project's current Python 3.9 environment.
+psycopg[binary]==3.2.13

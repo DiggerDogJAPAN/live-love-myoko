@@ -1,0 +1,53 @@
+name: Myoko daily property crawler
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 21 * * *' # 06:17 JST (UTC+9)
+permissions:
+  contents: read
+concurrency:
+  group: myoko-daily-crawler
+  cancel-in-progress: false
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: crawler
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install crawler
+        run: python -m pip install '.[database]'
+      - name: Configure verified TLS certificate
+        env:
+          MYOKO_DATABASE_URL: ${{ secrets.MYOKO_CRAWLER_DATABASE_URL }}
+          MYOKO_SUPABASE_PROJECT_REF: ${{ secrets.MYOKO_SUPABASE_PROJECT_REF }}
+          MYOKO_SUPABASE_PROJECT_NAME: Myoko Property Finder
+          MYOKO_DB_CA_CERT: ${{ secrets.MYOKO_DB_CA_CERT }}
+          MYOKO_USER_AGENT: 'MyokoPropertyCrawler/1.0 (+https://love-live-myoko.com; info@myokoworks.com)'
+          MYOKO_TRANSLATION_PROVIDER: disabled
+        run: |
+          umask 077
+          python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          required = ('MYOKO_DATABASE_URL', 'MYOKO_SUPABASE_PROJECT_REF', 'MYOKO_DB_CA_CERT')
+          if any(not os.environ.get(k) for k in required):
+              raise SystemExit('Missing required GitHub Actions secrets; no crawl attempted')
+          cert = Path(os.environ['RUNNER_TEMP']) / 'myoko-db-ca.crt'
+          cert.write_text(os.environ['MYOKO_DB_CA_CERT'])
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('MYOKO_DB_SSLROOTCERT=' + str(cert) + '\n')
+          PYTHON
+      - name: Run database-backed daily crawler
+        env:
+          MYOKO_DATABASE_URL: ${{ secrets.MYOKO_CRAWLER_DATABASE_URL }}
+          MYOKO_SUPABASE_PROJECT_REF: ${{ secrets.MYOKO_SUPABASE_PROJECT_REF }}
+          MYOKO_SUPABASE_PROJECT_NAME: Myoko Property Finder
+          MYOKO_USER_AGENT: 'MyokoPropertyCrawler/1.0 (+https://love-live-myoko.com; info@myokoworks.com)'
+          MYOKO_TRANSLATION_PROVIDER: disabled
+        run: python -m myoko_property_crawler.daily

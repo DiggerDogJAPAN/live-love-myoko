@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "target": "disposable_local_cluster",
+  "note": "Read-only validation manifest, not an executor. Test fixtures roll back; role/schema creation commits and requires an isolated cluster.",
+  "local_setup": [
+    {
+      "path": "sql/local/000_test_roles.sql",
+      "sha256": "b459b263121e043c67265e4d197eea16bbccfe2fd7dedd4afe21be251311b137"
+    }
+  ],
+  "schema": [
+    {
+      "path": "sql/001_proposed_schema.sql",
+      "sha256": "eca82251807d8f04579162e25339006aab24afbe300c6325572d219d9e98dee8"
+    }
+  ],
+  "checks": [
+    {
+      "path": "sql/tests/001_contract_checks.sql",
+      "sha256": "9129828301365c3839ea6bb82acce26e287e29f702abe21ac73ae216563a3184"
+    },
+    {
+      "path": "sql/tests/002_security_hardening_checks.sql",
+      "sha256": "d50cc3588f5028cb54fdb1c1f17ad7396031a20d6a01c4e5abd22996b98095eb"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+include .env.example
+include .env.supabase.example
+include requirements-schema.txt
+include requirements-database.txt
+recursive-include tools *.py
+recursive-include docs *.md
+recursive-include sql *.sql *.json
+recursive-include tests *.py *.html *.json *.txt *.md
+global-exclude __pycache__ *.py[cod]

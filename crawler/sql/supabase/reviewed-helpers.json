@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "reviewed_on": "2026-10-27",
+  "purpose": "Drift detection for specifically reviewed existing helpers; not migration approval or Data API evidence.",
+  "helpers": {
+    "extensions.grant_pg_cron_access()": {
+      "owner": "supabase_admin",
+      "privileges": "{=X/supabase_admin,supabase_admin=X*/supabase_admin,dashboard_user=X/supabase_admin}",
+      "search_path": [
+        "search_path=\"\""
+      ],
+      "definition_sha256": "eb3fa2e82a0135bc04a6236f93331911861c91b45d72cba5d9c03c1be2c34b4c"
+    },
+    "extensions.grant_pg_graphql_access()": {
+      "owner": "supabase_admin",
+      "privileges": "{=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X*/supabase_admin}",
+      "search_path": [
+        "search_path=\"\""
+      ],
+      "definition_sha256": "9ec845adab4ba00bbf7740458b6c4461094697023f0f7adc693b373e2ea54f68"
+    },
+    "extensions.grant_pg_net_access()": {
+      "owner": "supabase_admin",
+      "privileges": "{=X/supabase_admin,supabase_admin=X*/supabase_admin,dashboard_user=X/supabase_admin}",
+      "search_path": [
+        "search_path=\"\""
+      ],
+      "definition_sha256": "e38c4060751c9695123350596f1cb0d0c943015f3267a2a455d8efe02c711184"
+    },
+    "extensions.pgrst_ddl_watch()": {
+      "owner": "supabase_admin",
+      "privileges": "{=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X*/supabase_admin}",
+      "search_path": [
+        "search_path=\"\""
+      ],
+      "definition_sha256": "2b4b5d702ddf70fbd1a05c9825f9f9016d5c0ef97dd3df5f5b012ea23d9b94b1"
+    },
+    "extensions.pgrst_drop_watch()": {
+      "owner": "supabase_admin",
+      "privileges": "{=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X*/supabase_admin}",
+      "search_path": [
+        "search_path=\"\""
+      ],
+      "definition_sha256": "3a2696133853e17a0456cbfbb233a03815f50895492143e84df983b558d76593"
+    },
+    "extensions.set_graphql_placeholder()": {
+      "owner": "supabase_admin",
+      "privileges": "{=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X*/supabase_admin}",
+      "search_path": [
+        "search_path=\"\""
+      ],
+      "definition_sha256": "b0cadab880dc68f569b3e01057dc6f5acee9d05e122de6f4256130ae330bbcec"
+    },
+    "graphql_public.graphql(\"operationName\" text, query text, variables jsonb, extensions jsonb)": {
+      "owner": "supabase_admin",
+      "privileges": "{=X/supabase_admin,supabase_admin=X/supabase_admin,postgres=X/supabase_admin,anon=X/supabase_admin,authenticated=X/supabase_admin,service_role=X/supabase_admin}",
+      "search_path": [],
+      "definition_sha256": "62b09c65abb4755df514ce62bd736c05446d2644943b584ae2513334f44dbd08"
+    },
+    "pgbouncer.get_auth(p_usename text)": {
+      "owner": "supabase_admin",
+      "privileges": "{supabase_admin=X/supabase_admin,pgbouncer=X/supabase_admin}",
+      "search_path": [
+        "search_path=\"\""
+      ],
+      "definition_sha256": "413884404a27edfc9314be3ecc9db38763920fd49d8f3e0ce1b5a38f1f8f30bf"
+    },
+    "public.rls_auto_enable()": {
+      "owner": "postgres",
+      "privileges": null,
+      "search_path": [
+        "search_path=pg_catalog"
+      ],
+      "definition_sha256": "b21d88816c445d14cef5032c3cd4abaebc1db2001fcb3435022ab6b496182ca4"
+    }
+  },
+  "event_triggers": [
+    {
+      "name": "ensure_rls",
+      "event": "ddl_command_end",
+      "enabled": "O",
+      "tags": [
+        "CREATE TABLE",
+        "CREATE TABLE AS",
+        "SELECT INTO"
+      ],
+      "owner": "postgres",
+      "function_schema": "public",
+      "function_name": "rls_auto_enable"
+    },
+    {
+      "name": "issue_graphql_placeholder",
+      "event": "sql_drop",
+      "enabled": "O",
+      "tags": [
+        "DROP EXTENSION"
+      ],
+      "owner": "supabase_admin",
+      "function_schema": "extensions",
+      "function_name": "set_graphql_placeholder"
+    },
+    {
+      "name": "issue_pg_cron_access",
+      "event": "ddl_command_end",
+      "enabled": "O",
+      "tags": [
+        "CREATE EXTENSION"
+      ],
+      "owner": "supabase_admin",
+      "function_schema": "extensions",
+      "function_name": "grant_pg_cron_access"
+    },
+    {
+      "name": "issue_pg_graphql_access",
+      "event": "ddl_command_end",
+      "enabled": "O",
+      "tags": [
+        "CREATE EXTENSION"
+      ],
+      "owner": "supabase_admin",
+      "function_schema": "extensions",
+      "function_name": "grant_pg_graphql_access"
+    },
+    {
+      "name": "issue_pg_net_access",
+      "event": "ddl_command_end",
+      "enabled": "O",
+      "tags": [
+        "CREATE EXTENSION"
+      ],
+      "owner": "supabase_admin",
+      "function_schema": "extensions",
+      "function_name": "grant_pg_net_access"
+    },
+    {
+      "name": "pgrst_ddl_watch",
+      "event": "ddl_command_end",
+      "enabled": "O",
+      "tags": null,
+      "owner": "supabase_admin",
+      "function_schema": "extensions",
+      "function_name": "pgrst_ddl_watch"
+    },
+    {
+      "name": "pgrst_drop_watch",
+      "event": "sql_drop",
+      "enabled": "O",
+      "tags": null,
+      "owner": "supabase_admin",
+      "function_schema": "extensions",
+      "function_name": "pgrst_drop_watch"
+    }
+  ]
+}

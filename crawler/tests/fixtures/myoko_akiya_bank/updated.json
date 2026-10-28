@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "index": "updated.html",
+  "complete": true,
+  "expected_listing_ids": [
+    "900001",
+    "900002"
+  ]
+}
