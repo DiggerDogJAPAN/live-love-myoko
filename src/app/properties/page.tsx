@@ -1,5 +1,6 @@
 import { getProperties } from '@/lib/directus';
 import PropertyCard from '@/components/PropertyCard';
+import styles from '@/components/PropertyCard.module.css';
 
 export default async function PropertiesPage() {
     const properties = await getProperties();
@@ -11,9 +12,9 @@ export default async function PropertiesPage() {
             {properties.length === 0 ? (
                 <p>No properties found at this time.</p>
             ) : (
-                <div className="grid grid--2-cols grid--3-cols">
+                <div className={styles.grid}>
                     {properties.map((property) => (
-                        <div key={property.id}>
+                        <div key={property.id} className={styles.gridItem}>
                             <PropertyCard property={property} />
                         </div>
                     ))}

@@ -2,19 +2,25 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { enquiryMailto, formatPrice, originalListingUrl, propertyLocation, propertyTitle, visibleThumbnail, type FinderProperty } from '@/lib/property-finder/model';
+import { enquiryMailto, formatPrice, originalListingUrl, municipalityLabel, propertyLocation, propertyTitle, visibleThumbnail, type FinderProperty } from '@/lib/property-finder/model';
 import styles from './finder.module.css';
 
 export default function PropertyFinderCard({ property }: { property: FinderProperty }) {
     const original = originalListingUrl(property);
     const title = propertyTitle(property);
+    const location = propertyLocation(property);
+    const municipality = municipalityLabel(property.municipality);
+    // Derive the compact eyebrow from the same validated label used by titles/filters.
+    const locationEyebrow = municipality && location.startsWith(`${municipality} (`)
+        ? `${municipality} · ${location.slice(municipality.length + 2, -1)}`
+        : location || 'Location not provided';
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
     const thumbnail = visibleThumbnail(property.thumbnail, failedSrc);
     return (
         <article className={styles.card}>
             <div className={styles.cardImage}>
                 {thumbnail ? (
-                    <Image src={thumbnail.src} alt={thumbnail.alt} onError={() => setFailedSrc(thumbnail.src)} fill sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 33vw" unoptimized />
+                    <Image src={thumbnail.src} alt={thumbnail.alt} onError={() => setFailedSrc(thumbnail.src)} fill sizes="(max-width: 711px) 100vw, (max-width: 1055px) 50vw, 33vw" unoptimized />
                 ) : (
                     <div className={styles.placeholder}>
                         <svg viewBox="0 0 240 110" fill="none" aria-hidden="true">
@@ -24,34 +30,39 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
                         <span>Property image unavailable</span>
                     </div>
                 )}
-                <span className={styles.status}>{property.availability === 'Unknown' ? 'Availability not provided' : property.availability}</span>
             </div>
             <div className={styles.cardContent}>
-                {propertyLocation(property) && <p className={styles.location}>{propertyLocation(property)}</p>}
-                <h3>{title}</h3>
-                <p className={styles.price}>{formatPrice(property.askingPriceJpy)}</p>
-                <div className={styles.facts}>
-                    {property.propertyType && <span>{property.propertyType}</span>}
-                    {property.listedAt && <span>Listed {new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(property.listedAt))}</span>}
+                <div className={styles.cardTopRow}>
+                    <p className={styles.location}>{locationEyebrow}</p>
+                    <span className={`${styles.status} ${property.availability === 'Available' ? styles.available : ''}`}>
+                        <span className={styles.statusDot} aria-hidden="true" />
+                        {property.availability === 'Unknown' ? 'Availability not provided' : property.availability}
+                    </span>
                 </div>
+                <h3>{title}</h3>
+                <dl className={styles.facts}>
+                    <dt>Price</dt><dd className={styles.price}>{formatPrice(property.askingPriceJpy)}</dd>
+                    <dt>Type</dt><dd>{property.propertyType || 'Not provided'}</dd>
+                    <dt>Source</dt><dd>{original
+                        ? <a href={original} target="_blank" rel="noopener noreferrer">{property.sourceName}</a>
+                        : property.sourceName}</dd>
+                    {property.listedAt && <><dt>Listed</dt><dd>{new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(property.listedAt))}</dd></>}
+                </dl>
                 {property.sourceName === 'Shinano Town Akiya Bank' && <p className={styles.source}>
                     Enquiries and viewings are subject to the original programme’s eligibility and registration requirements. Investment or commercial use is not assured.{' '}
                     <a href="https://www.town.shinano.lg.jp/docs/369.html" target="_blank" rel="noopener noreferrer">Programme conditions ↗</a>
                 </p>}
-                {property.sourceName !== 'Joetsu City Akiya Bank' && property.purchaseConditionsJa?.trim() && <section className={styles.conditions} aria-label="Important Property Conditions">
-                    <h4>Important Property Conditions</h4>
+                {property.sourceName !== 'Joetsu City Akiya Bank' && property.purchaseConditionsJa?.trim() && <details className={styles.conditions}>
+                    <summary>Important Property Conditions</summary>
                     <p className={styles.conditionsLabel}>Source disclosure (Japanese)</p>
                     <p lang="ja" className={styles.conditionsText}>{property.purchaseConditionsJa}</p>
-                </section>}
-                <p className={styles.source}>Source: {original
-                    ? <a href={original} target="_blank" rel="noopener noreferrer">{property.sourceName}</a>
-                    : property.sourceName}</p>
+                </details>}
                 <div className={styles.cardActions}>
-                    <a href={enquiryMailto(property)} className="button button--primary">Ask Us for Help</a>
+                    <a href={enquiryMailto(property)} className={`button ${styles.cardButton} ${styles.primaryAction}`}>Ask Us for Help</a>
                     {original ? (
-                        <a href={original} className="button button--secondary" target="_blank" rel="noopener noreferrer">View Original Listing <span aria-hidden="true">↗</span></a>
+                        <a href={original} className={`button ${styles.cardButton} ${styles.secondaryAction}`} target="_blank" rel="noopener noreferrer">Listing <span aria-hidden="true">↗</span></a>
                     ) : (
-                        <button className="button button--secondary" type="button" disabled aria-label="View Original Listing — original URL not available">View Original Listing</button>
+                        <button className={`button ${styles.cardButton} ${styles.secondaryAction}`} type="button" disabled aria-label="Listing — original URL not available">Listing ↗</button>
                     )}
                 </div>
             </div>

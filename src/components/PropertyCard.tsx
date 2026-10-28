@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { Property } from '@/lib/directus';
+import type { Property } from '@/lib/directus';
+import styles from './PropertyCard.module.css';
 
 interface PropertyCardProps {
-    property: Pick<Property, 'id' | 'title' | 'slug' | 'featured_image' | 'location' | 'price_display' | 'property_type' | 'status'>;
+    property: Pick<Property, 'id' | 'title' | 'slug' | 'featured_image' | 'location' | 'price_display' | 'property_type' | 'status' | 'listing_status'>;
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
@@ -12,63 +13,52 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             ? `/images/properties/${property.slug}/featured.jpg`
             : `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${property.featured_image}?width=600&height=400&fit=cover`)
         : null;
+    // A sold/managed property must not be relabelled for sale by an optional "available" field.
+    const status = property.status === 'sold' ? 'sold'
+        : property.listing_status && property.listing_status !== 'available' ? property.listing_status
+            : property.status || property.listing_status;
+    const statusLabels: Record<string, string> = {
+        for_sale: 'For sale', available: 'For sale', managed: 'Managed',
+        under_offer: 'Under offer', sold: 'Sold', withdrawn: 'Withdrawn',
+    };
+    const availability = status && Object.hasOwn(statusLabels, status) ? statusLabels[status]
+        : status ? status.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase()) : 'Availability not provided';
+    const forSale = ['for_sale', 'available'].includes(status || '');
 
     return (
-        <Link
-            href={`/property/${property.slug}`}
-            className="card"
-        >
-            <div className="card__image-container" style={{ position: 'relative' }}>
-                {property.status && (
-                    <span style={{
-                        position: 'absolute',
-                        top: '10px',
-                        left: '10px',
-                        backgroundColor: property.status === 'for_sale' ? 'var(--color-accent-primary)' :
-                            property.status === 'sold' ? 'var(--color-error)' : 'var(--color-text-muted)',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold',
-                        textTransform: 'uppercase',
-                        zIndex: 10
-                    }}>
-                        {property.status.replace('_', ' ')}
-                    </span>
-                )}
+        <Link href={`/property/${property.slug}`} className={styles.card}>
+            <div className={styles.image}>
                 {imageUrl ? (
-                    <img
-                        src={imageUrl}
-                        alt={property.title}
-                        className="card__image"
-                        loading="lazy"
-                    />
+                    // Preserve the existing Directus asset transforms and native lazy loading.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imageUrl} alt={property.title} className={styles.photograph} loading="lazy" />
                 ) : (
-                    <div className="card__image" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eee' }}>
+                    <div className={styles.placeholder}>
+                        <svg viewBox="0 0 240 110" fill="none" aria-hidden="true">
+                            <path d="M0 100 53 46l33 36 40-66 49 61 26-29 39 52" stroke="currentColor" strokeWidth="1.5" />
+                            <path d="m77 100 38-30 38 30M88 92v18m54-18v18m-30-2V94h14v14" stroke="currentColor" strokeWidth="1.5" />
+                        </svg>
                         <span>No Image</span>
                     </div>
                 )}
             </div>
-            <div className="card__content">
-                <div className="card__header">
-                    <span className="text--xs u-mb-2" style={{ display: 'block', textTransform: 'capitalize', color: 'var(--color-accent-primary)' }}>
-                        {property.property_type} • {property.location}
+            <div className={styles.content}>
+                <div className={styles.topRow}>
+                    <span className={styles.location}>{property.location || 'Location not provided'}</span>
+                    <span className={`${styles.availability} ${forSale ? styles.forSale : ''}`}>
+                        <span className={styles.statusDot} aria-hidden="true" />
+                        {availability}
                     </span>
-                    <h3>{property.title}</h3>
                 </div>
-                <div className="card__body">
-                    {property.price_display && (
-                        <p className="text--lead" style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                            &yen; {property.price_display}
-                        </p>
-                    )}
-                </div>
-                <div className="card__footer">
-                    <span className="card__cta">View Details</span>
-                </div>
+                <h3 className={styles.title}>{property.title}</h3>
+                <dl className={styles.facts}>
+                    <dt>Price</dt>
+                    <dd className={styles.price}>{property.price_display ? <>&yen; {property.price_display}</> : 'Price not provided'}</dd>
+                    <dt>Type</dt>
+                    <dd className={styles.type}>{property.property_type || 'Not provided'}</dd>
+                </dl>
+                <span className={styles.detailsButton}>View Details <span aria-hidden="true">→</span></span>
             </div>
         </Link>
     );
 }
-

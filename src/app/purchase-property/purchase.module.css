@@ -1,0 +1,87 @@
+.page { --purchase-dark: #203f38; }
+.page em { color: var(--color-accent-primary); font-weight: 400; }
+.page h2 { font-size: clamp(2rem, 3vw, 3rem); line-height: 1.17; letter-spacing: -0.025em; margin-bottom: 1.5rem; }
+.page h3 { font-size: 1.55rem; line-height: 1.25; }
+.page a:focus-visible { outline: 3px solid var(--color-accent-secondary); outline-offset: 5px; }
+.hero { display: grid; grid-template-columns: 1fr 1fr; max-width: 1680px; margin: 0 auto; border-bottom: 1px solid var(--color-border); }
+.heroCopy { align-self: center; min-width: 0; padding: clamp(3rem, 5vw, 5.5rem) clamp(1.5rem, 4vw, 5rem); }
+.hero h1 { margin: 0 0 1.5rem; font-size: clamp(2.5rem, 3.6vw, 4rem); line-height: 1.08; letter-spacing: -0.035em; }
+.hero h1 em { display: block; }
+.heroLead { max-width: 33rem; font-size: 1.08rem; line-height: 1.7; margin-bottom: 0; }
+.heroPhoto { position: relative; min-width: 0; min-height: 500px; overflow: hidden; }
+.heroPhoto img { object-fit: cover; object-position: center; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.85rem 1rem; margin-top: 2rem; }
+.actions :global(.button) { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
+.section { padding: clamp(3.5rem, 6.5vw, 6rem) 0; }
+.introGrid { display: grid; grid-template-columns: 0.85fr 1.15fr; align-items: start; gap: clamp(2rem, 6vw, 6rem); }
+.intro h2 { max-width: 15ch; margin: 0; }
+.intro h2 em { display: block; }
+.introLead { max-width: 53ch; font-size: 1.1rem; line-height: 1.8; margin: 0; padding-left: 1.5rem; border-left: 2px solid var(--color-border); }
+.process { background: var(--color-bg-muted); border-block: 1px solid var(--color-border); }
+.processGrid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: clamp(2rem, 6vw, 6rem); align-items: start; }
+.sectionIntro h2 em { display: block; }
+.sectionIntro > p { max-width: 26ch; margin-bottom: 0; }
+.processList { list-style: none; padding: 0; margin: 0; }
+.processItem { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: 1rem; padding: 1.6rem 0; border-top: 1px solid var(--color-border); }
+.processItem:first-child { padding-top: 1.3rem; }
+.processItem:last-child { padding-bottom: 0; }
+.number { color: var(--color-accent-primary); font: italic 1.7rem/1.2 var(--font-heading); }
+.processItem h3 { margin-bottom: 0.7rem; }
+.processItem p { margin: 0; font-size: 0.95rem; line-height: 1.75; }
+.buyersGrid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 6vw, 6rem); align-items: start; }
+.buyerList { margin-top: 2rem; }
+.buyerItem { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr); gap: 1rem; padding: 1.4rem 0; border-top: 1px solid var(--color-border); }
+.buyerItem > span { color: var(--color-accent-primary); font-size: 1.1rem; }
+.buyerItem h4 { font-size: 1.4rem; margin-bottom: 0.5rem; }
+.buyerItem p { font-size: 0.95rem; margin: 0; max-width: 37ch; }
+.fees { padding: clamp(1.5rem, 3vw, 2.5rem); background: #fff; border: 1px solid var(--color-border); border-top: 3px solid var(--color-accent-primary); border-radius: 12px; }
+.fees > h3 { font-size: 2rem; margin-bottom: 1.6rem; }
+.feeItem { padding: 1.5rem 0; border-top: 1px solid var(--color-border); }
+.feeItem h4 { font: 600 0.9rem/1.5 var(--font-body); margin-bottom: 0.7rem; }
+.feeItem p { margin-bottom: 0; font-size: 0.9rem; line-height: 1.7; }
+.feeItem .feeAmount { font: 400 clamp(1.45rem, 2vw, 1.8rem)/1.35 var(--font-heading); color: var(--color-accent-primary); margin-bottom: 0.7rem; }
+.fees .feeNotice { margin: 0; padding-top: 1.2rem; border-top: 1px solid var(--color-border); font-size: 0.875rem; line-height: 1.7; font-style: italic; }
+.trust { background: var(--purchase-dark); color: #fff; }
+.trustHeader { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; align-items: center; margin-bottom: 2rem; }
+.trustHeader h2 { margin: 0; }
+.trustHeader h2 em { display: block; color: #b9d9ce; }
+.trustHeader > p { max-width: 29ch; margin: 0; justify-self: end; font-size: 1rem; }
+.trust p { color: #e0e9e4; }
+.trustGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem; }
+.trustItem { border-top: 1px solid #ffffff40; padding-top: 1.5rem; }
+.trustItem h3 { font-size: 1.5rem; }
+.trustItem p { margin: 0; font-size: 0.9rem; line-height: 1.75; }
+.contact { background: var(--color-bg-muted); text-align: center; }
+.contactInner { max-width: 50rem; }
+.contactInner::before { content: ''; display: block; width: 3rem; height: 2px; background: var(--color-accent-primary); margin: 0 auto 2rem; }
+.contact h2 { max-width: 24ch; margin-inline: auto; }
+.contact p { max-width: 46ch; margin: 0 auto; font-size: 1.05rem; line-height: 1.75; }
+.contact .actions { justify-content: center; }
+
+@media (min-width: 761px) and (max-width: 1050px) {
+    .heroCopy { padding: 3rem 1.5rem; }
+    .hero h1 { font-size: 2.8rem; }
+    .trustGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+    .hero, .introGrid, .processGrid, .buyersGrid, .trustHeader { grid-template-columns: minmax(0, 1fr); }
+    .heroCopy { padding: 3rem 1.5rem 2.5rem; }
+    .hero h1 { max-width: 18ch; font-size: clamp(2.4rem, 7vw, 3.4rem); }
+    .heroPhoto { min-height: 0; aspect-ratio: 4 / 3; max-height: 420px; margin-left: 1.5rem; }
+    .heroLead, .introLead { font-size: 1rem; }
+    .introGrid, .processGrid, .buyersGrid { gap: 2.5rem; }
+    .intro h2 { max-width: none; }
+    .introLead { padding-left: 1rem; }
+    .sectionIntro > p { max-width: 40ch; }
+    .trustHeader { gap: 1rem; }
+    .trustHeader > p { justify-self: start; max-width: none; }
+    .trustGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 1.5rem; }
+}
+@media (max-width: 420px) {
+    .actions { align-items: stretch; flex-direction: column; }
+    .actions :global(.button) { width: 100%; }
+    .trustGrid { grid-template-columns: minmax(0, 1fr); }
+    .processItem { grid-template-columns: 2rem minmax(0, 1fr); gap: 0.75rem; }
+    .number { font-size: 1.4rem; }
+    .fees { padding: 1.5rem; }
+}

@@ -469,7 +469,7 @@ test('Joetsu cards omit disclosure sections while preserving approved photos, so
     assert(!html.includes(joetsu.purchase_conditions_ja!));
     assert(html.includes(`href="${joetsu.original_pdf_url}"`));
     assert(html.includes('Ask Us for Help'));
-    assert(html.includes('Source:'));
+    assert(html.includes('<dt>Source</dt>'));
     assert.equal(JSON.stringify(property), before);
     assert.equal(property.purchaseConditionsJa, joetsu.purchase_conditions_ja);
     assert(new URL(enquiryMailto(property)).searchParams.get('body')!.includes(joetsu.purchase_conditions_ja!));
@@ -489,4 +489,46 @@ test('Myoko and Shinano retain their Japanese condition presentation and existin
         if (property.thumbnail) assert(html.includes(`src="${property.thumbnail.src}"`));
         if (input === shinano) assert(html.includes('Programme conditions'));
     }
+});
+
+test('Redesigned cards use the shared location in the eyebrow/title and semantic price/type/source details', () => {
+    for (const property of [customerProperty(row)!, customerProperty(shinano)!, customerProperty(joetsu)!]) {
+        const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+        const location = propertyLocation(property);
+        assert(html.includes(location.replace(' (', ' · ').replace(/\)$/, '')));
+        assert(html.includes(`<h3>${propertyTitle(property)}</h3>`));
+        assert(html.includes('<dt>Price</dt>'));
+        assert(html.includes('<dt>Type</dt>'));
+        assert(html.includes('<dt>Source</dt>'));
+        assert.equal((html.match(/<dt>Source<\/dt>/g) || []).length, 1);
+        assert(html.includes('¥12,500,000'));
+        assert(html.includes('>Available</span>'));
+        assert(html.includes('Listing <span aria-hidden="true">↗</span>'));
+        assert(html.includes(`href="${property.originalListingUrl}" target="_blank" rel="noopener noreferrer"`));
+        const mailto = html.match(/href="(mailto:[^"]+)"/)![1].replaceAll('&amp;', '&').replaceAll('&#x27;', "'");
+        assert.equal(mailto, enquiryMailto(property));
+    }
+});
+
+test('Redesigned cards gracefully handle absent locality, price, type and listing links without inventing availability', () => {
+    const property = { ...customerProperty(row)!, municipality: 'Myoko', neighbourhood: null, area: null,
+        askingPriceJpy: null, propertyType: null, originalListingUrl: null, availability: 'Unknown' as const };
+    const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+    assert(html.includes('<h3>Property in Myoko</h3>'));
+    assert(!html.includes('Myoko ·'));
+    assert(html.includes('Price not provided'));
+    assert(html.includes('<dd>Not provided</dd>'));
+    assert(html.includes('Availability not provided'));
+    assert(!html.includes('>Available</span>'));
+    assert(html.includes('disabled="" aria-label="Listing — original URL not available"'));
+    assert(html.includes('Property image unavailable'));
+});
+
+test('Non-Joetsu material disclosures remain complete, escaped and keyboard-expandable before enquiries', () => {
+    const property = customerProperty({ ...row, purchase_conditions_ja: joetsu.purchase_conditions_ja })!;
+    const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+    assert.match(html, /<details[^>]*><summary>Important Property Conditions<\/summary>/);
+    assert(html.includes(joetsu.purchase_conditions_ja!));
+    assert(html.indexOf('</details>') < html.indexOf('Ask Us for Help'));
+    assert(!html.includes('line-clamp'));
 });
