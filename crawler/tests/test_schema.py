@@ -50,10 +50,10 @@ class SchemaTests(unittest.TestCase):
     def test_every_current_model_field_is_mapped(self):
         model = {field.name for field in fields(Property)}
         normalized_source_fields = {"source_agency_name", "source_website"}
-        upgrade = tuple(x.stmt for x in parse_sql(Path('sql/migrations/003_shinano_source.sql').read_text()))
+        upgrade = tuple(x.stmt for path in ('sql/migrations/003_shinano_source.sql', 'sql/migrations/004_joetsu_source.sql') for x in parse_sql(Path(path).read_text()))
         added = {c.def_.colname for node in upgrade if isinstance(node, ast.AlterTableStmt)
                  for c in node.cmds if isinstance(c.def_, ast.ColumnDef)}
-        self.assertEqual(added, {'transaction_type', 'construction_details', 'source_facts'})
+        self.assertEqual(added, {'transaction_type', 'construction_details', 'source_facts', 'purchase_conditions_ja'})
         self.assertLessEqual(model - normalized_source_fields, set(self.design.columns("properties")) | added)
         self.assertLessEqual({"agency_name", "website", "source_key"}, self.design.columns("sources").keys())
 
@@ -135,7 +135,7 @@ class SchemaTests(unittest.TestCase):
 
     def test_customer_view_omits_ids_raw_labels_and_internal_fields(self):
         actual = set()
-        for target in SchemaDesign(Path("sql/migrations/003_shinano_source.sql")).views["customer_properties"].query.targetList:
+        for target in SchemaDesign(Path("sql/migrations/004_joetsu_source.sql")).views["customer_properties"].query.targetList:
             actual.add(target.name or names(target.val.fields)[-1])
         prop = replace(initial_batch().properties[0], source_key="myoko_akiya_bank", availability_status=AvailabilityStatus.ACTIVE)
         self.assertEqual(actual, set(customer_property(prop)) - {"source_status_ja"})
@@ -197,8 +197,8 @@ class SchemaTests(unittest.TestCase):
     def test_prepared_sql_tests_parse_and_end_in_rollback(self):
         with patch("socket.socket", side_effect=AssertionError("Connections forbidden")):
             statement_count, body_count = parse_future_tests()
-        self.assertEqual(statement_count, 65)
-        self.assertEqual(body_count, 17)
+        self.assertEqual(statement_count, 86)
+        self.assertEqual(body_count, 23)
         for path in Path("sql/tests").glob("*.sql"):
             with self.subTest(path=path):
                 statements = parse_sql(path.read_text(encoding="utf-8"))

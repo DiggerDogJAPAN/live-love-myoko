@@ -2,6 +2,8 @@
  * A future authenticated backend must project and authorize records before delivery.
  * Neither a browser flag nor this model is an entitlement/eligibility check.
  */
+export const finderMunicipalities = ['Myoko', 'Shinano', 'Joetsu'] as const;
+
 export interface FinderProperty {
     title: string | null;
     municipality: string | null;
@@ -13,6 +15,8 @@ export interface FinderProperty {
     /** Source Japanese is retained separately from the English display/filter value. */
     areaJa?: string | null;
     locationNeedsReview?: boolean;
+    /** Public source disclosure, preserved in Japanese; never private source_facts. */
+    purchaseConditionsJa: string | null;
     askingPriceJpy: number | null;
     propertyType: 'House' | 'Land' | 'Apartment' | 'Lodge' | 'Pension/Lodge' | 'Commercial' | 'Other' | null;
     availability: 'Available' | 'Under negotiation' | 'Unavailable' | 'Unknown';
@@ -90,6 +94,7 @@ export function enquiryMailto(property: FinderProperty): string {
         `Property: ${title}`,
         property.askingPriceJpy !== null ? `Price: ${formatPrice(property.askingPriceJpy)}` : null,
         location ? `Area: ${location}` : null,
+        property.purchaseConditionsJa ? `Source conditions (Japanese):\n${property.purchaseConditionsJa}` : null,
         property.sourceName ? `Source: ${property.sourceName}` : null,
         original ? `Original listing: ${original}` : null,
     ].filter(Boolean).join('\n');

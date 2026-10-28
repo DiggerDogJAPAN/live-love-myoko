@@ -1,4 +1,4 @@
-"""Central eligibility and display allowlist for the public Myoko feed."""
+"""Central eligibility and display allowlist for approved property sources."""
 
 import re
 from typing import Iterable
@@ -14,10 +14,12 @@ def is_customer_eligible(prop: Property) -> bool:
     Empty labels represent ordinary published cards; NEW/price badges do not
     restrict enquiries. Unmapped place names are unrelated to availability.
     """
-    if (prop.source_key not in {"myoko_akiya_bank", "shinano_akiya_bank"} or prop.listing_status != ListingStatus.ACTIVE
+    if (prop.source_key not in {"myoko_akiya_bank", "shinano_akiya_bank", "joetsu_akiya_bank"} or prop.listing_status != ListingStatus.ACTIVE
             or prop.availability_status != AvailabilityStatus.ACTIVE):
         return False
-    if prop.source_key == 'shinano_akiya_bank' and (prop.transaction_type != 'sale' or prop.property_type not in {PropertyType.HOUSE,PropertyType.APARTMENT,PropertyType.LODGE,PropertyType.COMMERCIAL}):
+    if prop.source_key in {'shinano_akiya_bank', 'joetsu_akiya_bank'} and (prop.transaction_type != 'sale' or prop.property_type not in {PropertyType.HOUSE,PropertyType.APARTMENT,PropertyType.LODGE,PropertyType.COMMERCIAL}):
+        return False
+    if prop.source_key == 'joetsu_akiya_bank' and prop.source_property_id == '5-34':
         return False
     label = prop.source_status_ja
     if label is None:
@@ -34,8 +36,8 @@ def customer_properties(properties: Iterable[Property]) -> list:
 
 
 def customer_property(prop: Property) -> dict:
-    if prop.source_key not in {"myoko_akiya_bank", "shinano_akiya_bank"}:
-        raise ValueError("This customer projection is specific to Myoko Akiya Bank")
+    if prop.source_key not in {"myoko_akiya_bank", "shinano_akiya_bank", "joetsu_akiya_bank"}:
+        raise ValueError("Unknown customer property source")
     if not is_customer_eligible(prop):
         raise ValueError("Property is not eligible for the customer feed")
     prop = reviewed_location(prop)
@@ -48,7 +50,7 @@ def customer_property(prop: Property) -> dict:
         "location_display": prop.area_en or prop.area,
         "region_ja": prop.region_ja, "region_en": prop.region_en,
         "location_needs_review": bool(prop.unmapped_locations),
-        "thumbnail_url": prop.main_image_url if prop.image_permission == ContentPermission.PERMITTED else None,
+        "thumbnail_url": prop.main_image_url if prop.source_key != 'joetsu_akiya_bank' and prop.image_permission == ContentPermission.PERMITTED else None,
         "original_pdf_url": prop.original_listing_url,
         "publication_status": prop.listing_status.value,
         "availability_status": prop.availability_status.value,
@@ -56,4 +58,5 @@ def customer_property(prop: Property) -> dict:
         "source_status_ja": prop.source_status_ja,
         "source_attribution": "Source: " + prop.source_agency_name,
         "last_checked_at": prop.last_checked_at.isoformat(),
+        "purchase_conditions_ja": prop.purchase_conditions_ja,
     }

@@ -152,3 +152,8 @@
 @media (prefers-reduced-motion: reduce) {
     .card, .cardActions :global(.button) { transition: none; }
 }
+
+.conditions { margin: 1rem 0; padding: 1rem; border: 1px solid #c9ae7a; border-left: 4px solid #8b651f; border-radius: 0.35rem; background: #fff8e8; color: #40351f; }
+.conditions h4 { margin: 0 0 0.5rem; font-size: 0.95rem; line-height: 1.4; }
+.conditionsLabel { margin: 0 0 0.5rem; font-size: 0.75rem; font-weight: 600; }
+.conditionsText { margin: 0; font-size: 0.875rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }

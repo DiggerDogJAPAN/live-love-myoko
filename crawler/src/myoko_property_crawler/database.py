@@ -17,7 +17,7 @@ from .db_connection import PreflightError, connect_database, load_settings
 from .models import ContentPermission, Property
 from .locations import LOCATION_DISPLAY_FIELDS, reviewed_location
 from .storage import load_state
-from .sources import SOURCES
+from .sources import SOURCES, valid_property_number
 
 SOURCE = 'myoko_akiya_bank'
 PROPERTY_COLUMNS = tuple(f.name for f in fields(Property) if f.name not in ('source_agency_name', 'source_website'))
@@ -45,7 +45,7 @@ def prepare_sync(state, source_key=SOURCE):
         url = urlsplit(p.original_listing_url)
         if (p.source_agency_name != profile.agency
                 or url.scheme != 'https' or url.hostname != profile.host or not url.path.startswith(profile.listing_prefix)
-                or 'fixture' in url.path.lower() or not p.source_property_id or not p.source_property_id.isdigit()
+                or 'fixture' in url.path.lower() or not p.source_property_id or not valid_property_number(source_key, p.source_property_id)
                 or p.image_permission == ContentPermission.SYNTHETIC
                 or p.description_permission == ContentPermission.SYNTHETIC):
             raise SyncError('Only reviewed real source inventory is accepted; fixture/source mismatch rejected')

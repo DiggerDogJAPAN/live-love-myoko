@@ -7,7 +7,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyG
 import { authenticateAdministrator, FinderHttpError } from '../server/property-finder/access';
 import { handleFinderRequest, type FinderEnv } from '../server/property-finder/api';
 import { customerProperty, databaseConfiguration, databaseClientConfiguration, type CustomerViewRow } from '../server/property-finder/database';
-import { enquiryMailto, visibleThumbnail, propertyArea, propertyDisplayArea, propertyLocation, propertyTitle } from '../src/lib/property-finder/model';
+import { enquiryMailto, finderMunicipalities, visibleThumbnail, propertyArea, propertyDisplayArea, propertyLocation, propertyTitle } from '../src/lib/property-finder/model';
 import { initialFilters, searchProperties } from '../src/lib/property-finder/search';
 
 // Synthetic signing keys/rows only. No live credentials, DB calls or stored inventory.
@@ -40,7 +40,7 @@ function request(jwt?: string, path = '/properties') {
     return new Request(`https://website.example/api/property-finder${path}`, { headers: jwt ? { 'Cf-Access-Jwt-Assertion': jwt } : {} });
 }
 const row: CustomerViewRow = {
-    municipality: 'Myoko', property_type: null, transaction_type: null,
+    municipality: 'Myoko', property_type: null, transaction_type: null, purchase_conditions_ja: null,
     title: 'Property in Test Area', asking_price_jpy: '12500000',
     location_en: 'Test Area', location_display: 'Test Area', location_ja: 'テスト',
     publication_status: 'active', availability_status: 'active',
@@ -85,7 +85,7 @@ test('Authorized API projects eligible rows, derives counts, is private and sign
     assert.equal(response.status, 200);
     assert.match(response.headers.get('Cache-Control')!, /no-store/);
     assert.equal(response.headers.get('Cloudflare-CDN-Cache-Control'), 'no-store');
-    assert.deepEqual(await response.json(), { properties: [property], count: 1 });
+    assert.deepEqual(await response.json(), { properties: [property], count: 1, municipalities: finderMunicipalities });
     const loginRequest = new Request(request(jwt, '/login?return=https://attacker.example'), { headers: { 'Cf-Access-Jwt-Assertion': jwt, 'Sec-Fetch-Site': 'cross-site' } });
     const login = await handleFinderRequest(loginRequest, env, dependencies);
     assert.equal(login.status, 303);
@@ -329,7 +329,7 @@ test('Rendered Shinano card hotlinks permitted originals and shows conditions, s
     assert(!html.includes('/_next/image'));
     assert(html.includes('Property in Shinano (Nojiri)'));
     assert(html.includes('Pension/Lodge'));
-    assert(html.includes('Source: Shinano Town Akiya Bank'));
+    assert(html.includes('>Shinano Town Akiya Bank</a>'));
     assert(html.includes(`href="${shinano.original_pdf_url}"`));
     assert(html.includes('href="mailto:info@myokoworks.com'));
     assert(html.includes('https://www.town.shinano.lg.jp/docs/369.html'));
@@ -343,7 +343,7 @@ test('Rendered live directory offers Myoko/Shinano municipalities and consistent
     const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, {
         mode: 'live', properties: [regionalProperty('田口', 'Taguchi', 'Myoko Kogen', '妙高高原'), customerProperty(shinano)!],
     }));
-    for (const label of ['Myoko', 'Shinano', 'Myoko (Taguchi)', 'Shinano (Nojiri)', 'Pension/Lodge']) {
+    for (const label of ['Myoko', 'Shinano', 'Joetsu', 'Myoko (Taguchi)', 'Shinano (Nojiri)', 'Pension/Lodge']) {
         assert(html.includes(`<option>${label}</option>`));
     }
     assert(!html.includes('<option>Shinano Town</option>'));
@@ -351,4 +351,92 @@ test('Rendered live directory offers Myoko/Shinano municipalities and consistent
     assert(html.includes('id="finder-max"'));
     assert(html.includes('Price: low to high'));
     assert(html.includes('Price: high to low'));
+});
+
+
+const joetsu: CustomerViewRow = {
+    ...row, municipality: 'Joetsu', property_type: 'house', transaction_type: 'sale',
+    source_attribution: 'Source: Joetsu City Akiya Bank', location_en: 'Takada', location_ja: '高田',
+    original_pdf_url: 'https://joetsu-akiyabank.jp/archives/realestate/1-999-offline-test/',
+    purchase_conditions_ja: 'その他：心理的瑕疵あり。\n付帯物件：未登記建物あり。\n現状：居住中',
+};
+
+test('Joetsu projects only public conditions, keeps source links and always rejects thumbnails', () => {
+    const property = customerProperty({ ...joetsu, source_facts: { agent: 'private-agent', thumbnail_candidate_url: 'private-image' } } as CustomerViewRow)!;
+    assert.equal(property.municipality, 'Joetsu');
+    assert.equal(propertyLocation(property), 'Joetsu (Takada)');
+    assert.equal(property.sourceName, 'Joetsu City Akiya Bank');
+    assert.equal(property.originalListingUrl, joetsu.original_pdf_url);
+    assert.equal(property.purchaseConditionsJa, joetsu.purchase_conditions_ja);
+    assert(!JSON.stringify(property).includes('private-agent'));
+    assert(!JSON.stringify(property).includes('private-image'));
+    for (const thumbnail_url of [null, 'https://joetsu-akiyabank.jp/wp-content/uploads/test.jpg',
+        'https://www.city.myoko.niigata.jp/fs/test.jpg', shinano.thumbnail_url]) {
+        assert.equal(customerProperty({ ...joetsu, thumbnail_url })!.thumbnail, null);
+    }
+    for (const purchase_conditions_ja of [null, '', '   ']) {
+        assert.equal(customerProperty({ ...joetsu, purchase_conditions_ja })!.purchaseConditionsJa, null);
+    }
+    const original = '  その他：要確認。\n追加費用あり。  ';
+    assert.equal(customerProperty({ ...joetsu, purchase_conditions_ja: original })!.purchaseConditionsJa, original);
+    assert(new URL(enquiryMailto(property)).searchParams.get('body')!.includes(joetsu.purchase_conditions_ja!));
+});
+
+test('Joetsu sale-building eligibility excludes rentals, unknown types and unavailable listings', () => {
+    for (const transaction_type of [null, 'rent', 'unknown']) assert.equal(customerProperty({ ...joetsu, transaction_type }), null);
+    for (const property_type of [null, 'land', 'unknown', 'other']) assert.equal(customerProperty({ ...joetsu, property_type }), null);
+    for (const availability_status of ['sold', 'under_negotiation', 'unknown', 'viewings_closed']) assert.equal(customerProperty({ ...joetsu, availability_status }), null);
+    assert.equal(customerProperty({ ...joetsu, publication_status: 'not_found' }), null);
+    for (const property_type of ['house', 'apartment', 'lodge', 'commercial']) assert(customerProperty({ ...joetsu, property_type }));
+});
+
+test('Joetsu district labels, Japanese fallback, price/type filters and sorting share existing behaviour', () => {
+    for (const [location_en, location_ja] of [['Takada', '高田'], ['Naoetsu', '直江津'], ['Nakago', '中郷']]) {
+        const property = customerProperty({ ...joetsu, location_en, location_ja })!;
+        const label = `Joetsu (${location_en})`;
+        assert.equal(propertyLocation(property), label);
+        assert.equal(propertyTitle(property), `Property in ${label}`);
+        assert.equal(searchProperties([property], { ...initialFilters, municipality: 'Joetsu', area: label, keyword: location_ja, minPrice: '12500000', maxPrice: '12500000', propertyType: 'House' }).length, 1);
+        assert(new URL(enquiryMailto(property)).searchParams.get('body')!.includes(label));
+    }
+    const fallback = customerProperty({ ...joetsu, location_en: null, location_ja: '未確認地区', location_needs_review: true })!;
+    assert.equal(propertyLocation(fallback), 'Joetsu (未確認地区)');
+    assert.equal(fallback.locationNeedsReview, true);
+    const properties = [customerProperty(joetsu)!, customerProperty(shinano)!, customerProperty({ ...row, asking_price_jpy: '100' })!];
+    assert.equal(searchProperties(properties, { ...initialFilters, municipality: 'Joetsu' }).length, 1);
+    assert.equal(searchProperties(properties, { ...initialFilters, sort: 'price-desc' }).length, 3);
+    assert.equal(searchProperties(properties, { ...initialFilters })[0].askingPriceJpy, 100);
+});
+
+test('Conditions render as exact escaped Japanese before enquiry, with linked attribution and placeholder', () => {
+    const property = customerProperty(joetsu)!;
+    const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+    assert(html.includes('Important Property Conditions'));
+    assert(html.includes('Source disclosure (Japanese)'));
+    assert(html.includes(`lang="ja"`));
+    assert(html.includes(joetsu.purchase_conditions_ja!));
+    assert(html.indexOf('Important Property Conditions') < html.indexOf('Ask Us for Help'));
+    assert(html.includes(`href="${joetsu.original_pdf_url}" target="_blank" rel="noopener noreferrer">Joetsu City Akiya Bank</a>`));
+    assert(html.includes('Property image unavailable'));
+    assert(!html.includes('<img'));
+    assert(!html.includes('psychological'));
+    const unsafe = '<script>alert("test")</script>\n条件：<b>原文</b> & 追加費用';
+    const escaped = renderToStaticMarkup(createElement(PropertyFinderCard, { property: { ...property, purchaseConditionsJa: unsafe } }));
+    assert(escaped.includes('&lt;script&gt;'));
+    assert(!escaped.includes('<script>'));
+    assert(!escaped.includes('<b>原文</b>'));
+    const without = renderToStaticMarkup(createElement(PropertyFinderCard, { property: { ...property, purchaseConditionsJa: null } }));
+    assert(!without.includes('Important Property Conditions'));
+    const accidentalImage = renderToStaticMarkup(createElement(PropertyFinderCard, { property: { ...property, thumbnail: customerProperty({ ...row, thumbnail_url: 'https://www.city.myoko.niigata.jp/fs/test.jpg' })!.thumbnail } }));
+    assert(!accidentalImage.includes('<img'));
+});
+
+test('API and empty live directory advertise all three municipalities before Joetsu import', async () => {
+    const response = await handleFinderRequest(request(await token()), env, {
+        authenticate: (req, settings) => authenticateAdministrator(req, settings, keys), load: async () => [],
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { properties: [], count: 0, municipalities: ['Myoko', 'Shinano', 'Joetsu'] });
+    const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, { properties: [], mode: 'live' }));
+    for (const municipality of ['Myoko', 'Shinano', 'Joetsu']) assert(html.includes(`<option>${municipality}</option>`));
 });

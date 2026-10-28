@@ -13,6 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Keep Joetsu disabled pending website deployment verification and activation approval.
+        # Approved activation later: source: [myoko_akiya_bank, shinano_akiya_bank, joetsu_akiya_bank]
         source: [myoko_akiya_bank, shinano_akiya_bank]
     name: Crawl ${{ matrix.source }}
     runs-on: ubuntu-latest

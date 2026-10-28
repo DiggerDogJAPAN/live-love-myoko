@@ -69,3 +69,23 @@ def location_display_values(japanese, unmapped=()):
         pending.append(japanese)
     return {'area_en':english, 'title_en':'Property in '+english if english else None,
             'unmapped_locations':tuple(dict.fromkeys(pending))}
+
+
+# Joetsu Akiya Bank's published numbered district links, reviewed 2026-10-28.
+# 北諏訪's misspelled URL slug is corrected using the city's Kitasuwa reference.
+JOETSU_AREAS = {
+    '1': ('安塚区', 'Yasuzuka'), '2': ('浦川原区', 'Uragawara'),
+    '3': ('大島区', 'Oshima'), '4': ('牧区', 'Maki'),
+    '5': ('柿崎区', 'Kakizaki'), '6': ('大潟区', 'Ogata'),
+    '7': ('頸城区', 'Kubiki'), '8': ('吉川区', 'Yoshikawa'),
+    '9': ('中郷区', 'Nakago'), '10': ('板倉区', 'Itakura'),
+    '11': ('清里区', 'Kiyosato'), '12': ('三和区', 'Sanwa'),
+    '13': ('名立区', 'Nadachi'), '14': ('高田区', 'Takada'),
+    '15': ('新道区', 'Shindo'), '16': ('金谷区', 'Kanaya'),
+    '17': ('春日区', 'Kasuga'), '18': ('諏訪区', 'Suwa'),
+    '19': ('津有区', 'Tsuari'), '20': ('三郷区', 'Sango'),
+    '21': ('和田区', 'Wada'), '22': ('高士区', 'Kodo'),
+    '23': ('直江津区', 'Naoetsu'), '24': ('有田区', 'Arita'),
+    '25': ('八千浦区', 'Yachiho'), '26': ('保倉区', 'Hokura'),
+    '27': ('北諏訪区', 'Kitasuwa'), '28': ('谷浜・桑取区', 'Tanihama / Kuwadori'),
+}

@@ -66,6 +66,7 @@ export interface CustomerViewRow {
     municipality: string | null;
     property_type: string | null;
     transaction_type: string | null;
+    purchase_conditions_ja: string | null;
     title: string | null;
     asking_price_jpy: string | number | null;
     location_en: string | null;
@@ -106,8 +107,8 @@ export function customerProperty(row: CustomerViewRow): FinderProperty | null {
     if (row.publication_status !== 'active' || row.availability_status !== 'active') return null;
     if (!row.source_attribution.startsWith('Source: ') || !row.source_attribution.slice(8).trim()) throw new Error('Invalid source attribution');
     const sourceName = row.source_attribution.slice(8).trim();
-    // Defence in depth alongside migration 003's view and RLS predicate.
-    if (sourceName === 'Shinano Town Akiya Bank' && (row.transaction_type !== 'sale'
+    // Defence in depth alongside the protected view and RLS predicate.
+    if (['Shinano Town Akiya Bank', 'Joetsu City Akiya Bank'].includes(sourceName) && (row.transaction_type !== 'sale'
         || !['house', 'apartment', 'lodge', 'commercial'].includes(row.property_type || ''))) return null;
     const types: Record<string, FinderProperty['propertyType']> = {
         house: 'House', land: 'Land', apartment: 'Apartment', lodge: 'Pension/Lodge',
@@ -128,6 +129,8 @@ export function customerProperty(row: CustomerViewRow): FinderProperty | null {
         regionJa: row.region_ja,
         areaJa: row.location_ja,
         locationNeedsReview: needsReview,
+        purchaseConditionsJa: typeof row.purchase_conditions_ja === 'string' && row.purchase_conditions_ja.trim()
+            ? row.purchase_conditions_ja : null,
         askingPriceJpy: price,
         availability: 'Available',
         sourceName,
@@ -162,7 +165,7 @@ export async function loadCustomerProperties(env: FinderDatabaseEnv): Promise<Fi
         const result = await client.query<CustomerViewRow>(`
             SELECT title, asking_price_jpy, location_en, location_display, location_ja,
                 publication_status, availability_status, source_attribution, original_pdf_url, thumbnail_url, location_needs_review, region_en, region_ja,
-                municipality, property_type, transaction_type
+                municipality, property_type, transaction_type, purchase_conditions_ja
             FROM property_api.customer_properties
             WHERE publication_status = 'active' AND availability_status = 'active'
             ORDER BY asking_price_jpy ASC NULLS LAST, original_pdf_url ASC

@@ -16,18 +16,19 @@ from .live import HTMLClient, USER_AGENT, crawl_live
 from .models import Property
 from .sources import SOURCES
 from .shinano_live import crawl_shinano, ShinanoClient
+from .joetsu_live import crawl_joetsu, JoetsuClient
 
 
 def database_state(connection, source_key=SOURCE):
     profile=SOURCES[source_key]
     source = connection.execute("SELECT * FROM crawler.sources WHERE source_key=%s", (source_key,)).fetchone()
-    if not source or source['synthetic'] or source['agency_name'] != profile.agency or source['website'] != profile.website:
+    if not source or not source.get('enabled', True) or source['synthetic'] or source['agency_name'] != profile.agency or source['website'] != profile.website:
         raise PreflightError('Expected the provisioned real source')
     columns = [f.name for f in fields(Property) if f.name not in ('source_agency_name', 'source_website')]
     rows = connection.execute('SELECT '+','.join(columns)+' FROM crawler.properties WHERE source_key=%s', (source_key,)).fetchall()
     properties = tuple(Property(**dict(row, source_agency_name=source['agency_name'], source_website=source['website'])) for row in rows)
     checked = source['last_successful_check_at']
-    if not properties and checked is None and source_key == 'shinano_akiya_bank' and source['crawl_config'].get('allow_initial_empty') is True:
+    if not properties and checked is None and source_key in {'shinano_akiya_bank', 'joetsu_akiya_bank'} and source['crawl_config'].get('allow_initial_empty') is True:
         return State()
     if not properties or not checked or any(p.last_checked_at > checked for p in properties):
         raise PreflightError('Database baseline is empty or inconsistent; refusing an unseeded daily crawl')
@@ -36,7 +37,7 @@ def database_state(connection, source_key=SOURCE):
 
 def apply_live(connection, state, *, client=None, source_key=SOURCE):
     try:
-        result = (crawl_live if source_key == SOURCE else crawl_shinano)(state, client=client)
+        result = ({SOURCE: crawl_live, 'shinano_akiya_bank': crawl_shinano, 'joetsu_akiya_bank': crawl_joetsu}[source_key])(state, client=client)
     except ValueError as error:
         raise PreflightError('Source validation failed: '+str(error)) from None
     except HTTPError as error:
@@ -60,7 +61,7 @@ def main(argv=None):
         if not lock['acquired']:
             raise PreflightError('Another daily crawler is running')
         state = database_state(connection,source_key)
-        client_type=HTMLClient if source_key == SOURCE else ShinanoClient
+        client_type={SOURCE: HTMLClient, 'shinano_akiya_bank': ShinanoClient, 'joetsu_akiya_bank': JoetsuClient}[source_key]
         result = apply_live(connection, state, client=client_type(user_agent=os.getenv('MYOKO_USER_AGENT', USER_AGENT)),source_key=source_key)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -1,6 +1,6 @@
 import { authenticateAdministrator, FinderHttpError, type FinderAccessEnv, type FinderIdentity } from './access';
 import { loadCustomerProperties, type FinderDatabaseEnv } from './database';
-import type { FinderProperty } from '../../src/lib/property-finder/model';
+import { finderMunicipalities, type FinderProperty } from '../../src/lib/property-finder/model';
 
 export interface FinderEnv extends FinderAccessEnv, FinderDatabaseEnv {}
 
@@ -37,7 +37,7 @@ export async function handleFinderRequest(request: Request, env: FinderEnv, depe
             return new Response(null, { status: 303, headers: { ...privateHeaders, Location: 'https://love-live-myoko.com/property-finder/search/' } });
         }
         const properties = await dependencies.load(env);
-        return reply(200, { properties, count: properties.length });
+        return reply(200, { properties, count: properties.length, municipalities: finderMunicipalities });
     } catch (error) {
         if (error instanceof FinderHttpError) return reply(error.status, { code: error.code });
         // No driver errors, credentials, JWTs or listing contents in responses/logs.

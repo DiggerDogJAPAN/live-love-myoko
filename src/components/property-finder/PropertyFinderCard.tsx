@@ -9,7 +9,7 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
     const original = originalListingUrl(property);
     const title = propertyTitle(property);
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
-    const thumbnail = visibleThumbnail(property.thumbnail, failedSrc);
+    const thumbnail = property.sourceName === 'Joetsu City Akiya Bank' ? null : visibleThumbnail(property.thumbnail, failedSrc);
     return (
         <article className={styles.card}>
             <div className={styles.cardImage}>
@@ -38,7 +38,14 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
                     Enquiries and viewings are subject to the original programme’s eligibility and registration requirements. Investment or commercial use is not assured.{' '}
                     <a href="https://www.town.shinano.lg.jp/docs/369.html" target="_blank" rel="noopener noreferrer">Programme conditions ↗</a>
                 </p>}
-                <p className={styles.source}>Source: {property.sourceName}</p>
+                {property.purchaseConditionsJa?.trim() && <section className={styles.conditions} aria-label="Important Property Conditions">
+                    <h4>Important Property Conditions</h4>
+                    <p className={styles.conditionsLabel}>Source disclosure (Japanese)</p>
+                    <p lang="ja" className={styles.conditionsText}>{property.purchaseConditionsJa}</p>
+                </section>}
+                <p className={styles.source}>Source: {original
+                    ? <a href={original} target="_blank" rel="noopener noreferrer">{property.sourceName}</a>
+                    : property.sourceName}</p>
                 <div className={styles.cardActions}>
                     <a href={enquiryMailto(property)} className="button button--primary">Ask Us for Help</a>
                     {original ? (

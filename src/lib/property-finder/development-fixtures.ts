@@ -13,7 +13,7 @@ function fixture(
     sourceName = 'Synthetic development source',
 ): FinderProperty {
     return { title, municipality, area, propertyType, askingPriceJpy, listedAt, sourceName,
-        availability: 'Available', originalListingUrl: null, thumbnail: null };
+        purchaseConditionsJa: null, availability: 'Available', originalListingUrl: null, thumbnail: null };
 }
 
 export const developmentProperties: readonly FinderProperty[] = [

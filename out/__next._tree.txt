@@ -1,7 +1,7 @@
 :HL["/_next/static/chunks/44n_ur5qx81wk.css","style"]
-:HL["/_next/static/chunks/0xj4xpxxi3e-l.css","style"]
+:HL["/_next/static/chunks/07rgdhmt6u-82.css","style"]
 :HL["/images/services/property management.jpg","image"]
 :HL["/images/services/property purchase.jpg","image"]
 :HL["/images/akakura-onsen.jpg","image"]
 :HL["/images/myoko-village.jpg","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"1793182487291"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"1793191312920"}
