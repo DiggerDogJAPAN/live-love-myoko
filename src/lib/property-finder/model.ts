@@ -6,6 +6,9 @@ export interface FinderProperty {
     title: string | null;
     municipality: string | null;
     area: string | null;
+    /** Source Japanese is retained separately from the English display/filter value. */
+    areaJa?: string | null;
+    locationNeedsReview?: boolean;
     askingPriceJpy: number | null;
     propertyType: 'House' | 'Land' | 'Apartment' | 'Lodge' | null;
     availability: 'Available' | 'Under negotiation' | 'Unavailable' | 'Unknown';
@@ -16,6 +19,11 @@ export interface FinderProperty {
     thumbnail: { src: string; alt: string; permission: 'permitted' } | null;
     /** Actual listing/publication date, not crawler last_checked_at. */
     listedAt: string | null;
+}
+
+/** A failed URL stays a placeholder until this card receives a different source URL. */
+export function visibleThumbnail(thumbnail: FinderProperty['thumbnail'], failedSrc: string | null): FinderProperty['thumbnail'] {
+    return thumbnail?.permission === 'permitted' && thumbnail.src !== failedSrc ? thumbnail : null;
 }
 
 export function propertyTitle(property: FinderProperty): string {

@@ -4,7 +4,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyG
 import { authenticateAdministrator, FinderHttpError } from '../server/property-finder/access';
 import { handleFinderRequest, type FinderEnv } from '../server/property-finder/api';
 import { customerProperty, databaseConfiguration, databaseClientConfiguration, type CustomerViewRow } from '../server/property-finder/database';
-import { enquiryMailto } from '../src/lib/property-finder/model';
+import { enquiryMailto, visibleThumbnail } from '../src/lib/property-finder/model';
 import { initialFilters, searchProperties } from '../src/lib/property-finder/search';
 
 // Synthetic signing keys/rows only. No live credentials, DB calls or stored inventory.
@@ -35,6 +35,7 @@ const row: CustomerViewRow = {
     publication_status: 'active', availability_status: 'active',
     source_attribution: 'Source: Myoko Akiya Bank',
     original_pdf_url: 'https://example.com/property/test-only.pdf',
+    thumbnail_url: null, location_needs_review: false,
 };
 
 test('Access validates signature, issuer, audience, expiry, identity and admin entitlement', async () => {
@@ -122,4 +123,42 @@ test('Only dedicated login/expected Supabase host allowed; TLS cannot be downgra
     for (const url of [settings.FINDER_DATABASE_URL.replace('verify-full', 'disable'), settings.FINDER_DATABASE_URL.replace('property_finder_web_reader', 'postgres'), settings.FINDER_DATABASE_URL.replace(`db.${ref}.supabase.co`, 'attacker.example'), settings.FINDER_DATABASE_URL + '&options=malicious']) {
         assert.throws(() => databaseConfiguration({ ...settings, FINDER_DATABASE_URL: url }));
     }
+});
+
+
+test('Permitted city thumbnail is mapped without exposing private data or changing source links', () => {
+    const url = 'https://www.city.myoko.niigata.jp/fs/offline-test/house.jpg';
+    const property = customerProperty({ ...row, thumbnail_url: url })!;
+    assert.deepEqual(property.thumbnail, { src: url, alt: row.title, permission: 'permitted' });
+    assert.equal(property.originalListingUrl, row.original_pdf_url);
+    assert.equal(property.sourceName, 'Myoko Akiya Bank');
+    for (const thumbnail_url of [null, '', 'not-a-url', 'http://www.city.myoko.niigata.jp/fs/house.jpg',
+        'https://other.example/house.jpg', 'https://www.city.myoko.niigata.jp/fs/house.svg',
+        'https://user:password@www.city.myoko.niigata.jp/fs/house.jpg']) {
+        assert.equal(customerProperty({ ...row, thumbnail_url })!.thumbnail, null);
+    }
+    assert.equal(customerProperty({ ...row, thumbnail_url: url, source_attribution: 'Source: Other agency' })!.thumbnail, null);
+});
+
+test('Missing and failed thumbnail use placeholder; a changed URL can render again', () => {
+    const thumbnail = { src: 'https://www.city.myoko.niigata.jp/fs/offline-test/house.jpg', alt: 'Test house', permission: 'permitted' as const };
+    assert.equal(visibleThumbnail(null, null), null);
+    assert.deepEqual(visibleThumbnail(thumbnail, null), thumbnail);
+    assert.equal(visibleThumbnail(thumbnail, thumbnail.src), null);
+    const replacement = { ...thumbnail, src: 'https://www.city.myoko.niigata.jp/fs/offline-test/changed.jpg' };
+    assert.deepEqual(visibleThumbnail(replacement, thumbnail.src), replacement);
+});
+
+test('English card/filter names retain Japanese references and unknown-name review state', () => {
+    const property = customerProperty({ ...row, title: 'Property in Hidanomori', location_en: 'Hidanomori',
+        location_display: 'Hidanomori', location_ja: '美守', location_needs_review: false })!;
+    assert.equal(property.area, 'Hidanomori');
+    assert.equal(property.areaJa, '美守');
+    assert.equal(property.locationNeedsReview, false);
+    assert.equal(searchProperties([property], { ...initialFilters, area: 'Hidanomori' }).length, 1);
+    assert.equal(searchProperties([property], { ...initialFilters, keyword: '美守' }).length, 1);
+    const unknown = customerProperty({ ...row, location_en: null, location_display: '未確認地区',
+        location_ja: '未確認地区', location_needs_review: true })!;
+    assert.equal(unknown.area, '未確認地区');
+    assert.equal(unknown.locationNeedsReview, true);
 });

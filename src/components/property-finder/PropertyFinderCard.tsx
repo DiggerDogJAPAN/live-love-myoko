@@ -1,15 +1,20 @@
+'use client';
+
+import { useState } from 'react';
 import Image from 'next/image';
-import { enquiryMailto, formatPrice, originalListingUrl, propertyLocation, propertyTitle, type FinderProperty } from '@/lib/property-finder/model';
+import { enquiryMailto, formatPrice, originalListingUrl, propertyLocation, propertyTitle, visibleThumbnail, type FinderProperty } from '@/lib/property-finder/model';
 import styles from './finder.module.css';
 
 export default function PropertyFinderCard({ property }: { property: FinderProperty }) {
     const original = originalListingUrl(property);
     const title = propertyTitle(property);
+    const [failedSrc, setFailedSrc] = useState<string | null>(null);
+    const thumbnail = visibleThumbnail(property.thumbnail, failedSrc);
     return (
         <article className={styles.card}>
             <div className={styles.cardImage}>
-                {property.thumbnail?.permission === 'permitted' ? (
-                    <Image src={property.thumbnail.src} alt={property.thumbnail.alt} fill sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 33vw" unoptimized />
+                {thumbnail ? (
+                    <Image src={thumbnail.src} alt={thumbnail.alt} onError={() => setFailedSrc(thumbnail.src)} fill sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 33vw" unoptimized />
                 ) : (
                     <div className={styles.placeholder}>
                         <svg viewBox="0 0 240 110" fill="none" aria-hidden="true">
@@ -22,7 +27,7 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
                 <span className={styles.status}>{property.availability === 'Unknown' ? 'Availability not provided' : property.availability}</span>
             </div>
             <div className={styles.cardContent}>
-                {propertyLocation(property) && <p className={styles.location}>{propertyLocation(property)}</p>}
+                {propertyLocation(property) && <p className={styles.location}>{propertyLocation(property)}{property.areaJa && property.areaJa !== property.area && <> · <span lang="ja">{property.areaJa}</span></>}</p>}
                 <h3>{title}</h3>
                 <p className={styles.price}>{formatPrice(property.askingPriceJpy)}</p>
                 <div className={styles.facts}>

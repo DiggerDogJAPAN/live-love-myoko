@@ -72,6 +72,24 @@ export interface CustomerViewRow {
     availability_status: string;
     source_attribution: string;
     original_pdf_url: string | null;
+    thumbnail_url: string | null;
+    location_needs_review: boolean;
+}
+
+/** The restricted view returns null unless the stored image permission is permitted.
+ * Only this reviewed source/host is enabled; unknown future sources keep placeholders.
+ */
+function permittedThumbnail(src: string | null, sourceName: string, title: string | null): FinderProperty['thumbnail'] {
+    if (!src || sourceName !== 'Myoko Akiya Bank') return null;
+    try {
+        const url = new URL(src);
+        if (url.protocol !== 'https:' || url.hostname !== 'www.city.myoko.niigata.jp'
+            || url.username || url.password || url.port || !url.pathname.startsWith('/fs/')
+            || !/\.(jpe?g|png|webp)$/i.test(url.pathname)) return null;
+        return { src: url.href, alt: title || 'Myoko Akiya Bank property photograph', permission: 'permitted' };
+    } catch {
+        return null;
+    }
 }
 
 export function customerProperty(row: CustomerViewRow): FinderProperty | null {
@@ -86,12 +104,15 @@ export function customerProperty(row: CustomerViewRow): FinderProperty | null {
         // Do not infer future sources' municipalities from a neighbourhood or region.
         municipality: sourceName === 'Myoko Akiya Bank' ? 'Myoko' : null,
         area: row.location_en || row.location_display || row.location_ja || null,
+        areaJa: row.location_ja,
+        locationNeedsReview: row.location_needs_review,
         askingPriceJpy: price,
         availability: 'Available',
         sourceName,
         originalListingUrl: row.original_pdf_url,
-        // Neither a verified image-rights flag nor type/publication date is in the view.
-        thumbnail: null, propertyType: null, listedAt: null,
+        // The view gates thumbnail_url on permitted display rights; no copies are made.
+        thumbnail: permittedThumbnail(row.thumbnail_url, sourceName, row.title),
+        propertyType: null, listedAt: null,
     };
     property.originalListingUrl = originalListingUrl(property);
     return property;
@@ -115,7 +136,7 @@ export async function loadCustomerProperties(env: FinderDatabaseEnv): Promise<Fi
         await client.query("SET LOCAL statement_timeout = '5s'");
         const result = await client.query<CustomerViewRow>(`
             SELECT title, asking_price_jpy, location_en, location_display, location_ja,
-                publication_status, availability_status, source_attribution, original_pdf_url
+                publication_status, availability_status, source_attribution, original_pdf_url, thumbnail_url, location_needs_review
             FROM property_api.customer_properties
             WHERE publication_status = 'active' AND availability_status = 'active'
             ORDER BY asking_price_jpy ASC NULLS LAST, original_pdf_url ASC

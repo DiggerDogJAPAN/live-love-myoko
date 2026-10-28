@@ -4,4 +4,4 @@
 :HL["/images/services/property purchase.jpg","image"]
 :HL["/images/akakura-onsen.jpg","image"]
 :HL["/images/myoko-village.jpg","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"1793167607826"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"1793172376353"}
