@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import type { FinderProperty } from '@/lib/property-finder/model';
+import { propertyArea, type FinderProperty } from '@/lib/property-finder/model';
 import { hasListingDates, initialFilters, priceError, searchProperties, type FinderFilters } from '@/lib/property-finder/search';
 import PropertyFinderCard from './PropertyFinderCard';
 import styles from './finder.module.css';
@@ -24,7 +24,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
     const error = priceError(filters);
     const results = searchProperties(properties, filters);
     const municipalities = [...new Set(properties.map((p) => p.municipality).filter((value): value is string => Boolean(value)))].sort();
-    const areas = [...new Set(properties.filter((p) => !filters.municipality || p.municipality === filters.municipality).map((p) => p.area).filter((value): value is string => Boolean(value)))].sort();
+    const areas = [...new Set(properties.filter((p) => !filters.municipality || p.municipality === filters.municipality).map(propertyArea).filter((value): value is string => Boolean(value)))].sort();
     const types = [...new Set(properties.map((p) => p.propertyType).filter((value): value is NonNullable<FinderProperty['propertyType']> => Boolean(value)))].sort();
     const activeCount = [filters.keyword, filters.municipality, filters.area, filters.minPrice, filters.maxPrice, filters.propertyType].filter(Boolean).length;
 
@@ -53,7 +53,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
                 <section className={styles.filters} aria-label="Property search filters">
                     <label className={styles.keyword} htmlFor="finder-keyword">
                         <span>Search properties</span>
-                        <input id="finder-keyword" type="search" autoComplete="off" placeholder="Try Akakura, Kurohime or land…" value={filters.keyword} onChange={(event) => update({ keyword: event.target.value })} />
+                        <input id="finder-keyword" type="search" autoComplete="off" placeholder="Try Arai, Myoko Kogen or land…" value={filters.keyword} onChange={(event) => update({ keyword: event.target.value })} />
                     </label>
                     <button type="button" className={styles.filterToggle} aria-expanded={filtersOpen} aria-controls="finder-filter-fields" onClick={() => setFiltersOpen(!filtersOpen)}>
                         Refine search{activeCount > 0 ? ` (${activeCount})` : ''} <span aria-hidden="true">{filtersOpen ? '−' : '+'}</span>

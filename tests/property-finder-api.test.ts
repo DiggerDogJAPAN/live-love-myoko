@@ -4,7 +4,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyG
 import { authenticateAdministrator, FinderHttpError } from '../server/property-finder/access';
 import { handleFinderRequest, type FinderEnv } from '../server/property-finder/api';
 import { customerProperty, databaseConfiguration, databaseClientConfiguration, type CustomerViewRow } from '../server/property-finder/database';
-import { enquiryMailto, visibleThumbnail } from '../src/lib/property-finder/model';
+import { enquiryMailto, visibleThumbnail, propertyArea, propertyLocation, propertyTitle } from '../src/lib/property-finder/model';
 import { initialFilters, searchProperties } from '../src/lib/property-finder/search';
 
 // Synthetic signing keys/rows only. No live credentials, DB calls or stored inventory.
@@ -35,7 +35,7 @@ const row: CustomerViewRow = {
     publication_status: 'active', availability_status: 'active',
     source_attribution: 'Source: Myoko Akiya Bank',
     original_pdf_url: 'https://example.com/property/test-only.pdf',
-    thumbnail_url: null, location_needs_review: false,
+    thumbnail_url: null, location_needs_review: false, region_en: null, region_ja: null,
 };
 
 test('Access validates signature, issuer, audience, expiry, identity and admin entitlement', async () => {
@@ -161,4 +161,76 @@ test('English card/filter names retain Japanese references and unknown-name revi
         location_ja: '未確認地区', location_needs_review: true })!;
     assert.equal(unknown.area, '未確認地区');
     assert.equal(unknown.locationNeedsReview, true);
+});
+
+
+const reviewedAreas = [
+    ['石塚町', 'Ishizukacho', 'Arai', '新井', 4],
+    ['経塚町', 'Kyozukacho', 'Arai', '新井', 1],
+    ['白山町', 'Hakusancho', 'Arai', '新井', 2],
+    ['小出雲', 'Oizumo', 'Arai', '新井', 1],
+    ['美守', 'Hidanomori', 'Arai', '新井', 1],
+    ['栗原', 'Kurihara', 'Arai', '新井', 1],
+    ['学校町', 'Gakkocho', 'Arai', '新井', 1],
+    ['上馬場', 'Kamibaba', 'Arai', '新井', 1],
+    ['籠町', 'Kagomachi', 'Arai', '新井', 1],
+    ['朝日町', 'Asahicho', 'Arai', '新井', 1],
+    ['中央町', 'Chuocho', 'Arai', '新井', 1],
+    ['雪森', 'Yukimori', 'Arai', '新井', 1],
+    ['月岡', 'Tsukioka', 'Arai', '新井', 1],
+    ['関川', 'Sekigawa', 'Myoko Kogen', '妙高高原', 1],
+    ['杉野沢', 'Suginosawa', 'Myoko Kogen', '妙高高原', 1],
+    ['田口', 'Taguchi', 'Myoko Kogen', '妙高高原', 1],
+] as const;
+
+function regionalProperty(ja: string, en: string, region_en: string, region_ja: string, id = 1) {
+    return customerProperty({ ...row, title: `Property in ${en}`, location_en: en, location_display: en,
+        location_ja: ja, region_en, region_ja, asking_price_jpy: id * 100000,
+        original_pdf_url: `https://example.com/property/region-test-${id}.pdf`,
+        thumbnail_url: `https://www.city.myoko.niigata.jp/fs/offline-test/region-${id}.jpg` })!;
+}
+
+test('All 16 neighbourhoods use their verified source region in visible Finder labels', () => {
+    for (const [ja, en, region, regionJa] of reviewedAreas) {
+        const property = regionalProperty(ja, en, region, regionJa);
+        assert.equal(property.area, region);
+        assert.equal(propertyArea(property), region);
+        assert.equal(propertyLocation(property), `${region} / Myoko`);
+        assert.equal(propertyTitle(property), `Property in ${region}`);
+        assert.equal(property.thumbnail!.alt, `Property in ${region}`);
+        assert.equal(property.neighbourhood, en);
+        assert.equal(property.areaJa, ja);
+        assert(!new URL(enquiryMailto(property)).searchParams.get('body')!.includes(`Area: ${en} /`));
+    }
+});
+
+test('Arai filter collects 17 listings while the three Myoko Kogen listings remain separate', () => {
+    let id = 0;
+    const properties = reviewedAreas.flatMap(([ja, en, region, regionJa, count]) =>
+        Array.from({ length: count }, () => regionalProperty(ja, en, region, regionJa, ++id)));
+    assert.equal(properties.length, 20);
+    assert.deepEqual([...new Set(properties.map(propertyArea))].sort(), ['Arai', 'Myoko Kogen']);
+    assert.equal(searchProperties(properties, { ...initialFilters, area: 'Arai' }).length, 17);
+    const kogen = searchProperties(properties, { ...initialFilters, area: 'Myoko Kogen' });
+    assert.equal(kogen.length, 3);
+    assert.deepEqual(kogen.map(p => p.neighbourhood).sort(), ['Sekigawa', 'Suginosawa', 'Taguchi']);
+    assert.equal(searchProperties(properties, { ...initialFilters, keyword: '白山町' }).length, 2);
+    assert.equal(searchProperties(properties, { ...initialFilters, keyword: 'Hakusancho' }).length, 2);
+    const descending = searchProperties(properties, { ...initialFilters, sort: 'price-desc' });
+    assert.equal(descending.length, 20);
+    assert.equal(descending[0].askingPriceJpy, 2000000);
+    assert.equal(descending[19].askingPriceJpy, 100000);
+    assert.equal(new Set(descending.map(p => p.originalListingUrl)).size, 20);
+    assert(descending.every(p => p.thumbnail?.permission === 'permitted'));
+});
+
+test('Outside Arai, missing metadata and conflicting regions are not guessed as Arai', () => {
+    const sekiyama = regionalProperty('関山', 'Sekiyama', 'Myoko', '妙高');
+    assert.equal(sekiyama.area, 'Myoko');
+    const missing = customerProperty({ ...row, location_en: 'Hakusancho', location_display: 'Hakusancho', location_ja: '白山町' })!;
+    assert.equal(propertyArea(missing), 'Hakusancho');
+    const conflict = regionalProperty('関川', 'Sekigawa', 'Arai', '妙高高原');
+    assert.equal(propertyArea(conflict), 'Sekigawa');
+    const other = { ...missing, municipality: 'Joetsu', regionEn: 'Arai', regionJa: '新井' };
+    assert.equal(propertyArea(other), 'Hakusancho');
 });

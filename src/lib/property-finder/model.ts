@@ -5,7 +5,11 @@
 export interface FinderProperty {
     title: string | null;
     municipality: string | null;
+    /** Visitor-facing area; source neighbourhoods are retained separately. */
     area: string | null;
+    neighbourhood?: string | null;
+    regionEn?: string | null;
+    regionJa?: string | null;
     /** Source Japanese is retained separately from the English display/filter value. */
     areaJa?: string | null;
     locationNeedsReview?: boolean;
@@ -26,12 +30,35 @@ export function visibleThumbnail(thumbnail: FinderProperty['thumbnail'], failedS
     return thumbnail?.permission === 'permitted' && thumbnail.src !== failedSrc ? thumbnail : null;
 }
 
+const SOURCE_AREAS = new Map<string, string>([
+    ['Arai', 'Arai'], ['新井', 'Arai'],
+    ['Myoko Kogen', 'Myoko Kogen'], ['妙高高原', 'Myoko Kogen'],
+    ['Myoko', 'Myoko'], ['妙高', 'Myoko'],
+]);
+
+/** Use the bank's regional grouping, never infer Arai from a similar place name.
+ * Missing/conflicting regional evidence retains the original location as fallback.
+ */
+function sourceArea(property: FinderProperty): string | null {
+    if (property.sourceName !== 'Myoko Akiya Bank' || property.municipality !== 'Myoko') return null;
+    const english = SOURCE_AREAS.get(property.regionEn || '');
+    const japanese = SOURCE_AREAS.get(property.regionJa || '');
+    if (english && japanese && english !== japanese) return null;
+    return english || japanese || null;
+}
+
+export function propertyArea(property: FinderProperty): string | null {
+    return sourceArea(property) || property.neighbourhood || property.area;
+}
+
 export function propertyTitle(property: FinderProperty): string {
-    return property.title || [property.area, property.municipality].filter(Boolean).join(', ') || 'Property listing';
+    const area = sourceArea(property);
+    if (area) return `Property in ${area}`;
+    return property.title || [propertyArea(property), property.municipality].filter(Boolean).join(', ') || 'Property listing';
 }
 
 export function propertyLocation(property: FinderProperty): string {
-    return [property.area, property.municipality].filter(Boolean).join(' / ');
+    return [propertyArea(property), property.municipality].filter(Boolean).join(' / ');
 }
 
 export function formatPrice(price: number | null): string {

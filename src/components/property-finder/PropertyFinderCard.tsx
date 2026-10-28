@@ -27,7 +27,7 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
                 <span className={styles.status}>{property.availability === 'Unknown' ? 'Availability not provided' : property.availability}</span>
             </div>
             <div className={styles.cardContent}>
-                {propertyLocation(property) && <p className={styles.location}>{propertyLocation(property)}{property.areaJa && property.areaJa !== property.area && <> · <span lang="ja">{property.areaJa}</span></>}</p>}
+                {propertyLocation(property) && <p className={styles.location}>{propertyLocation(property)}</p>}
                 <h3>{title}</h3>
                 <p className={styles.price}>{formatPrice(property.askingPriceJpy)}</p>
                 <div className={styles.facts}>

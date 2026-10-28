@@ -1,4 +1,4 @@
-import type { FinderProperty } from './model';
+import { propertyArea, type FinderProperty } from './model';
 
 export interface FinderFilters {
     keyword: string;
@@ -40,10 +40,10 @@ export function searchProperties(properties: readonly FinderProperty[], filters:
     if (priceError(filters)) return [];
     const terms = filters.keyword.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
     const results = properties.filter((property) => {
-        const text = [property.title, property.municipality, property.area, property.areaJa, property.propertyType, property.sourceName].filter(Boolean).join(' ').toLocaleLowerCase();
+        const text = [property.title, property.municipality, propertyArea(property), property.neighbourhood, property.areaJa, property.regionJa, property.propertyType, property.sourceName].filter(Boolean).join(' ').toLocaleLowerCase();
         return terms.every((term) => text.includes(term))
             && (!filters.municipality || property.municipality === filters.municipality)
-            && (!filters.area || property.area === filters.area)
+            && (!filters.area || propertyArea(property) === filters.area)
             && (!filters.propertyType || property.propertyType === filters.propertyType)
             && (filters.minPrice === '' || (property.askingPriceJpy !== null && property.askingPriceJpy >= Number(filters.minPrice)))
             && (filters.maxPrice === '' || (property.askingPriceJpy !== null && property.askingPriceJpy <= Number(filters.maxPrice)));
