@@ -116,7 +116,8 @@ def _status(raw: str) -> Tuple[ListingStatus, AvailabilityStatus]:
         return ListingStatus.ACTIVE, AvailabilityStatus.ACTIVE
     if value in {"商談中", "商談中 under negotiation", "under negotiation"}:
         return ListingStatus.ACTIVE, AvailabilityStatus.UNDER_NEGOTIATION
-    if value in {"内覧受付終了", "内覧受付終了 viewing registration closed", "viewing registration closed"}:
+    if value in {"内覧受付終了", "内覧受付終了 viewing registration closed", "viewing registration closed",
+                 "内覧受付一時中止", "内覧受付一時中止 applications temporarily closed", "applications temporarily closed"}:
         return ListingStatus.ACTIVE, AvailabilityStatus.VIEWINGS_CLOSED
     if value in {"成約", "成約済", "成約済み", "売却済", "売却済み"}:
         return ListingStatus.SOLD, AvailabilityStatus.SOLD
@@ -243,7 +244,7 @@ class MyokoAkiyaBankAdapter:
         status_text = rows[1].text()
         status, availability = _status(status_text)
         japanese_status = status_text
-        for english in ("Under negotiation", "Viewing Registration Closed", "Price Reduced", "NEW"):
+        for english in ("Under negotiation", "Viewing Registration Closed", "Price Reduced", "NEW", "Applications Temporarily Closed"):
             japanese_status = re.sub(re.escape(english), "", japanese_status, flags=re.IGNORECASE)
         japanese_status = clean_text(japanese_status) or None
         pdf_cells = [n for n in nodes if n.tag == "td" and n.has_class("pdf")]
