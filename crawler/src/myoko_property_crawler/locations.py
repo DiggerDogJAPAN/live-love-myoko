@@ -89,3 +89,12 @@ JOETSU_AREAS = {
     '25': ('八千浦区', 'Yachiho'), '26': ('保倉区', 'Hokura'),
     '27': ('北諏訪区', 'Kitasuwa'), '28': ('谷浜・桑取区', 'Tanihama / Kuwadori'),
 }
+
+
+# Town statistical place-name readings (h28tokeishiryo.pdf), plus official area slugs.
+IIZUNA_LOCATIONS = {
+    '平出':'Hiraide','豊野':'Toyono','牟礼':'Mure','小玉':'Kodama','黒川':'Kurokawa',
+    '袖之山':'Sodenoyama','地蔵久保':'Jizokubo','坂口':'Sakaguchi','高坂':'Kosaka',
+    '川上':'Kawakami','柳里':'Yanagisato','古町':'Furumachi','普光寺':'Fukoji',
+    '芋川':'Imogawa','倉井':'Kurai','川谷':'Kawatani','赤塩':'Akashio','東柏原':'Higashikashiwabara',
+}

@@ -17,6 +17,7 @@ from .models import Property
 from .sources import SOURCES
 from .shinano_live import crawl_shinano, ShinanoClient
 from .joetsu_live import crawl_joetsu, JoetsuClient
+from .iizuna_live import crawl_iizuna, IizunaClient
 
 
 def database_state(connection, source_key=SOURCE):
@@ -28,7 +29,7 @@ def database_state(connection, source_key=SOURCE):
     rows = connection.execute('SELECT '+','.join(columns)+' FROM crawler.properties WHERE source_key=%s', (source_key,)).fetchall()
     properties = tuple(Property(**dict(row, source_agency_name=source['agency_name'], source_website=source['website'])) for row in rows)
     checked = source['last_successful_check_at']
-    if not properties and checked is None and source_key in {'shinano_akiya_bank', 'joetsu_akiya_bank'} and source['crawl_config'].get('allow_initial_empty') is True:
+    if not properties and checked is None and source_key in {'shinano_akiya_bank', 'joetsu_akiya_bank', 'iizuna_akiya_bank'} and source['crawl_config'].get('allow_initial_empty') is True:
         return State()
     if not properties or not checked or any(p.last_checked_at > checked for p in properties):
         raise PreflightError('Database baseline is empty or inconsistent; refusing an unseeded daily crawl')
@@ -37,7 +38,7 @@ def database_state(connection, source_key=SOURCE):
 
 def apply_live(connection, state, *, client=None, source_key=SOURCE):
     try:
-        result = ({SOURCE: crawl_live, 'shinano_akiya_bank': crawl_shinano, 'joetsu_akiya_bank': crawl_joetsu}[source_key])(state, client=client)
+        result = ({SOURCE: crawl_live, 'shinano_akiya_bank': crawl_shinano, 'joetsu_akiya_bank': crawl_joetsu, 'iizuna_akiya_bank': crawl_iizuna}[source_key])(state, client=client)
     except ValueError as error:
         raise PreflightError('Source validation failed: '+str(error)) from None
     except HTTPError as error:
@@ -61,7 +62,7 @@ def main(argv=None):
         if not lock['acquired']:
             raise PreflightError('Another daily crawler is running')
         state = database_state(connection,source_key)
-        client_type={SOURCE: HTMLClient, 'shinano_akiya_bank': ShinanoClient, 'joetsu_akiya_bank': JoetsuClient}[source_key]
+        client_type={SOURCE: HTMLClient, 'shinano_akiya_bank': ShinanoClient, 'joetsu_akiya_bank': JoetsuClient, 'iizuna_akiya_bank': IizunaClient}[source_key]
         result = apply_live(connection, state, client=client_type(user_agent=os.getenv('MYOKO_USER_AGENT', USER_AGENT)),source_key=source_key)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

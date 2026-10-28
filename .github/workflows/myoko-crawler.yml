@@ -1,6 +1,13 @@
 name: Myoko daily property crawler
 on:
   workflow_dispatch:
+    inputs:
+      source:
+        description: Source to run manually (daily schedule always runs all sources)
+        required: true
+        default: all
+        type: choice
+        options: [all, myoko_akiya_bank, shinano_akiya_bank, joetsu_akiya_bank, iizuna_akiya_bank]
   schedule:
     - cron: '17 21 * * *' # 06:17 JST (UTC+9)
 permissions:
@@ -13,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        source: [myoko_akiya_bank, shinano_akiya_bank, joetsu_akiya_bank]
+        source: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source != 'all' && inputs.source != '' && format('["{0}"]', inputs.source) || '["myoko_akiya_bank","shinano_akiya_bank","joetsu_akiya_bank","iizuna_akiya_bank"]') }}
     name: Crawl ${{ matrix.source }}
     runs-on: ubuntu-latest
     timeout-minutes: 10

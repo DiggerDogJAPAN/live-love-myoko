@@ -17,7 +17,7 @@ from .db_connection import PreflightError, connect_database, load_settings
 from .models import ContentPermission, Property
 from .locations import LOCATION_DISPLAY_FIELDS, reviewed_location
 from .storage import load_state
-from .sources import SOURCES, valid_property_number
+from .sources import SOURCES, valid_property_number, allowed_listing_origin
 
 SOURCE = 'myoko_akiya_bank'
 PROPERTY_COLUMNS = tuple(f.name for f in fields(Property) if f.name not in ('source_agency_name', 'source_website'))
@@ -44,11 +44,13 @@ def prepare_sync(state, source_key=SOURCE):
     for p in properties:
         url = urlsplit(p.original_listing_url)
         if (p.source_agency_name != profile.agency
-                or url.scheme != 'https' or url.hostname != profile.host or not url.path.startswith(profile.listing_prefix)
+                or not allowed_listing_origin(profile, p.original_listing_url)
                 or 'fixture' in url.path.lower() or not p.source_property_id or not valid_property_number(source_key, p.source_property_id)
                 or p.image_permission == ContentPermission.SYNTHETIC
                 or p.description_permission == ContentPermission.SYNTHETIC):
             raise SyncError('Only reviewed real source inventory is accepted; fixture/source mismatch rejected')
+    if source_key == 'iizuna_akiya_bank' and any((p.source_facts or {}).get('inventory_complete') != 'true' for p in properties):
+        raise SyncError('Partial Iizuna previews cannot be synced; both feeds must validate')
     events = sorted((e for e in state.price_changes if e.source_key == source_key),
                     key=lambda e: (e.detected_at, e.identity_token, e.old_price_jpy, e.new_price_jpy, e.original_listing_url))
     identities = {p.identity[1]: p for p in properties}
@@ -214,6 +216,9 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
         summary = {'inserted': inserted, 'updated': updated, 'price_events_added': price_events,
             'status_events_added': status_events, 'source_observed_at': checked_at.isoformat(),
             'absence_inference': complete, 'input': 'validated_html_index' if complete else 'reconciled_local_json'}
+        if source_key == 'iizuna_akiya_bank' and properties:
+            current = next((p for p in properties if p.last_checked_at == checked_at and p.listing_status.value != 'not_found'), properties[0])
+            summary['feed_summary'] = json.loads((current.source_facts or {}).get('feed_summary', '{}'))
         finished = datetime.now(timezone.utc)
         connection.execute("""UPDATE crawler.crawl_runs SET status=%s,warnings=%s,checked_at=%s,finished_at=%s,
             records_extracted=%s,records_processed=%s,summary=%s WHERE id=%s""",
