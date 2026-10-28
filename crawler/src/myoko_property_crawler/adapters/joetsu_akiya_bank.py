@@ -1,4 +1,4 @@
-"""Joetsu public sale HTML; photographs and prose remain private references/facts."""
+"""Joetsu public sale HTML; approved captioned photos, with protected prose private."""
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
@@ -10,6 +10,7 @@ from .myoko_akiya_bank import _Node, VOID_TAGS
 from ..locations import JOETSU_AREAS
 from ..models import Property, PropertyType, ListingStatus, AvailabilityStatus
 from ..normalize import clean_text, parse_price_jpy
+from ..joetsu_images import select_photo, RIGHTS_BASIS
 
 SOURCE = 'joetsu_akiya_bank'
 HOST = 'joetsu-akiyabank.jp'
@@ -271,6 +272,9 @@ def parse_detail(card, html, checked_at):
         # Keep the full raw conditions privately; never forward embedded contact metadata.
         facts['condition_notice_needs_review'] = 'true'
         notices = ['原掲載の条件をご確認ください（詳細は要確認）。']
+    photo = select_photo(body, card.thumbnail) if availability == AvailabilityStatus.ACTIVE and sale and building and identifier != '5-34' else None
+    if photo:
+        facts.update(photo)
     return Property(source_key=SOURCE, source_agency_name='Joetsu City Akiya Bank', source_website=INDEX_URL,
         original_listing_url=card.url, source_property_id=identifier, title_ja=heading, description_ja=None,
         asking_price_jpy=price, address=card.location or None, municipality='Joetsu', area=region_ja or card.location or None, area_en=region_en,
@@ -280,4 +284,7 @@ def parse_detail(card, html, checked_at):
         building_age_years=None, floor_plan=values.get('間取り') or None, property_type=kind,
         parking=values.get('駐車場') or None, first_discovered_at=checked_at, last_checked_at=checked_at,
         listing_status=listing, availability_status=availability, source_status_ja=labels, transaction_type=transaction,
-        source_facts=facts, purchase_conditions_ja='\n'.join(notices) or None)
+        source_facts=facts, purchase_conditions_ja='\n'.join(notices) or None,
+        main_image_url=photo['photo_selected_url'] if photo else None,
+        image_permission='permitted' if photo else 'unknown',
+        content_rights_basis=RIGHTS_BASIS if photo else None)

@@ -5,6 +5,7 @@ from typing import Iterable
 from .models import AvailabilityStatus, ListingStatus, ContentPermission, Property, PropertyType
 from .locations import reviewed_location
 from .normalize import clean_text
+from .joetsu_images import public_photo
 
 
 def is_customer_eligible(prop: Property) -> bool:
@@ -50,7 +51,7 @@ def customer_property(prop: Property) -> dict:
         "location_display": prop.area_en or prop.area,
         "region_ja": prop.region_ja, "region_en": prop.region_en,
         "location_needs_review": bool(prop.unmapped_locations),
-        "thumbnail_url": prop.main_image_url if prop.source_key != 'joetsu_akiya_bank' and prop.image_permission == ContentPermission.PERMITTED else None,
+        "thumbnail_url": public_photo(prop) if prop.source_key == 'joetsu_akiya_bank' else prop.main_image_url if prop.image_permission == ContentPermission.PERMITTED else None,
         "original_pdf_url": prop.original_listing_url,
         "publication_status": prop.listing_status.value,
         "availability_status": prop.availability_status.value,

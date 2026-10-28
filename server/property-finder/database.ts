@@ -88,6 +88,7 @@ export interface CustomerViewRow {
 function permittedThumbnail(src: string | null, sourceName: string, title: string | null): FinderProperty['thumbnail'] {
     if (!src) return null;
     const source = new Map([
+        ['Joetsu City Akiya Bank', { host: 'joetsu-akiyabank.jp', path: '/wp-content/uploads/' }],
         ['Myoko Akiya Bank', { host: 'www.city.myoko.niigata.jp', path: '/fs/' }],
         ['Shinano Town Akiya Bank', { host: 'shinanomachi-iju.jp', path: '/shinanomachi/wordpress/wp-content/uploads/' }],
     ]).get(sourceName);
@@ -97,6 +98,8 @@ function permittedThumbnail(src: string | null, sourceName: string, title: strin
         if (url.protocol !== 'https:' || url.hostname !== source.host
             || url.username || url.password || url.port || !url.pathname.startsWith(source.path)
             || !/\.(jpe?g|png|webp)$/i.test(url.pathname)) return null;
+        if (sourceName === 'Joetsu City Akiya Bank' && (url.search || url.hash
+            || /seiyaku|sold|closed|floor.?plan|madori|間取|平面|地図/i.test(decodeURIComponent(url.pathname)))) return null;
         return { src, alt: title || `${sourceName} property photograph`, permission: 'permitted' };
     } catch {
         return null;

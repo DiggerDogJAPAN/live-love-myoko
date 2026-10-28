@@ -9,7 +9,7 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
     const original = originalListingUrl(property);
     const title = propertyTitle(property);
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
-    const thumbnail = property.sourceName === 'Joetsu City Akiya Bank' ? null : visibleThumbnail(property.thumbnail, failedSrc);
+    const thumbnail = visibleThumbnail(property.thumbnail, failedSrc);
     return (
         <article className={styles.card}>
             <div className={styles.cardImage}>

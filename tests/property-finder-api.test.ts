@@ -361,7 +361,7 @@ const joetsu: CustomerViewRow = {
     purchase_conditions_ja: 'その他：心理的瑕疵あり。\n付帯物件：未登記建物あり。\n現状：居住中',
 };
 
-test('Joetsu projects only public conditions, keeps source links and always rejects thumbnails', () => {
+test('Joetsu projects only public conditions, keeps source links and accepts only approved-source thumbnails', () => {
     const property = customerProperty({ ...joetsu, source_facts: { agent: 'private-agent', thumbnail_candidate_url: 'private-image' } } as CustomerViewRow)!;
     assert.equal(property.municipality, 'Joetsu');
     assert.equal(propertyLocation(property), 'Joetsu (Takada)');
@@ -370,10 +370,11 @@ test('Joetsu projects only public conditions, keeps source links and always reje
     assert.equal(property.purchaseConditionsJa, joetsu.purchase_conditions_ja);
     assert(!JSON.stringify(property).includes('private-agent'));
     assert(!JSON.stringify(property).includes('private-image'));
-    for (const thumbnail_url of [null, 'https://joetsu-akiyabank.jp/wp-content/uploads/test.jpg',
+    for (const thumbnail_url of [null,
         'https://www.city.myoko.niigata.jp/fs/test.jpg', shinano.thumbnail_url]) {
         assert.equal(customerProperty({ ...joetsu, thumbnail_url })!.thumbnail, null);
     }
+    assert.equal(customerProperty({ ...joetsu, thumbnail_url: 'https://joetsu-akiyabank.jp/wp-content/uploads/test.jpg' })!.thumbnail?.src, 'https://joetsu-akiyabank.jp/wp-content/uploads/test.jpg');
     for (const purchase_conditions_ja of [null, '', '   ']) {
         assert.equal(customerProperty({ ...joetsu, purchase_conditions_ja })!.purchaseConditionsJa, null);
     }
@@ -428,7 +429,7 @@ test('Conditions render as exact escaped Japanese before enquiry, with linked at
     const without = renderToStaticMarkup(createElement(PropertyFinderCard, { property: { ...property, purchaseConditionsJa: null } }));
     assert(!without.includes('Important Property Conditions'));
     const accidentalImage = renderToStaticMarkup(createElement(PropertyFinderCard, { property: { ...property, thumbnail: customerProperty({ ...row, thumbnail_url: 'https://www.city.myoko.niigata.jp/fs/test.jpg' })!.thumbnail } }));
-    assert(!accidentalImage.includes('<img'));
+    assert(accidentalImage.includes('<img')); // Only the protected API constructs approved thumbnail objects.
 });
 
 test('API and empty live directory advertise all three municipalities before Joetsu import', async () => {
@@ -439,4 +440,18 @@ test('API and empty live directory advertise all three municipalities before Joe
     assert.deepEqual(await response.json(), { properties: [], count: 0, municipalities: ['Myoko', 'Shinano', 'Joetsu'] });
     const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, { properties: [], mode: 'live' }));
     for (const municipality of ['Myoko', 'Shinano', 'Joetsu']) assert(html.includes(`<option>${municipality}</option>`));
+});
+
+
+test('Joetsu images use exact source URL validation and retain missing/failed placeholders', () => {
+    const src='https://joetsu-akiyabank.jp/wp-content/uploads/2026/10/exterior.jpg';
+    const property=customerProperty({...joetsu,thumbnail_url:src})!;
+    assert.equal(property.thumbnail?.src,src);
+    const html=renderToStaticMarkup(createElement(PropertyFinderCard,{property}));
+    assert(html.includes('<img'));assert(html.includes(src));
+    assert.equal(visibleThumbnail(property.thumbnail,src),null);
+    for(const thumbnail_url of ['https://joetsu-akiyabank.jp.evil.invalid/wp-content/uploads/a.jpg','https://evil.invalid/wp-content/uploads/a.jpg','http://joetsu-akiyabank.jp/wp-content/uploads/a.jpg','https://u:p@joetsu-akiyabank.jp/wp-content/uploads/a.jpg','https://joetsu-akiyabank.jp:8443/wp-content/uploads/a.jpg','https://joetsu-akiyabank.jp/other/a.jpg',src+'?download=1',src+'#x','https://joetsu-akiyabank.jp/wp-content/uploads/2-2seiyaku.png','https://joetsu-akiyabank.jp/wp-content/uploads/floorplan.jpg']) {
+        assert.equal(customerProperty({...joetsu,thumbnail_url})!.thumbnail,null);
+    }
+    assert(renderToStaticMarkup(createElement(PropertyFinderCard,{property:{...property,thumbnail:null}})).includes('Property image unavailable'));
 });

@@ -328,9 +328,8 @@ class JoetsuTests(TestCase):
         self.assertGreater(parse_future_tests(Path('sql/tests/004_joetsu_checks.sql'))[1],0)
         parse_future_tests(Path('sql/migrations/004_joetsu_source.sql'))
 
-    def test_workflow_keeps_joetsu_disabled_and_schedule(self):
+    def test_workflow_preserves_approved_three_sources_and_schedule(self):
         workflow=Path('../.github/workflows/myoko-crawler.yml').read_text()
         active='\n'.join(line for line in workflow.splitlines() if not line.lstrip().startswith('#'))
-        self.assertIn('source: [myoko_akiya_bank, shinano_akiya_bank]',active)
-        self.assertNotIn('joetsu_akiya_bank',active)
+        self.assertIn('source: [myoko_akiya_bank, shinano_akiya_bank, joetsu_akiya_bank]',active)
         self.assertIn("cron: '17 21 * * *'",active)
