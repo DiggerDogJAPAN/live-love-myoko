@@ -42,7 +42,7 @@ export function searchProperties(properties: readonly FinderProperty[], filters:
     const results = properties.filter((property) => {
         const text = [property.title, property.municipality, propertyArea(property), property.neighbourhood, property.areaJa, property.regionJa, property.regionEn, property.propertyType, property.sourceName].filter(Boolean).join(' ').toLocaleLowerCase();
         return terms.every((term) => text.includes(term))
-            && (!filters.municipality || municipalityLabel(property.municipality) === filters.municipality)
+            && (!filters.municipality || municipalityLabel(property.municipality) === municipalityLabel(filters.municipality))
             && (!filters.area || propertyArea(property) === filters.area)
             && (!filters.propertyType || property.propertyType === filters.propertyType)
             && (filters.minPrice === '' || (property.askingPriceJpy !== null && property.askingPriceJpy >= Number(filters.minPrice)))

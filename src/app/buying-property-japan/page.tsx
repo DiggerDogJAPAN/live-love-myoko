@@ -1,3 +1,4 @@
+import styles from '@/styles/editorial.module.css';
 import Link from 'next/link';
 
 export const metadata = {
@@ -122,7 +123,7 @@ export default function BuyingPropertyJapanPage() {
   };
 
   return (
-    <>
+    <div className={styles.page}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -130,10 +131,8 @@ export default function BuyingPropertyJapanPage() {
 
       {/* Hero Section */}
       <section
-        className="hero"
-        style={{
-          backgroundImage: `linear-gradient(to right, rgba(249, 250, 248, 0.92) 0%, rgba(249, 250, 248, 0.8) 50%, rgba(249, 250, 248, 0.3) 100%), url('/images/management-hero.jpg')`,
-        }}
+        className={`hero ${styles.hero}`}
+
       >
         <div className="hero__content">
           <div className="hero__text">
@@ -153,12 +152,12 @@ export default function BuyingPropertyJapanPage() {
       {/* Introduction */}
       <section className="section">
         <div className="layout__container">
-          <div className="stack stack--lg" style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <div className={`stack stack--lg ${styles.prose}`}>
             <h2 className="u-text-center">Foreign Real Estate Ownership in Japan</h2>
-            <p className="text--lead" style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+            <p className={`text--lead ${styles.proseText}`}>
               Japan welcomes overseas property buyers. Unlike many other nations, Japan imposes no legal restrictions on foreign nationals purchasing land or real estate. Foreign buyers enjoy 100% freehold land ownership rights, identical to Japanese citizens.
             </p>
-            <p style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+            <p className={styles.proseText}>
               It is important to note that purchasing real estate in Japan does not automatically confer residency rights or a visa. However, whether you are seeking a winter holiday home, a commercial lodge investment, or a year-round residence in Myoko, having local guidance ensures a smooth and compliant transaction. Learn more about <Link href="/why-myoko">why Myoko is a top destination</Link> or browse our <Link href="/properties">available properties for sale</Link>.
             </p>
           </div>
@@ -173,75 +172,75 @@ export default function BuyingPropertyJapanPage() {
             <p className="text--lead">An overview of the typical transaction steps when buying Japanese property.</p>
           </div>
 
-          <div className="stack stack--xl" style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div className={`stack stack--xl ${styles.wideProse}`}>
             {/* Step 1 */}
-            <div className="card" style={{ padding: '2rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-accent-primary)', display: 'block', marginBottom: '0.5rem' }}>Step 1</span>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.eyebrow}>Step 1</span>
               <h3 className="u-mb-4">Finding the Right Property</h3>
-              <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+              <p className={styles.proseText}>
                 Research available listings online and establish your criteria (location, access to ski lifts, snow clearing capabilities, property type, and budget). Review our <Link href="/properties">property listings</Link> or contact Love Live Myoko to discuss offline opportunities.
               </p>
             </div>
 
             {/* Step 2 */}
-            <div className="card" style={{ padding: '2rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-accent-primary)', display: 'block', marginBottom: '0.5rem' }}>Step 2</span>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.eyebrow}>Step 2</span>
               <h3 className="u-mb-4">Viewing Properties</h3>
-              <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+              <p className={styles.proseText}>
                 Inspect target properties in person or via detailed video walkthroughs. For snow country properties, evaluating roof condition, foundation integrity, driveway snow access, and heating systems is critical.
               </p>
             </div>
 
             {/* Step 3 */}
-            <div className="card" style={{ padding: '2rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-accent-primary)', display: 'block', marginBottom: '0.5rem' }}>Step 3</span>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.eyebrow}>Step 3</span>
               <h3 className="u-mb-4">Making an Offer (Letter of Intent)</h3>
-              <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+              <p className={styles.proseText}>
                 Submit a formal written Letter of Intent (<em>Kaitatsu-shō</em>) to the seller outlining your offered price, target closing date, payment terms, and any contingencies.
               </p>
             </div>
 
             {/* Step 4 */}
-            <div className="card" style={{ padding: '2rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-accent-primary)', display: 'block', marginBottom: '0.5rem' }}>Step 4</span>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.eyebrow}>Step 4</span>
               <h3 className="u-mb-4">Purchase Agreement & Explanation of Important Matters</h3>
-              <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+              <p className={styles.proseText}>
                 A licensed real estate agent reviews the official Explanation of Important Matters (<em>Jūyō-jikō-setsumei</em>), detailing title boundaries, zone restrictions, and public utilities. Upon approval, both parties sign the Sale & Purchase Contract (<em>Baibai-keiyakusho</em>), and the buyer pays a deposit (typically 5% to 10%).
               </p>
             </div>
 
             {/* Step 5 */}
-            <div className="card" style={{ padding: '2rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-accent-primary)', display: 'block', marginBottom: '0.5rem' }}>Step 5</span>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.eyebrow}>Step 5</span>
               <h3 className="u-mb-4">Payment & Settlement</h3>
-              <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+              <p className={styles.proseText}>
                 Arrange final funds transfer via international bank wire. On settlement day, the remaining balance, agent commission, judicial scrivener fees, and prorated property taxes are settled.
               </p>
             </div>
 
             {/* Step 6 */}
-            <div className="card" style={{ padding: '2rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-accent-primary)', display: 'block', marginBottom: '0.5rem' }}>Step 6</span>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.eyebrow}>Step 6</span>
               <h3 className="u-mb-4">Registration (Judicial Scrivener)</h3>
-              <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+              <p className={styles.proseText}>
                 A licensed Judicial Scrivener (<em>Shihō-shoshi</em>) confirms full payment receipt and submits title registration documents directly to the Japanese Legal Affairs Bureau (<em>Hōmukyoku</em>) to transfer official ownership.
               </p>
             </div>
 
             {/* Step 7 */}
-            <div className="card" style={{ padding: '2rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-accent-primary)', display: 'block', marginBottom: '0.5rem' }}>Step 7</span>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.eyebrow}>Step 7</span>
               <h3 className="u-mb-4">Receiving the Keys</h3>
-              <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+              <p className={styles.proseText}>
                 Once registration documents are executed, physical keys and property documents are handed over to the buyer or their appointed representative.
               </p>
             </div>
 
             {/* Step 8 */}
-            <div className="card" style={{ padding: '2rem' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-accent-primary)', display: 'block', marginBottom: '0.5rem' }}>Step 8</span>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.eyebrow}>Step 8</span>
               <h3 className="u-mb-4">After Purchase Support</h3>
-              <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+              <p className={styles.proseText}>
                 Transfer utility accounts (electricity, water, gas, internet), secure building insurance, and establish seasonal maintenance or <Link href="/management">property management services</Link>.
               </p>
             </div>
@@ -252,39 +251,39 @@ export default function BuyingPropertyJapanPage() {
       {/* Purchasing Costs Breakdown */}
       <section className="section">
         <div className="layout__container">
-          <div className="stack stack--lg" style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <div className={`stack stack--lg ${styles.prose}`}>
             <h2 className="u-text-center">Understanding Purchasing Costs & Taxes</h2>
-            <p className="text--lead" style={{ lineHeight: '1.8' }}>
+            <p className={`text--lead ${styles.proseText}`}>
               Purchasing real estate in Japan incurs transactional fees and government taxes in addition to the property purchase price. Total closing costs typically range between 6% and 8% of the property value.
             </p>
 
-            <div className="grid grid--2-cols" style={{ gap: '1.5rem', marginTop: '1.5rem' }}>
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+            <div className={`grid grid--2-cols ${styles.gridWithSpace}`}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">Judicial Scrivener Fees</h4>
                 <p className="text--small">Fee paid to the legal professional for handling title verification and government registry submission.</p>
               </div>
 
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">Registration & License Tax</h4>
                 <p className="text--small">Government tax levied on registering the transfer of land and building ownership at closing.</p>
               </div>
 
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">Real Estate Acquisition Tax</h4>
                 <p className="text--small">One-time prefectural tax calculated on government assessed land/building values, invoiced several months post-closing.</p>
               </div>
 
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">Revenue Stamp Duty</h4>
                 <p className="text--small">Government tax stamp affixed to the official Sale & Purchase Contract based on contract value.</p>
               </div>
 
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">Real Estate Agency Fee</h4>
                 <p className="text--small">Standard licensed brokerage commission (up to 3% + ¥60,000 + consumption tax) where applicable.</p>
               </div>
 
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">Annual Property Taxes & Insurance</h4>
                 <p className="text--small">Prorated Annual Fixed Asset Tax, City Planning Tax, and fire/earthquake building insurance premiums.</p>
               </div>
@@ -301,11 +300,11 @@ export default function BuyingPropertyJapanPage() {
             <p className="text--lead">Key considerations for international buyers purchasing from abroad.</p>
           </div>
 
-          <div className="grid grid--2-cols" style={{ gap: '2rem' }}>
+          <div className={`grid grid--2-cols ${styles.grid}`}>
             <div className="card">
               <div className="card__content">
                 <h3 className="u-mb-4">Do I Need Residency or a Local Visa?</h3>
-                <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+                <p className={styles.proseText}>
                   No. Foreigners do not require Japanese residency, a long-term visa, or citizenship to buy real estate in Japan. Overseas buyers can purchase property freely while living anywhere in the world.
                 </p>
               </div>
@@ -314,7 +313,7 @@ export default function BuyingPropertyJapanPage() {
             <div className="card">
               <div className="card__content">
                 <h3 className="u-mb-4">Can I Buy Remotely From Overseas?</h3>
-                <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+                <p className={styles.proseText}>
                   Yes. By granting a Power of Attorney (POA) to a trusted local representative or Judicial Scrivener, contracts can be executed and title registered without traveling to Japan.
                 </p>
               </div>
@@ -323,7 +322,7 @@ export default function BuyingPropertyJapanPage() {
             <div className="card">
               <div className="card__content">
                 <h3 className="u-mb-4">Do I Need a Japanese Bank Account?</h3>
-                <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+                <p className={styles.proseText}>
                   No. International wire transfers directly to the seller or judicial scrivener trust accounts are standard for non-resident transactions. For ongoing utility and tax payments, property management services handle local disbursements.
                 </p>
               </div>
@@ -332,7 +331,7 @@ export default function BuyingPropertyJapanPage() {
             <div className="card">
               <div className="card__content">
                 <h3 className="u-mb-4">Identity Verification Requirements</h3>
-                <p style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+                <p className={styles.proseText}>
                   Overseas individual buyers submit a notarized Affidavit or Signature Certificate from their home country along with a passport copy to satisfy Japanese legal registration requirements.
                 </p>
               </div>
@@ -346,24 +345,21 @@ export default function BuyingPropertyJapanPage() {
         <div className="layout__container">
           <div className="u-text-center u-mb-16">
             <h2>Frequently Asked Questions About Buying Property</h2>
-            <p className="text--lead" style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <p className={`text--lead ${styles.prose}`}>
               Clear, practical answers based on real transaction experience in Japan.
             </p>
           </div>
 
-          <div className="stack stack--xl" style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div className={`stack stack--xl ${styles.wideProse}`}>
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                style={{
-                  borderBottom: index < faqs.length - 1 ? '1px solid var(--color-border)' : 'none',
-                  paddingBottom: index < faqs.length - 1 ? '2.5rem' : '1rem',
-                }}
+                className={styles.faqItem}
               >
-                <h2 className="u-mb-4" style={{ fontSize: '1.5rem', color: 'var(--color-text-primary)' }}>
+                <h2 className={`u-mb-4 ${styles.faqHeading}`}>
                   {faq.q}
                 </h2>
-                <p style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>{faq.a}</p>
+                <p className={styles.proseText}>{faq.a}</p>
               </div>
             ))}
           </div>
@@ -378,18 +374,18 @@ export default function BuyingPropertyJapanPage() {
             <p className="text--lead">Practical advice for evaluating mountain real estate.</p>
           </div>
 
-          <div className="grid grid--3-cols" style={{ gap: '2rem' }}>
-            <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+          <div className={`grid grid--3-cols ${styles.grid}`}>
+            <div className={styles.infoCard}>
               <h4 className="u-mb-2">Visit Across Different Seasons</h4>
               <p className="text--small">Experience Myoko during both deep winter powder and green summer months to understand seasonal variations.</p>
             </div>
 
-            <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+            <div className={styles.infoCard}>
               <h4 className="u-mb-2">Understand Snow Management</h4>
               <p className="text--small">Evaluate roof snow-shedding design, snow blowing access, and local road snow clearing schedules.</p>
             </div>
 
-            <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+            <div className={styles.infoCard}>
               <h4 className="u-mb-2">Budget for Ongoing Maintenance</h4>
               <p className="text--small">Factor in winterizing, heating system maintenance, and regular building upkeep. See our <Link href="/management">property care services</Link>.</p>
             </div>
@@ -400,12 +396,12 @@ export default function BuyingPropertyJapanPage() {
       {/* Why Work With Love Live Myoko? */}
       <section className="section">
         <div className="layout__container">
-          <div className="stack stack--lg" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+          <div className={`stack stack--lg ${styles.centerProse}`}>
             <h2>Why Work With Love Live Myoko?</h2>
-            <p className="text--lead" style={{ lineHeight: '1.8' }}>
+            <p className={`text--lead ${styles.proseText}`}>
               We provide practical, on-the-ground representation for international and domestic property buyers.
             </p>
-            <p style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+            <p className={styles.proseText}>
               Founder David Bolwell brings ~25 years of living in Japan and extensive local experience across Myoko and Joetsu. We coordinate seamlessly with local real estate agents, judicial scriveners, municipal offices, and contractors, ensuring your property journey is transparent and stress-free. Read more <Link href="/about">about our story</Link> or explore our <Link href="/purchase-property">buyer consultation services</Link>.
             </p>
           </div>
@@ -413,15 +409,15 @@ export default function BuyingPropertyJapanPage() {
       </section>
 
       {/* Final Call to Action */}
-      <section className="section section--muted final-cta" style={{ borderTop: '1px solid var(--color-border)' }}>
+      <section className={`section section--muted final-cta ${styles.divider}`}>
         <div className="layout__container">
           <div className="u-text-center">
             <div className="stack stack--lg">
               <h2>Ready to discuss buying property in Myoko?</h2>
-              <p className="text--lead" style={{ maxWidth: '700px', margin: '0 auto' }}>
+              <p className={`text--lead ${styles.ctaCopy}`}>
                 Reach out to our team to discuss your goals, property criteria, or questions about the buying process.
               </p>
-              <div style={{ marginTop: '2rem' }}>
+              <div className={styles.actions}>
                 <a href="mailto:info@love-live-myoko.com" className="button button--primary">
                   Contact Us
                 </a>
@@ -430,6 +426,6 @@ export default function BuyingPropertyJapanPage() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

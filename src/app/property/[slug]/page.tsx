@@ -1,9 +1,11 @@
+import styles from '@/styles/editorial.module.css';
 import { getProperties, getProperty } from '@/lib/directus';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import PropertyGallery from '@/components/PropertyGallery';
 import { Metadata } from 'next';
 import { generatePropertySchema } from '@/lib/schema';
+import { directusPropertyStatus } from '@/lib/property-status';
 
 function getCleanMapUrl(url: string) {
     if (!url) return '';
@@ -53,9 +55,11 @@ export default async function PropertyPage({ params }: { params: { slug: string 
         : null;
 
     const jsonLd = generatePropertySchema(property, slug);
+    const status = directusPropertyStatus(property);
+    const sold = status === 'sold';
 
     return (
-        <main>
+        <main className={styles.page}>
             {jsonLd && (
                 <script
                     type="application/ld+json"
@@ -64,25 +68,23 @@ export default async function PropertyPage({ params }: { params: { slug: string 
             )}
             {/* Hero Image Section */}
             {featuredImageUrl && (
-                <div className="hero" style={{
-                    backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4)), url(${featuredImageUrl})`,
-                    minHeight: '50vh',
-                    backgroundAttachment: 'scroll'
-                }}>
+                <div className={styles.coverFrame}>
+                    <div className={`${styles.cover}${sold ? ' property-photo--sold' : ''}`} style={{ backgroundImage: `url(${featuredImageUrl})` }} />
+                    {sold && <span className="property-sold-badge">SOLD</span>}
                 </div>
             )}
 
             <div className="layout__container section">
-                <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+                <div className={styles.wideProse}>
                     <Link href="/properties" className="button button--secondary u-mb-8">&larr; Back to Listings</Link>
 
                     <div className="u-mb-8">
-                        <span className="text--xs u-mb-2" style={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-accent-primary)' }}>
+                        <span className={`text--xs u-mb-2 ${styles.eyebrow}`}>
                             {property.property_type} • {property.location}
                         </span>
                         <h1 className="u-mb-2">{property.title}</h1>
                         {property.price_display && (
-                            <p className="text--lead" style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            <p className={`text--lead ${styles.detailPrice}`}>
                                 &yen; {property.price_display}
                             </p>
                         )}
@@ -90,46 +92,46 @@ export default async function PropertyPage({ params }: { params: { slug: string 
 
                     {/* Summary Section */}
                     {property.summary && (
-                        <p className="text--lead u-mb-8" style={{ color: 'var(--color-text-primary)', fontStyle: 'italic' }}>
+                        <p className={`text--lead u-mb-8 ${styles.summary}`}>
                             {property.summary}
                         </p>
                     )}
 
                     {/* Specs Grid */}
-                    <div className="u-mb-8" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '1.5rem 0' }}>
-                        {property.status && (
+                    <div className={`u-mb-8 ${styles.facts}`}>
+                        {status && (
                             <div>
-                                <span className="text--xs" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Status</span>
+                                <span className={`text--xs ${styles.factLabel}`}>Status</span>
                                 <strong style={{
                                     textTransform: 'capitalize',
-                                    color: property.status === 'for_sale' ? 'var(--color-accent-primary)' :
-                                        property.status === 'sold' ? 'var(--color-error)' : 'inherit'
+                                    color: status === 'for_sale' ? 'var(--color-accent-primary)' :
+                                        sold ? 'var(--color-error)' : 'inherit'
                                 }}>
-                                    {property.status.replace('_', ' ')}
+                                    {status.replace('_', ' ')}
                                 </strong>
                             </div>
                         )}
                         {property.bedrooms && (
                             <div>
-                                <span className="text--xs" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Bedrooms</span>
+                                <span className={`text--xs ${styles.factLabel}`}>Bedrooms</span>
                                 <strong>{property.bedrooms}</strong>
                             </div>
                         )}
                         {property.bathrooms && (
                             <div>
-                                <span className="text--xs" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Toilets</span>
+                                <span className={`text--xs ${styles.factLabel}`}>Toilets</span>
                                 <strong>{property.bathrooms}</strong>
                             </div>
                         )}
                         {property.floor_area_sqm && (
                             <div>
-                                <span className="text--xs" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Floor Area</span>
+                                <span className={`text--xs ${styles.factLabel}`}>Floor Area</span>
                                 <strong>{property.floor_area_sqm} m²</strong>
                             </div>
                         )}
                         {property.land_area_sqm && (
                             <div>
-                                <span className="text--xs" style={{ display: 'block', color: 'var(--color-text-muted)' }}>Land Area</span>
+                                <span className={`text--xs ${styles.factLabel}`}>Land Area</span>
                                 <strong>{property.land_area_sqm} m²</strong>
                             </div>
                         )}
@@ -139,8 +141,8 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                     <div className="u-mb-12">
                         <h3 className="u-mb-4">Overview</h3>
                         <div
-                            className="section__content"
-                            style={{ color: 'var(--color-text-primary)', lineHeight: '1.8' }}
+                            className={`section__content ${styles.proseText}${sold ? ' property-description--sold' : ''}`}
+
                             dangerouslySetInnerHTML={{ __html: property.description || '' }}
                         />
                     </div>
@@ -151,7 +153,7 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                         if (typeof property.amenities === 'string') {
                             try {
                                 amenities = JSON.parse(property.amenities) as string[];
-                            } catch (e) {
+                            } catch {
                                 amenities = undefined;
                             }
                         } else if (Array.isArray(property.amenities)) {
@@ -162,17 +164,11 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                             return (
                                 <div className="u-mb-16">
                                     <h3 className="u-mb-6">Amenities</h3>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                    <div className={styles.buttons}>
                                         {amenities.map((amenity, index) => (
                                             <span
                                                 key={index}
-                                                style={{
-                                                    background: 'var(--color-bg-alt)',
-                                                    padding: '0.5rem 1rem',
-                                                    borderRadius: '2rem',
-                                                    fontSize: 'var(--text-xs)',
-                                                    border: '1px solid var(--color-border)'
-                                                }}
+                                                className={styles.tag}
                                             >
                                                 {amenity}
                                             </span>
@@ -188,7 +184,7 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                     {property.area_notes && (
                         <div className="u-mb-16">
                             <h3 className="u-mb-4">Area & Access</h3>
-                            <p style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+                            <p className={styles.proseText}>
                                 {property.area_notes}
                             </p>
                         </div>
@@ -198,7 +194,7 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                     {property.map_url && (
                         <div className="u-mb-12">
                             <h3 className="u-mb-4">Location</h3>
-                            <p className="u-mb-6" style={{ color: 'var(--color-text-muted)' }}>{property.location}</p>
+                            <p className={`u-mb-6 ${styles.text}`}>{property.location}</p>
                             <a
                                 href={getCleanMapUrl(property.map_url)}
                                 target="_blank"
@@ -219,6 +215,7 @@ export default async function PropertyPage({ params }: { params: { slug: string 
                                 featuredImageId={property.featured_image}
                                 title={property.title}
                                 slug={slug}
+                                sold={sold}
                             />
                         </div>
                     )}
@@ -226,15 +223,15 @@ export default async function PropertyPage({ params }: { params: { slug: string 
             </div>
 
             {/* Contact CTA */}
-            <section className="section section--muted" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <section className={`section section--muted ${styles.divider}`}>
                 <div className="layout__container">
                     <div className="u-text-center">
                         <div className="stack stack--lg">
                             <h2>Interested in this property?</h2>
-                            <p className="text--lead" style={{ maxWidth: "700px", margin: "0 auto" }}>
-                                We'd love to show you around. Contact us for more details or to schedule a viewing.
+                            <p className={`text--lead ${styles.ctaCopy}`}>
+                                We&apos;d love to show you around. Contact us for more details or to schedule a viewing.
                             </p>
-                            <div style={{ marginTop: "2rem" }}>
+                            <div className={styles.actions}>
                                 <a
                                     href={`mailto:info@love-live-myoko.com?subject=Enquiry: ${property.title}`}
                                     className="button button--primary"

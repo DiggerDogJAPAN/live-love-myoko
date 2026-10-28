@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element -- Preserve the existing Directus and static-export image URLs. */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Lightbox from "./Lightbox";
 
 interface AirbnbGalleryProps {
@@ -11,7 +12,7 @@ interface AirbnbGalleryProps {
     collection?: 'properties' | 'accommodations';
 }
 
-function GalleryImage({ src, alt, isMain, onClick }: { src: string, alt: string, isMain: boolean, onClick: () => void }) {
+function GalleryImage({ src, alt, isMain }: { src: string, alt: string, isMain: boolean }) {
     const [loaded, setLoaded] = useState(false);
 
     return (
@@ -21,7 +22,6 @@ function GalleryImage({ src, alt, isMain, onClick }: { src: string, alt: string,
             loading={isMain ? undefined : "lazy"}
             className={`airbnb-gallery__image ${loaded ? 'airbnb-gallery__image--loaded' : ''}`}
             onLoad={() => setLoaded(true)}
-            onClick={onClick}
         />
     );
 }
@@ -32,15 +32,15 @@ export default function AirbnbGallery({ gallery, featuredImageId, title, slug, c
     const isProd = process.env.NODE_ENV === 'production';
     const DIRECTUS_ASSETS_BASE = `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets`;
 
-    const getFullUrl = (id: string, index?: number, isFeatured?: boolean) => {
+    const getFullUrl = useCallback((id: string, index?: number, isFeatured?: boolean) => {
         if (isProd) {
             if (isFeatured) return `/images/${collection}/${slug}/featured.jpg`;
             return `/images/${collection}/${slug}/gallery-${index}.jpg`;
         }
         return `${DIRECTUS_ASSETS_BASE}/${id}`;
-    };
+    }, [isProd, collection, slug, DIRECTUS_ASSETS_BASE]);
 
-    const getThumbUrl = (id: string, index: number, isFeatured?: boolean) => {
+    const getThumbUrl = useCallback((id: string, index: number, isFeatured?: boolean) => {
         if (isProd) {
             if (isFeatured) return `/images/${collection}/${slug}/featured.jpg`;
             return `/images/${collection}/${slug}/gallery-${index}.jpg`;
@@ -48,7 +48,7 @@ export default function AirbnbGallery({ gallery, featuredImageId, title, slug, c
         const width = isFeatured ? 1200 : 600;
         const height = isFeatured ? 800 : 400;
         return `${DIRECTUS_ASSETS_BASE}/${id}?width=${width}&height=${height}&fit=cover`;
-    };
+    }, [isProd, collection, slug, DIRECTUS_ASSETS_BASE]);
 
     // Process all images into a single sequence, prioritizing the featured image
     const allImages = useMemo(() => {
@@ -75,7 +75,7 @@ export default function AirbnbGallery({ gallery, featuredImageId, title, slug, c
         });
 
         return images;
-    }, [gallery, featuredImageId, title, slug, collection]);
+    }, [gallery, featuredImageId, title, getFullUrl, getThumbUrl]);
 
     if (allImages.length === 0) return null;
 
@@ -88,27 +88,26 @@ export default function AirbnbGallery({ gallery, featuredImageId, title, slug, c
                 <div className="airbnb-gallery__grid">
                     {displayImages.map((img, index) => {
                         const isMain = index === 0;
-                        const itemClass = isMain 
-                            ? "airbnb-gallery__item airbnb-gallery__item--main" 
+                        const itemClass = isMain
+                            ? "airbnb-gallery__item airbnb-gallery__item--main"
                             : "airbnb-gallery__item airbnb-gallery__item--side";
-                            
+
                         return (
-                            <div 
-                                key={`${img.id}-${index}`} 
+                            <button
+                                type="button"
+                                key={`${img.id}-${index}`}
                                 className={itemClass}
                                 onClick={() => setCurrentIndex(index)}
-                                role="button"
                                 aria-label={`View photo ${index + 1}`}
                             >
                                 <GalleryImage
                                     src={img.thumb}
                                     alt={img.alt}
                                     isMain={isMain}
-                                    onClick={() => setCurrentIndex(index)}
                                 />
                                 {isMain && allImages.length > 1 && (
                                     <div className="airbnb-gallery__badge">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                             <circle cx="8.5" cy="8.5" r="1.5"></circle>
                                             <polyline points="21 15 16 10 5 21"></polyline>
@@ -116,14 +115,14 @@ export default function AirbnbGallery({ gallery, featuredImageId, title, slug, c
                                         {allImages.length} photos
                                     </div>
                                 )}
-                            </div>
+                            </button>
                         );
                     })}
                 </div>
-                
+
                 {allImages.length > 5 && (
-                    <button 
-                        className="airbnb-gallery__btn" 
+                    <button
+                        className="airbnb-gallery__btn"
                         onClick={() => setCurrentIndex(0)}
                         aria-label="Show all photos"
                     >

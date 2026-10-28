@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element -- Preserve the existing Directus and static-export image URLs. */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Lightbox from "./Lightbox";
 
 interface PropertyGalleryProps {
@@ -9,33 +10,29 @@ interface PropertyGalleryProps {
     title: string;
     slug: string;
     collection?: 'properties' | 'accommodations';
+    sold?: boolean;
 }
 
-export default function PropertyGallery({ gallery, featuredImageId, title, slug, collection = 'properties' }: PropertyGalleryProps) {
+export default function PropertyGallery({ gallery, featuredImageId, title, slug, collection = 'properties', sold = false }: PropertyGalleryProps) {
     const [currentIndex, setCurrentIndex] = useState<number | null>(null);
 
     const isProd = process.env.NODE_ENV === 'production';
     const DIRECTUS_ASSETS_BASE = `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets`;
 
-    // We can't use 'title' freely for paths as it may have spaces/chars.
-    // However, we don't have the slug passed in as a prop directly yet? 
-    // Wait, PropertyGallery is used in page.tsx where property.slug is available.
-    // Let's add 'slug' to PropertyGalleryProps.
-
-    const getFullUrl = (id: string, index?: number, isFeatured?: boolean) => {
+    const getFullUrl = useCallback((id: string, index?: number, isFeatured?: boolean) => {
         if (isProd) {
             if (isFeatured) return `/images/${collection}/${slug}/featured.jpg`;
             return `/images/${collection}/${slug}/gallery-${index}.jpg`;
         }
         return `${DIRECTUS_ASSETS_BASE}/${id}`;
-    };
+    }, [isProd, collection, slug, DIRECTUS_ASSETS_BASE]);
 
-    const getThumbUrl = (id: string, index: number) => {
+    const getThumbUrl = useCallback((id: string, index: number) => {
         if (isProd) {
             return `/images/${collection}/${slug}/gallery-${index + 1}.jpg`;
         }
         return `${DIRECTUS_ASSETS_BASE}/${id}?width=600&height=400&fit=cover`;
-    };
+    }, [isProd, collection, slug, DIRECTUS_ASSETS_BASE]);
 
     // Process all images into a single sequence, prioritizing the featured image
     const allImages = useMemo(() => {
@@ -58,7 +55,7 @@ export default function PropertyGallery({ gallery, featuredImageId, title, slug,
         });
 
         return images;
-    }, [gallery, featuredImageId, title, slug]);
+    }, [gallery, featuredImageId, title, getFullUrl]);
 
     // When a gallery thumbnail is clicked, open the lightbox at the correct index
     const handleThumbnailClick = (galleryIndex: number) => {
@@ -73,16 +70,16 @@ export default function PropertyGallery({ gallery, featuredImageId, title, slug,
                 {gallery.map((item, index) => (
                     <button
                         key={item.directus_files_id}
+                        type="button"
                         className="property-gallery__item"
                         onClick={() => handleThumbnailClick(index)}
                         aria-label={`View gallery image ${index + 1}`}
                     >
-                        <div className="about__image-wrapper" style={{ aspectRatio: '16/10' }}>
+                        <div className="property-gallery__frame">
                             <img
                                 src={getThumbUrl(item.directus_files_id, index)}
                                 alt={`${title} gallery ${index + 1}`}
-                                className="about__image"
-                                style={{ height: '100%', width: '100%', objectFit: 'cover' }}
+                                className={`property-gallery__image${sold ? ' property-photo--sold' : ''}`}
                             />
                         </div>
                     </button>
@@ -94,6 +91,7 @@ export default function PropertyGallery({ gallery, featuredImageId, title, slug,
                     images={allImages}
                     initialIndex={currentIndex}
                     onClose={() => setCurrentIndex(null)}
+                    sold={sold}
                 />
             )}
         </>

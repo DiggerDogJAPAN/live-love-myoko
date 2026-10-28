@@ -1,8 +1,9 @@
+/* eslint-disable @next/next/no-img-element -- Preserve the existing CMS image and lightbox sources. */
 import Link from 'next/link';
-import { Accommodation } from '@/lib/directus';
+import type { Accommodation } from '@/lib/directus';
 
 interface AccommodationCardProps {
-    accommodation: Accommodation;
+    accommodation: Pick<Accommodation, 'slug' | 'title' | 'featured_image' | 'price_display' | 'max_guests' | 'rooms' | 'parking' | 'summary'>;
 }
 
 export default function AccommodationCard({ accommodation }: AccommodationCardProps) {
@@ -18,20 +19,9 @@ export default function AccommodationCard({ accommodation }: AccommodationCardPr
             href={`/accommodation/${accommodation.slug}`}
             className="card"
         >
-            <div className="card__image-container" style={{ position: 'relative' }}>
+            <div className="card__image-container">
                 {accommodation.price_display && (
-                    <span style={{
-                        position: 'absolute',
-                        top: '10px',
-                        left: '10px',
-                        backgroundColor: 'var(--color-accent-primary)',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '0.85rem',
-                        fontWeight: 'bold',
-                        zIndex: 10
-                    }}>
+                    <span className="accommodation-card__price">
                         &yen; {accommodation.price_display}
                     </span>
                 )}
@@ -43,28 +33,21 @@ export default function AccommodationCard({ accommodation }: AccommodationCardPr
                         loading="lazy"
                     />
                 ) : (
-                    <div className="card__image" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eee' }}>
+                    <div className="card__image accommodation-card__placeholder">
                         <span>No Image</span>
                     </div>
                 )}
             </div>
             <div className="card__content">
                 <div className="card__header">
-                    <span className="text--xs u-mb-2" style={{ display: 'block', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                    <span className="accommodation-card__meta u-mb-2">
                         {accommodation.max_guests ? `${accommodation.max_guests} guests` : 'N/A guests'} &middot; {accommodation.rooms ? `${accommodation.rooms} rooms` : '0 rooms'} &middot; {accommodation.parking ? `${accommodation.parking} parking` : 'No parking'}
                     </span>
                     <h3>{accommodation.title}</h3>
                 </div>
                 <div className="card__body">
                     {accommodation.summary && (
-                        <p style={{
-                            margin: 0,
-                            color: 'var(--color-text-muted)',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                        }}>
+                        <p className="accommodation-card__summary">
                             {accommodation.summary}
                         </p>
                     )}

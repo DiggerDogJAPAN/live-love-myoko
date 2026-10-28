@@ -432,14 +432,14 @@ test('Non-Joetsu conditions render as exact escaped Japanese before enquiry, wit
     assert(accidentalImage.includes('<img')); // Only the protected API constructs approved thumbnail objects.
 });
 
-test('API and empty live directory advertise all three municipalities before Joetsu import', async () => {
+test('API and empty live directory advertise all four municipalities including Iizuna Town', async () => {
     const response = await handleFinderRequest(request(await token()), env, {
         authenticate: (req, settings) => authenticateAdministrator(req, settings, keys), load: async () => [],
     });
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { properties: [], count: 0, municipalities: ['Myoko', 'Shinano', 'Joetsu'] });
+    assert.deepEqual(await response.json(), { properties: [], count: 0, municipalities: ['Myoko', 'Shinano', 'Joetsu', 'Iizuna Town'] });
     const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, { properties: [], mode: 'live' }));
-    for (const municipality of ['Myoko', 'Shinano', 'Joetsu']) assert(html.includes(`<option>${municipality}</option>`));
+    for (const municipality of ['Myoko', 'Shinano', 'Joetsu', 'Iizuna Town']) assert(html.includes(`<option>${municipality}</option>`));
 });
 
 
@@ -531,4 +531,97 @@ test('Non-Joetsu material disclosures remain complete, escaped and keyboard-expa
     assert(html.includes(joetsu.purchase_conditions_ja!));
     assert(html.indexOf('</details>') < html.indexOf('Ask Us for Help'));
     assert(!html.includes('line-clamp'));
+});
+
+
+test('Iizuna canonical and supplemental sources share formatting, filters and reject Rakuen images', () => {
+    for (const [source_attribution, original_pdf_url] of [
+        ['Source: Iizuna Town Akiya Bank','https://www.town.iizuna.nagano.jp/ijuportal/live/sale/900001.html'],
+        ['Source: Rakuen Shinshu Akiya Bank (Iizuna)','https://rakuen-akiya.jp/bukken/990001/'],
+    ]) {
+        const source: CustomerViewRow={...joetsu,source_attribution,original_pdf_url,municipality:'Iizuna Town',location_en:'Kurai',location_ja:'倉井',thumbnail_url:'https://rakuen-akiya.jp/img/bukken/1/photo.jpg',asking_price_jpy:null};
+        const property=customerProperty(source)!;
+        assert(property);assert.equal(propertyLocation(property),'Iizuna (Kurai)');assert.equal(property.thumbnail,null);assert.equal(property.askingPriceJpy,null);
+        assert.equal(searchProperties([property],{...initialFilters,municipality:'Iizuna',area:'Iizuna (Kurai)'}).length,1);
+        assert(renderToStaticMarkup(createElement(PropertyFinderCard,{property})).includes('Property image unavailable'));
+        for (const transaction_type of ['rent',null]) assert.equal(customerProperty({...source,transaction_type}),null);
+        for (const property_type of ['land','commercial','lodge','unknown']) assert.equal(customerProperty({...source,property_type}),null);
+        assert.equal(customerProperty({...source,availability_status:'under_negotiation'}),null);
+        assert.equal(customerProperty({...source,original_pdf_url:'https://evil.invalid/bukken/990001/'}),null);
+        assert.equal(customerProperty({...source,original_pdf_url:original_pdf_url+'?redirect=1'}),null);
+        assert.equal(propertyLocation({...property,neighbourhood:'未確認',locationNeedsReview:true}),'Iizuna (未確認)');
+        assert.equal(propertyLocation({...property,neighbourhood:null,area:null,areaJa:null}),'Iizuna');
+    }
+});
+
+const iizuna: CustomerViewRow = {
+    ...row, municipality: 'Iizuna Town', property_type: 'house', transaction_type: 'sale',
+    source_attribution: 'Source: Iizuna Town Akiya Bank',
+    original_pdf_url: 'https://www.town.iizuna.nagano.jp/ijuportal/live/sale/900001.html',
+    location_en: 'Kurai', location_ja: '倉井', location_needs_review: false,
+    thumbnail_url: 'https://www.town.iizuna.nagano.jp/fs/12345/primary.jpg',
+};
+
+test('Iizuna municipal thumbnails hotlink exact approved URLs and retain missing/failed fallbacks', () => {
+    for (const extension of ['jpg', 'jpeg', 'png', 'webp', 'JPG']) {
+        const thumbnail_url = `https://www.town.iizuna.nagano.jp/fs/12345/primary.${extension}`;
+        const property = customerProperty({ ...iizuna, thumbnail_url })!;
+        assert.deepEqual(property.thumbnail, { src: thumbnail_url, alt: 'Property in Iizuna (Kurai)', permission: 'permitted' });
+        const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+        assert(html.includes(`src="${thumbnail_url}"`));
+        assert(!html.includes('/_next/image') && !html.includes('Property image unavailable'));
+        assert.equal(visibleThumbnail(property.thumbnail, thumbnail_url), null);
+        assert.equal(visibleThumbnail(property.thumbnail, 'https://previous.invalid/photo.jpg'), property.thumbnail);
+    }
+    const missing = customerProperty({ ...iizuna, thumbnail_url: null })!;
+    assert.equal(missing.thumbnail, null);
+    assert(renderToStaticMarkup(createElement(PropertyFinderCard, { property: missing })).includes('Property image unavailable'));
+});
+
+test('Iizuna photo approval is limited to exact municipal source, HTTPS host, fs path and vetted image formats', () => {
+    for (const thumbnail_url of [
+        'http://www.town.iizuna.nagano.jp/fs/123/primary.jpg',
+        'https://town.iizuna.nagano.jp/fs/123/primary.jpg',
+        'https://www.town.iizuna.nagano.jp.evil.invalid/fs/123/primary.jpg',
+        'https://www.town.iizuna.nagano.jp@evil.invalid/fs/123/primary.jpg',
+        'https://user:password@www.town.iizuna.nagano.jp/fs/123/primary.jpg',
+        'https://www.town.iizuna.nagano.jp:8443/fs/123/primary.jpg',
+        'https://www.town.iizuna.nagano.jp/assets/primary.jpg',
+        'https://www.town.iizuna.nagano.jp/fs/../private/primary.jpg',
+        'https://www.town.iizuna.nagano.jp/fs/123/primary.jpg?size=large',
+        'https://www.town.iizuna.nagano.jp/fs/123/primary.jpg#photo',
+        'https://www.town.iizuna.nagano.jp/fs/123/primary.svg',
+        'https://www.town.iizuna.nagano.jp/fs/123/%20primary.jpg',
+        'https://www.town.iizuna.nagano.jp/fs/123/%ZZ.jpg',
+        'https://rakuen-akiya.jp/img/bukken/123/primary.jpg',
+        'https://joetsu-akiyabank.jp/wp-content/uploads/primary.jpg',
+        'data:image/jpeg;base64,invalid',
+    ]) assert.equal(customerProperty({ ...iizuna, thumbnail_url })!.thumbnail, null, thumbnail_url);
+    const supplemental = customerProperty({ ...iizuna, source_attribution: 'Source: Rakuen Shinshu Akiya Bank (Iizuna)', original_pdf_url: 'https://rakuen-akiya.jp/bukken/990001/' })!;
+    assert.equal(supplemental.thumbnail, null, 'Rakuen attribution cannot borrow municipal photograph permission');
+    assert.equal(customerProperty({ ...iizuna, source_attribution: 'Source: Unreviewed Iizuna Provider' }), null);
+    assert.equal(customerProperty({ ...iizuna, municipality: 'Myoko' }), null);
+});
+
+test('Iizuna Town filter uses verified English neighbourhoods while titles, original links, prices and enquiries remain accurate', () => {
+    const properties = ['Fukoji', 'Imogawa', 'Kawakami', 'Kodama', 'Kosaka', 'Kurai', 'Sakaguchi', 'Toyono'].map((location_en, index) => customerProperty({ ...iizuna, location_en, asking_price_jpy: 1000000 * (index + 1) })!);
+    for (const property of properties) {
+        assert.equal(propertyLocation(property), `Iizuna (${property.neighbourhood})`);
+        const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+        assert(html.includes(`Property in Iizuna (${property.neighbourhood})`));
+        assert(html.includes('Iizuna Town Akiya Bank'));
+        assert(html.includes(`href="${iizuna.original_pdf_url}"`) && html.includes('target="_blank" rel="noopener noreferrer"'));
+        assert(html.includes(new Intl.NumberFormat('en-US').format(property.askingPriceJpy!)));
+        const enquiry = new URL(enquiryMailto(property));
+        assert(enquiry.searchParams.get('body')!.includes(iizuna.original_pdf_url!));
+        assert(enquiry.searchParams.get('body')!.includes(propertyLocation(property)));
+    }
+    const all = [customerProperty(row)!, customerProperty(joetsu)!, ...properties];
+    assert.equal(searchProperties(all, { ...initialFilters, municipality: 'Iizuna Town' }).length, 8);
+    assert.equal(searchProperties(all, { ...initialFilters, municipality: 'Iizuna' }).length, 8);
+    assert.equal(searchProperties(all, { ...initialFilters, municipality: 'Iizuna Town', keyword: 'Kurai', propertyType: 'House' }).length, 1);
+    const filtered = searchProperties(all, { ...initialFilters, municipality: 'Iizuna Town', minPrice: '2000000', maxPrice: '5000000', sort: 'price-desc' });
+    assert.deepEqual(filtered.map(property => property.askingPriceJpy), [5000000, 4000000, 3000000, 2000000]);
+    const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, { properties, mode: 'live' }));
+    assert(html.includes('<option>Iizuna Town</option>') && html.includes('<option>Myoko</option>') && html.includes('<option>Shinano</option>') && html.includes('<option>Joetsu</option>'));
 });

@@ -10,6 +10,10 @@ export interface FinderDatabaseEnv {
 }
 
 const READER_LOGIN = 'property_finder_web_reader';
+// The restricted view projects iizuna_akiya_bank through these public attributions.
+const sourceAttributions = {
+    iizuna_akiya_bank: ['Iizuna Town Akiya Bank', 'Rakuen Shinshu Akiya Bank (Iizuna)'],
+};
 
 /** Parse explicitly so URI sslmode parameters cannot overwrite verified TLS options. */
 export function databaseConfiguration(env: FinderDatabaseEnv): ClientConfig {
@@ -91,6 +95,7 @@ function permittedThumbnail(src: string | null, sourceName: string, title: strin
         ['Joetsu City Akiya Bank', { host: 'joetsu-akiyabank.jp', path: '/wp-content/uploads/' }],
         ['Myoko Akiya Bank', { host: 'www.city.myoko.niigata.jp', path: '/fs/' }],
         ['Shinano Town Akiya Bank', { host: 'shinanomachi-iju.jp', path: '/shinanomachi/wordpress/wp-content/uploads/' }],
+        ['Iizuna Town Akiya Bank', { host: 'www.town.iizuna.nagano.jp', path: '/fs/' }],
     ]).get(sourceName);
     if (!source) return null;
     try {
@@ -98,6 +103,8 @@ function permittedThumbnail(src: string | null, sourceName: string, title: strin
         if (url.protocol !== 'https:' || url.hostname !== source.host
             || url.username || url.password || url.port || !url.pathname.startsWith(source.path)
             || !/\.(jpe?g|png|webp)$/i.test(url.pathname)) return null;
+        if (sourceName === 'Iizuna Town Akiya Bank' && (url.search || url.hash
+            || /[\s\\?#]/.test(decodeURIComponent(url.pathname)))) return null;
         if (sourceName === 'Joetsu City Akiya Bank' && (url.search || url.hash
             || /seiyaku|sold|closed|floor.?plan|madori|間取|平面|地図/i.test(decodeURIComponent(url.pathname)))) return null;
         return { src, alt: title || `${sourceName} property photograph`, permission: 'permitted' };
@@ -113,6 +120,18 @@ export function customerProperty(row: CustomerViewRow): FinderProperty | null {
     // Defence in depth alongside the protected view and RLS predicate.
     if (['Shinano Town Akiya Bank', 'Joetsu City Akiya Bank'].includes(sourceName) && (row.transaction_type !== 'sale'
         || !['house', 'apartment', 'lodge', 'commercial'].includes(row.property_type || ''))) return null;
+    const isIizunaSource = sourceAttributions.iizuna_akiya_bank.includes(sourceName);
+    if (row.municipality === 'Iizuna Town' && !isIizunaSource) return null;
+    if (isIizunaSource) {
+        if (row.municipality !== 'Iizuna Town' || row.transaction_type !== 'sale' || row.property_type !== 'house' || !row.original_pdf_url) return null;
+        try {
+            const url = new URL(row.original_pdf_url);
+            const municipal = sourceName === 'Iizuna Town Akiya Bank';
+            if (url.protocol !== 'https:' || url.username || url.password || url.port || url.search || url.hash
+                || url.hostname !== (municipal ? 'www.town.iizuna.nagano.jp' : 'rakuen-akiya.jp')
+                || !(municipal ? /^\/ijuportal\/live\/sale\/[0-9]+\.html$/ : /^\/bukken\/[0-9]+\/$/).test(url.pathname)) return null;
+        } catch { return null; }
+    }
     const types: Record<string, FinderProperty['propertyType']> = {
         house: 'House', land: 'Land', apartment: 'Apartment', lodge: 'Pension/Lodge',
         commercial: 'Commercial', other: 'Other',

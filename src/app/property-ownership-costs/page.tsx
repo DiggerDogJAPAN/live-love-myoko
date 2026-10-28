@@ -1,3 +1,4 @@
+import styles from '@/styles/editorial.module.css';
 import Link from 'next/link';
 
 export const metadata = {
@@ -114,7 +115,7 @@ export default function PropertyOwnershipCostsPage() {
   };
 
   return (
-    <>
+    <div className={styles.page}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -122,10 +123,8 @@ export default function PropertyOwnershipCostsPage() {
 
       {/* Hero Section */}
       <section
-        className="hero"
-        style={{
-          backgroundImage: `linear-gradient(to right, rgba(249, 250, 248, 0.92) 0%, rgba(249, 250, 248, 0.8) 50%, rgba(249, 250, 248, 0.3) 100%), url('/images/management-hero.jpg')`,
-        }}
+        className={`hero ${styles.hero}`}
+
       >
         <div className="hero__content">
           <div className="hero__text">
@@ -145,12 +144,12 @@ export default function PropertyOwnershipCostsPage() {
       {/* Introduction */}
       <section className="section">
         <div className="layout__container">
-          <div className="stack stack--lg" style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <div className={`stack stack--lg ${styles.prose}`}>
             <h2 className="u-text-center">Responsible Real Estate Ownership in Japan</h2>
-            <p className="text--lead" style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+            <p className={`text--lead ${styles.proseText}`}>
               Purchasing real estate is only the first step in property ownership. Responsible, stress-free homeownership requires a clear understanding of ongoing taxes, utility management, seasonal maintenance, and specialized winter preparations.
             </p>
-            <p style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+            <p className={styles.proseText}>
               Ongoing ownership costs in Japan vary based on property size, age, construction type, location, and whether the home is used as a year-round residence or a holiday home. If you are currently evaluating a purchase, read our <Link href="/buying-property-japan">step-by-step guide to buying property in Japan</Link> or view available <Link href="/properties">real estate listings in Myoko</Link>.
             </p>
           </div>
@@ -165,66 +164,66 @@ export default function PropertyOwnershipCostsPage() {
             <p className="text--lead">Key recurring expenses associated with owning Japanese property.</p>
           </div>
 
-          <div className="grid grid--3-cols" style={{ gap: '1.5rem' }}>
+          <div className={`grid grid--3-cols ${styles.grid}`}>
             {/* Card 1 */}
-            <div className="card" style={{ padding: '1.75rem' }}>
-              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>🏛️</span>
-              <h3 className="u-mb-2" style={{ fontSize: '1.25rem' }}>Fixed Asset Tax</h3>
-              <p className="text--small" style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.icon}>🏛️</span>
+              <h3 className={`u-mb-2 ${styles.smallHeading}`}>Fixed Asset Tax</h3>
+              <p className={`text--small ${styles.proseText}`}>
                 <em>Kotei-shisan-zei</em> is an annual municipal property tax levied at a standard rate of 1.4% on the government-assessed value of land and buildings. Taxes are billed annually in spring.
               </p>
             </div>
 
             {/* Card 2 */}
-            <div className="card" style={{ padding: '1.75rem' }}>
-              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>🗺️</span>
-              <h3 className="u-mb-2" style={{ fontSize: '1.25rem' }}>City Planning Tax</h3>
-              <p className="text--small" style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.icon}>🗺️</span>
+              <h3 className={`u-mb-2 ${styles.smallHeading}`}>City Planning Tax</h3>
+              <p className={`text--small ${styles.proseText}`}>
                 <em>Toshi-keikaku-zei</em> is a secondary municipal tax (capped at 0.3%) applicable only to properties located within designated urban planning zones. Many rural mountain properties are exempt.
               </p>
             </div>
 
             {/* Card 3 */}
-            <div className="card" style={{ padding: '1.75rem' }}>
-              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>🛡️</span>
-              <h3 className="u-mb-2" style={{ fontSize: '1.25rem' }}>Property Insurance</h3>
-              <p className="text--small" style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.icon}>🛡️</span>
+              <h3 className={`u-mb-2 ${styles.smallHeading}`}>Property Insurance</h3>
+              <p className={`text--small ${styles.proseText}`}>
                 Comprehensive building insurance covers fire, storm, and snow accumulation damage. Optional Earthquake Insurance (<em>Jishin Hoken</em>) provides government-backed structural protection.
               </p>
             </div>
 
             {/* Card 4 */}
-            <div className="card" style={{ padding: '1.75rem' }}>
-              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>💡</span>
-              <h3 className="u-mb-2" style={{ fontSize: '1.25rem' }}>Utilities</h3>
-              <p className="text--small" style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.icon}>💡</span>
+              <h3 className={`u-mb-2 ${styles.smallHeading}`}>Utilities</h3>
+              <p className={`text--small ${styles.proseText}`}>
                 Electricity, water/sewerage, LP gas (or kerosene), and fiber internet. Standing monthly basic fees apply even when vacant, with winter heating increasing seasonal usage.
               </p>
             </div>
 
             {/* Card 5 */}
-            <div className="card" style={{ padding: '1.75rem' }}>
-              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>🚜</span>
-              <h3 className="u-mb-2" style={{ fontSize: '1.25rem' }}>Snow Clearing</h3>
-              <p className="text--small" style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.icon}>🚜</span>
+              <h3 className={`u-mb-2 ${styles.smallHeading}`}>Snow Clearing</h3>
+              <p className={`text--small ${styles.proseText}`}>
                 In snow country like Myoko, driveway clearing by heavy machinery contractors and periodic manual roof snow removal are essential winter operating expenses.
               </p>
             </div>
 
             {/* Card 6 */}
-            <div className="card" style={{ padding: '1.75rem' }}>
-              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>🛠️</span>
-              <h3 className="u-mb-2" style={{ fontSize: '1.25rem' }}>Routine Maintenance</h3>
-              <p className="text--small" style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.icon}>🛠️</span>
+              <h3 className={`u-mb-2 ${styles.smallHeading}`}>Routine Maintenance</h3>
+              <p className={`text--small ${styles.proseText}`}>
                 Preventative building maintenance including roof paint touch-ups, plumbing checks, gutter clearing, heating system servicing, and deck sealing. See our <Link href="/management">maintenance services</Link>.
               </p>
             </div>
 
             {/* Card 7 */}
-            <div className="card" style={{ padding: '1.75rem', gridColumn: 'span 1' }}>
-              <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>🏡</span>
-              <h3 className="u-mb-2" style={{ fontSize: '1.25rem' }}>Property Management</h3>
-              <p className="text--small" style={{ lineHeight: '1.7', color: 'var(--color-text-primary)' }}>
+            <div className={`card ${styles.paddedCard}`}>
+              <span className={styles.icon}>🏡</span>
+              <h3 className={`u-mb-2 ${styles.smallHeading}`}>Property Management</h3>
+              <p className={`text--small ${styles.proseText}`}>
                 Boutique management services for non-resident owners covering monthly inspections, bill payments, winterizing, key holding, and guest hosting. Explore our <Link href="/management">management plans</Link>.
               </p>
             </div>
@@ -240,12 +239,12 @@ export default function PropertyOwnershipCostsPage() {
             <p className="text--lead">Understanding year-round care in Myoko’s alpine climate.</p>
           </div>
 
-          <div className="grid grid--2-cols" style={{ gap: '2rem' }}>
+          <div className={`grid grid--2-cols ${styles.grid}`}>
             {/* Winter */}
-            <div className="card" style={{ padding: '2rem', borderTop: '4px solid #3b82f6' }}>
+            <div className={`card ${styles.winter}`}>
               <h3 className="u-mb-2">❄️ Winter (Dec – Mar)</h3>
-              <p className="text--lead u-mb-4" style={{ fontSize: '1rem', color: 'var(--color-accent-primary)' }}>Heavy Snow & Freeze Prevention</p>
-              <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+              <p className={`text--lead u-mb-4 ${styles.subheading}`}>Heavy Snow & Freeze Prevention</p>
+              <ul className={styles.list}>
                 <li>Contracting heavy machinery driveway snow clearing.</li>
                 <li>Monitoring roof snow load and clearing overhangs.</li>
                 <li>Maintaining continuous background heating to prevent pipe freezes.</li>
@@ -254,10 +253,10 @@ export default function PropertyOwnershipCostsPage() {
             </div>
 
             {/* Spring */}
-            <div className="card" style={{ padding: '2rem', borderTop: '4px solid #10b981' }}>
+            <div className={`card ${styles.spring}`}>
               <h3 className="u-mb-2">🌸 Spring (Apr – May)</h3>
-              <p className="text--lead u-mb-4" style={{ fontSize: '1rem', color: 'var(--color-accent-primary)' }}>Post-Winter Inspection & Cleaning</p>
-              <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+              <p className={`text--lead u-mb-4 ${styles.subheading}`}>Post-Winter Inspection & Cleaning</p>
+              <ul className={styles.list}>
                 <li>Inspecting exterior walls, foundation, and roof for snow damage.</li>
                 <li>Deep interior cleaning and airing out after winter shutdown.</li>
                 <li>Clearing winter debris from gutters, drains, and garden beds.</li>
@@ -266,10 +265,10 @@ export default function PropertyOwnershipCostsPage() {
             </div>
 
             {/* Summer */}
-            <div className="card" style={{ padding: '2rem', borderTop: '4px solid #f59e0b' }}>
+            <div className={`card ${styles.summer}`}>
               <h3 className="u-mb-2">🌿 Summer (Jun – Aug)</h3>
-              <p className="text--lead u-mb-4" style={{ fontSize: '1rem', color: 'var(--color-accent-primary)' }}>Exterior Upkeep & Ventilation</p>
-              <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+              <p className={`text--lead u-mb-4 ${styles.subheading}`}>Exterior Upkeep & Ventilation</p>
+              <ul className={styles.list}>
                 <li>Exterior timber staining, painting, and deck maintenance.</li>
                 <li>Mowing lawns, trimming foliage, and garden upkeep.</li>
                 <li>Promoting humidity control and cross-ventilation.</li>
@@ -278,10 +277,10 @@ export default function PropertyOwnershipCostsPage() {
             </div>
 
             {/* Autumn */}
-            <div className="card" style={{ padding: '2rem', borderTop: '4px solid #ef4444' }}>
+            <div className={`card ${styles.autumn}`}>
               <h3 className="u-mb-2">🍁 Autumn (Sep – Nov)</h3>
-              <p className="text--lead u-mb-4" style={{ fontSize: '1rem', color: 'var(--color-accent-primary)' }}>Winterizing & Preparation</p>
-              <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+              <p className={`text--lead u-mb-4 ${styles.subheading}`}>Winterizing & Preparation</p>
+              <ul className={styles.list}>
                 <li>Servicing Kerosene and gas heating units before cold sets in.</li>
                 <li>Clearing fallen leaves from gutters and drainage channels.</li>
                 <li>Installing snow poles, protective timber shutters, and pipe insulation.</li>
@@ -297,24 +296,21 @@ export default function PropertyOwnershipCostsPage() {
         <div className="layout__container">
           <div className="u-text-center u-mb-16">
             <h2>Frequently Asked Questions About Property Costs</h2>
-            <p className="text--lead" style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <p className={`text--lead ${styles.prose}`}>
               Practical answers based on real experience managing mountain real estate in Myoko.
             </p>
           </div>
 
-          <div className="stack stack--xl" style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div className={`stack stack--xl ${styles.wideProse}`}>
             {faqs.map((faq, index) => (
               <div
                 key={index}
-                style={{
-                  borderBottom: index < faqs.length - 1 ? '1px solid var(--color-border)' : 'none',
-                  paddingBottom: index < faqs.length - 1 ? '2.5rem' : '1rem',
-                }}
+                className={styles.faqItem}
               >
-                <h2 className="u-mb-4" style={{ fontSize: '1.5rem', color: 'var(--color-text-primary)' }}>
+                <h2 className={`u-mb-4 ${styles.faqHeading}`}>
                   {faq.q}
                 </h2>
-                <p style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>{faq.a}</p>
+                <p className={styles.proseText}>{faq.a}</p>
               </div>
             ))}
           </div>
@@ -324,29 +320,29 @@ export default function PropertyOwnershipCostsPage() {
       {/* Cost Planning & Maintenance Tips */}
       <section className="section">
         <div className="layout__container">
-          <div className="stack stack--lg" style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <div className={`stack stack--lg ${styles.prose}`}>
             <h2 className="u-text-center">Practical Cost Planning Tips</h2>
-            <p className="text--lead" style={{ lineHeight: '1.8' }}>
+            <p className={`text--lead ${styles.proseText}`}>
               Smart planning ensures your Japanese property remains a rewarding asset rather than a financial burden.
             </p>
 
-            <div className="stack stack--md" style={{ marginTop: '1.5rem' }}>
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+            <div className={`stack stack--md ${styles.spaced}`}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">1. Establish an Annual Maintenance Reserve Fund</h4>
                 <p className="text--small">Set aside 1% to 2% of the property value annually to cover periodic paint touch-ups, roof maintenance, and boiler replacements.</p>
               </div>
 
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">2. Never Skimp on Winterization</h4>
                 <p className="text--small">Thorough autumn winterization prevents catastrophic pipe bursts and structural water damage during freezing winter months.</p>
               </div>
 
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">3. Maintain Comprehensive Snow Insurance</h4>
                 <p className="text--small">Ensure your insurance policy explicitly covers snow load structural pressure, ice dam damage, and falling snow impact.</p>
               </div>
 
-              <div style={{ padding: '1.5rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+              <div className={styles.mutedPanel}>
                 <h4 className="u-mb-2">4. Partner With a Trusted Local Representative</h4>
                 <p className="text--small">Having an on-the-ground manager in Myoko ensures minor issues are resolved before they turn into costly repairs. Learn about <Link href="/about">our local background and philosophy</Link>.</p>
               </div>
@@ -358,12 +354,12 @@ export default function PropertyOwnershipCostsPage() {
       {/* Why Local Support Matters */}
       <section className="section section--muted">
         <div className="layout__container">
-          <div className="stack stack--lg" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+          <div className={`stack stack--lg ${styles.centerProse}`}>
             <h2>Why Local Support Matters</h2>
-            <p className="text--lead" style={{ lineHeight: '1.8' }}>
+            <p className={`text--lead ${styles.proseText}`}>
               Managing a property from afar can be challenging, especially during winter.
             </p>
-            <p style={{ lineHeight: '1.8', color: 'var(--color-text-primary)' }}>
+            <p className={styles.proseText}>
               Love Live Myoko brings ~25 years of local living, strong relationships with municipal offices and local contractors, and deep experience with heavy snow country management. We provide peace of mind for non-resident owners through regular inspections, transparent communication, and reliable emergency care. Explore our <Link href="/management">property management and maintenance services</Link>.
             </p>
           </div>
@@ -371,15 +367,15 @@ export default function PropertyOwnershipCostsPage() {
       </section>
 
       {/* Final Call to Action */}
-      <section className="section final-cta" style={{ borderTop: '1px solid var(--color-border)' }}>
+      <section className={`section final-cta ${styles.divider}`}>
         <div className="layout__container">
           <div className="u-text-center">
             <div className="stack stack--lg">
               <h2>Need local support for your Myoko property?</h2>
-              <p className="text--lead" style={{ maxWidth: '700px', margin: '0 auto' }}>
+              <p className={`text--lead ${styles.ctaCopy}`}>
                 Whether you own a holiday home, plan to purchase, or need reliable maintenance and winter care, reach out to our team today.
               </p>
-              <div style={{ marginTop: '2rem' }}>
+              <div className={styles.actions}>
                 <a href="mailto:info@love-live-myoko.com" className="button button--primary">
                   Contact Our Team
                 </a>
@@ -388,6 +384,6 @@ export default function PropertyOwnershipCostsPage() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

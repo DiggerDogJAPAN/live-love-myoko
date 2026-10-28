@@ -1,7 +1,7 @@
+/* eslint-disable @next/next/no-img-element -- Preserve the existing CMS image and lightbox sources. */
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import Image from "next/image";
 
 type LightboxImage = {
     src: string;
@@ -12,11 +12,13 @@ type LightboxProps = {
     images: LightboxImage[];
     initialIndex: number;
     onClose: () => void;
+    sold?: boolean;
 };
 
-export default function Lightbox({ images, initialIndex, onClose }: LightboxProps) {
+export default function Lightbox({ images, initialIndex, onClose, sold = false }: LightboxProps) {
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const touchStart = useRef<number | null>(null);
+    const dialog = useRef<HTMLDivElement>(null);
 
     const handleNext = useCallback(() => {
         setCurrentIndex((prev) => (prev + 1) % images.length);
@@ -27,10 +29,26 @@ export default function Lightbox({ images, initialIndex, onClose }: LightboxProp
     }, [images.length]);
 
     useEffect(() => {
+        const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const previousOverflow = document.body.style.overflow;
+        dialog.current?.querySelector<HTMLButtonElement>('button')?.focus();
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
             if (e.key === "ArrowRight") handleNext();
             if (e.key === "ArrowLeft") handlePrev();
+            if (e.key === "Tab") {
+                const controls = dialog.current?.querySelectorAll<HTMLButtonElement>('button');
+                if (!controls?.length) return;
+                const first = controls[0];
+                const last = controls[controls.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
         };
 
         document.addEventListener("keydown", handleKeyDown);
@@ -38,7 +56,8 @@ export default function Lightbox({ images, initialIndex, onClose }: LightboxProp
 
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
-            document.body.style.overflow = "unset";
+            document.body.style.overflow = previousOverflow;
+            previousFocus?.focus();
         };
     }, [onClose, handleNext, handlePrev]);
 
@@ -62,6 +81,10 @@ export default function Lightbox({ images, initialIndex, onClose }: LightboxProp
     return (
         <div
             className="lightbox"
+            ref={dialog}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image gallery"
             onClick={onClose}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
@@ -103,8 +126,9 @@ export default function Lightbox({ images, initialIndex, onClose }: LightboxProp
                 <img
                     src={images[currentIndex].src}
                     alt={images[currentIndex].alt || ""}
-                    className="lightbox__image"
+                    className={`lightbox__image${sold ? ' property-photo--sold' : ''}`}
                 />
+                {sold && <span className="property-sold-badge">SOLD</span>}
             </div>
         </div>
     );

@@ -1,4 +1,4 @@
-.page { --purchase-dark: #203f38; }
+.page { --purchase-dark: var(--color-forest); }
 .page em { color: var(--color-accent-primary); font-weight: 400; }
 .page h2 { font-size: clamp(2rem, 3vw, 3rem); line-height: 1.17; letter-spacing: -0.025em; margin-bottom: 1.5rem; }
 .page h3 { font-size: 1.55rem; line-height: 1.25; }
@@ -11,8 +11,8 @@
 .heroPhoto { position: relative; min-width: 0; min-height: 500px; overflow: hidden; }
 .heroPhoto img { object-fit: cover; object-position: center; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.85rem 1rem; margin-top: 2rem; }
-.actions :global(.button) { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
-.section { padding: clamp(3.5rem, 6.5vw, 6rem) 0; }
+.actions :global(.button) { min-height: var(--control-height); display: inline-flex; align-items: center; justify-content: center; text-align: center; }
+.section { padding: var(--section-spacing) 0; }
 .introGrid { display: grid; grid-template-columns: 0.85fr 1.15fr; align-items: start; gap: clamp(2rem, 6vw, 6rem); }
 .intro h2 { max-width: 15ch; margin: 0; }
 .intro h2 em { display: block; }
@@ -34,21 +34,21 @@
 .buyerItem > span { color: var(--color-accent-primary); font-size: 1.1rem; }
 .buyerItem h4 { font-size: 1.4rem; margin-bottom: 0.5rem; }
 .buyerItem p { font-size: 0.95rem; margin: 0; max-width: 37ch; }
-.fees { padding: clamp(1.5rem, 3vw, 2.5rem); background: #fff; border: 1px solid var(--color-border); border-top: 3px solid var(--color-accent-primary); border-radius: 12px; }
+.fees { padding: clamp(1.5rem, 3vw, 2.5rem); background: var(--color-surface); border: 1px solid var(--color-border); border-top: 3px solid var(--color-accent-primary); border-radius: var(--radius-card); }
 .fees > h3 { font-size: 2rem; margin-bottom: 1.6rem; }
 .feeItem { padding: 1.5rem 0; border-top: 1px solid var(--color-border); }
 .feeItem h4 { font: 600 0.9rem/1.5 var(--font-body); margin-bottom: 0.7rem; }
 .feeItem p { margin-bottom: 0; font-size: 0.9rem; line-height: 1.7; }
 .feeItem .feeAmount { font: 400 clamp(1.45rem, 2vw, 1.8rem)/1.35 var(--font-heading); color: var(--color-accent-primary); margin-bottom: 0.7rem; }
 .fees .feeNotice { margin: 0; padding-top: 1.2rem; border-top: 1px solid var(--color-border); font-size: 0.875rem; line-height: 1.7; font-style: italic; }
-.trust { background: var(--purchase-dark); color: #fff; }
+.trust { background: var(--purchase-dark); color: var(--color-surface); }
 .trustHeader { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; align-items: center; margin-bottom: 2rem; }
 .trustHeader h2 { margin: 0; }
-.trustHeader h2 em { display: block; color: #b9d9ce; }
+.trustHeader h2 em { display: block; color: var(--color-mint); }
 .trustHeader > p { max-width: 29ch; margin: 0; justify-self: end; font-size: 1rem; }
-.trust p { color: #e0e9e4; }
+.trust p { color: var(--color-on-forest); }
 .trustGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem; }
-.trustItem { border-top: 1px solid #ffffff40; padding-top: 1.5rem; }
+.trustItem { border-top: 1px solid var(--color-border-inverse); padding-top: 1.5rem; }
 .trustItem h3 { font-size: 1.5rem; }
 .trustItem p { margin: 0; font-size: 0.9rem; line-height: 1.75; }
 .contact { background: var(--color-bg-muted); text-align: center; }

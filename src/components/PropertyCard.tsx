@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Property } from '@/lib/directus';
+import { directusPropertyStatus } from '@/lib/property-status';
 import styles from './PropertyCard.module.css';
 
 interface PropertyCardProps {
@@ -14,9 +15,8 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             : `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${property.featured_image}?width=600&height=400&fit=cover`)
         : null;
     // A sold/managed property must not be relabelled for sale by an optional "available" field.
-    const status = property.status === 'sold' ? 'sold'
-        : property.listing_status && property.listing_status !== 'available' ? property.listing_status
-            : property.status || property.listing_status;
+    const status = directusPropertyStatus(property);
+    const sold = status === 'sold';
     const statusLabels: Record<string, string> = {
         for_sale: 'For sale', available: 'For sale', managed: 'Managed',
         under_offer: 'Under offer', sold: 'Sold', withdrawn: 'Withdrawn',
@@ -31,7 +31,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
                 {imageUrl ? (
                     // Preserve the existing Directus asset transforms and native lazy loading.
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={imageUrl} alt={property.title} className={styles.photograph} loading="lazy" />
+                    <img src={imageUrl} alt={property.title} className={`${styles.photograph}${sold ? ' property-photo--sold' : ''}`} loading="lazy" />
                 ) : (
                     <div className={styles.placeholder}>
                         <svg viewBox="0 0 240 110" fill="none" aria-hidden="true">
@@ -41,6 +41,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
                         <span>No Image</span>
                     </div>
                 )}
+                {sold && <span className="property-sold-badge">SOLD</span>}
             </div>
             <div className={styles.content}>
                 <div className={styles.topRow}>

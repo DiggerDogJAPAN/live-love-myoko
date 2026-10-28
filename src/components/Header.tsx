@@ -19,7 +19,7 @@ export default function Header() {
                         Accommodation
                     </Link>
                     <Link href="/management" className="header__link">
-                        Property Management
+                        Management
                     </Link>
                     <Link href="/purchase-property" className="header__link">
                         Purchase Property
@@ -42,6 +42,7 @@ export default function Header() {
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         aria-label="Open menu"
                         aria-expanded={mobileMenuOpen}
+                        aria-controls="mobile-navigation"
                     >
                         <span></span>
                         <span></span>
@@ -51,7 +52,7 @@ export default function Header() {
             </div>
 
             {/* Mobile Menu */}
-            <div className={`header__mobile-menu ${mobileMenuOpen ? 'header__mobile-menu--open' : ''}`}>
+            <div id="mobile-navigation" inert={!mobileMenuOpen} className={`header__mobile-menu ${mobileMenuOpen ? 'header__mobile-menu--open' : ''}`}>
                 <button
                     className="header__mobile-close"
                     onClick={() => setMobileMenuOpen(false)}
@@ -74,7 +75,7 @@ export default function Header() {
                         className="header__mobile-link"
                         onClick={() => setMobileMenuOpen(false)}
                     >
-                        Property Management
+                        Management
                     </Link>
                     <Link
                         href="/purchase-property"

@@ -96,3 +96,17 @@ test('CMS text is escaped without rewriting titles or the existing price-display
     assert(!html.includes('<b>Original'));
     assert(text(html).includes('¥ 12,000,000 (negotiable)'));
 });
+
+test('Sold CMS photos alone are grayscale and the SOLD badge remains a separate colour element', () => {
+    for (const value of [{ ...property, status: 'sold' as const, listing_status: 'available' as const }, { ...property, listing_status: 'sold' as const }]) {
+        const html = render(value);
+        assert(html.includes('class="photograph property-photo--sold"'));
+        assert(html.includes('<span class="property-sold-badge">SOLD</span>'));
+        assert(!html.includes('class="card property-photo--sold"'));
+        assert(html.includes('>Sold</span>') && !html.includes('>For sale</span>'));
+    }
+    for (const value of [property, { ...property, listing_status: 'under_offer' as const }, { ...property, status: 'managed' as const }]) {
+        const html = render(value);
+        assert(!html.includes('property-photo--sold') && !html.includes('property-sold-badge'));
+    }
+});

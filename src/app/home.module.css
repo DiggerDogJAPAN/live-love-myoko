@@ -1,4 +1,4 @@
-.page { --home-dark: #203f38; }
+.page { --home-dark: var(--color-forest); }
 .page em { color: var(--color-accent-primary); font-weight: 400; }
 .page h2 { font-size: clamp(2rem, 3.2vw, 3.1rem); line-height: 1.17; letter-spacing: -0.025em; }
 .page a:focus-visible { outline: 3px solid var(--color-accent-secondary); outline-offset: 5px; }
@@ -11,14 +11,14 @@
 .hero h1 em { display: block; }
 .heroLead { margin: 0; max-width: 34rem; font-size: 1.05rem; line-height: 1.75; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1rem; margin-top: 2rem; }
-.actions :global(.button) { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0.65rem 1.1rem; text-align: center; }
-.section { padding: clamp(3.5rem, 6.5vw, 6rem) 0; }
+.actions :global(.button) { min-height: var(--control-height); display: inline-flex; align-items: center; justify-content: center; padding: 0.65rem 1.1rem; text-align: center; }
+.section { padding: var(--section-spacing) 0; }
 .sectionIntro { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: clamp(2rem, 6vw, 6rem); margin-bottom: 2.5rem; }
 .sectionIntro h2 { margin: 0; }
 .sectionIntro h2 em { display: block; }
 .sectionIntro > p { margin: 0; max-width: 54ch; font-size: 1rem; line-height: 1.75; }
 .servicesGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
-.serviceCard { display: flex; flex-direction: column; min-width: 0; overflow: hidden; color: var(--color-text-primary); background: #fff; border: 1px solid var(--color-border); border-radius: 12px; transition: border-color 180ms ease; }
+.serviceCard { display: flex; flex-direction: column; min-width: 0; overflow: hidden; color: var(--color-text-primary); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-card); transition: border-color var(--motion-duration) ease; }
 .serviceCard:hover { border-color: var(--color-accent-primary); text-decoration: none; }
 .servicePhoto { position: relative; aspect-ratio: 3 / 2; overflow: hidden; background: var(--color-bg-muted); }
 .servicePhoto img { object-fit: cover; }
@@ -27,26 +27,26 @@
 .serviceContent p { font-size: 0.95rem; line-height: 1.75; margin: 0 0 1.5rem; max-width: 50ch; }
 .serviceLink { display: inline-flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; padding-top: 1rem; margin-top: auto; border-top: 1px solid var(--color-border); color: var(--color-accent-primary); font-size: 0.85rem; font-weight: 600; }
 .serviceLink svg { width: 18px; height: 18px; flex: 0 0 18px; }
-.finderBand { background: #fff; border-block: 1px solid var(--color-border); }
+.finderBand { background: var(--color-surface); border-block: 1px solid var(--color-border); }
 .about { background: var(--color-bg-muted); }
 .aboutGrid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 6vw, 6rem); align-items: center; }
-.aboutPhoto { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-bg); }
+.aboutPhoto { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-bg); }
 .aboutPhoto img { object-fit: cover; object-position: center 35%; }
 .aboutCopy h2 em { display: block; }
 .aboutCopy p { font-size: 0.95rem; line-height: 1.8; }
 .aboutCopy .statement { margin: 1.7rem 0 0; padding-left: 1.25rem; border-left: 2px solid var(--color-accent-primary); color: var(--color-accent-primary); font-family: var(--font-heading); font-size: 1.2rem; line-height: 1.55; }
-.trust { background: var(--home-dark); color: #fff; }
-.trust h2 em { color: #b9d9ce; }
-.trust p { color: #e0e9e4; }
+.trust { background: var(--home-dark); color: var(--color-surface); }
+.trust h2 em { color: var(--color-mint); }
+.trust p { color: var(--color-on-forest); }
 .trustGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.5rem clamp(2rem, 6vw, 6rem); }
-.trustItem { min-width: 0; padding-top: 1.4rem; border-top: 1px solid #ffffff40; }
+.trustItem { min-width: 0; padding-top: 1.4rem; border-top: 1px solid var(--color-border-inverse); }
 .trustItem h3 { font-size: 1.5rem; line-height: 1.3; margin-bottom: 0.8rem; }
 .trustItem p { max-width: 58ch; margin: 0; font-size: 0.95rem; line-height: 1.75; }
-.trust .reinforcement { max-width: 60ch; padding-top: 2rem; margin: 3rem auto 0; border-top: 1px solid #ffffff40; font: italic 1.3rem/1.6 var(--font-heading); text-align: center; }
+.trust .reinforcement { max-width: 60ch; padding-top: 2rem; margin: 3rem auto 0; border-top: 1px solid var(--color-border-inverse); font: italic 1.3rem/1.6 var(--font-heading); text-align: center; }
 .contactGrid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(2rem, 6vw, 6rem); align-items: center; }
 .contactCopy h2 em { display: block; }
 .contactCopy > p { max-width: 49ch; font-size: 1.05rem; line-height: 1.75; margin-bottom: 0; }
-.contactPhoto { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-bg-muted); }
+.contactPhoto { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: var(--color-bg-muted); }
 .contactPhoto img { object-fit: cover; }
 
 @media (max-width: 900px) {

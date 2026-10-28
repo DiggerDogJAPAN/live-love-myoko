@@ -2,7 +2,7 @@
  * A future authenticated backend must project and authorize records before delivery.
  * Neither a browser flag nor this model is an entitlement/eligibility check.
  */
-export const finderMunicipalities = ['Myoko', 'Shinano', 'Joetsu'] as const;
+export const finderMunicipalities = ['Myoko', 'Shinano', 'Joetsu', 'Iizuna Town'] as const;
 
 export interface FinderProperty {
     title: string | null;
@@ -37,7 +37,7 @@ export function visibleThumbnail(thumbnail: FinderProperty['thumbnail'], failedS
 /** Keep stored municipality names intact; shorten only for visitors. */
 export function municipalityLabel(value: string | null): string | null {
     const name = value?.trim() || null;
-    return name === 'Shinano Town' ? 'Shinano' : name;
+    return name === 'Shinano Town' ? 'Shinano' : name === 'Iizuna Town' ? 'Iizuna' : name;
 }
 
 /** One location label for cards, filters, image descriptions and enquiries.

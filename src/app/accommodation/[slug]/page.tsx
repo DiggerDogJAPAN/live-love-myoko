@@ -1,3 +1,4 @@
+import styles from '@/styles/editorial.module.css';
 import { getAccommodations, getAccommodation } from '@/lib/directus';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -36,7 +37,7 @@ function getEmbedUrl(url: string, fallbackTitle: string) {
         if (urlObj.searchParams.has('q')) {
             return `https://www.google.com/maps?q=${urlObj.searchParams.get('q')}&z=14&output=embed`;
         }
-    } catch (e) {
+    } catch {
         // Invalid URL or unparseable, fallback below
     }
 
@@ -73,17 +74,10 @@ export default async function AccommodationPage({ params }: { params: { slug: st
         notFound();
     }
 
-    const isProd = process.env.NODE_ENV === 'production';
-    const featuredImageUrl = accommodation.featured_image
-        ? (isProd
-            ? `/images/accommodations/${slug}/featured.jpg`
-            : `${process.env.NEXT_PUBLIC_DIRECTUS_URL}/assets/${accommodation.featured_image}`)
-        : null;
-
     const jsonLd = generateAccommodationSchema(accommodation, slug);
 
     return (
-        <main>
+        <main className={styles.page}>
             {jsonLd && (
                 <script
                     type="application/ld+json"
@@ -91,14 +85,14 @@ export default async function AccommodationPage({ params }: { params: { slug: st
                 />
             )}
             <div className="layout__container section">
-                <div className="container" style={{ maxWidth: "1200px", padding: 0 }}>
+                <div className={`container ${styles.detailContainer}`}>
                     <Link href="/accommodation" className="button button--secondary u-mb-8">&larr; Back to Accommodations</Link>
 
                     {/* Header Section */}
                     <div className="u-mb-8">
                         <h1 className="u-mb-2">{accommodation.title}</h1>
                         {accommodation.price_display && (
-                            <p className="text--lead" style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            <p className={`text--lead ${styles.detailPrice}`}>
                                 &yen; {accommodation.price_display}
                             </p>
                         )}
@@ -115,7 +109,7 @@ export default async function AccommodationPage({ params }: { params: { slug: st
 
                     {/* Summary Section */}
                     {accommodation.summary && (
-                        <p className="text--lead u-mb-8" style={{ color: 'var(--color-text-primary)', fontStyle: 'italic' }}>
+                        <p className={`text--lead u-mb-8 ${styles.summary}`}>
                             {accommodation.summary}
                         </p>
                     )}
@@ -159,18 +153,18 @@ export default async function AccommodationPage({ params }: { params: { slug: st
                         <div className="u-mb-12">
                             <h3 className="u-mb-4">About this accommodation</h3>
                             <div
-                                className="section__content"
-                                style={{ color: 'var(--color-text-primary)', lineHeight: '1.8' }}
+                                className={`section__content ${styles.proseText}`}
+
                                 dangerouslySetInnerHTML={{ __html: accommodation.about }}
                             />
                         </div>
                     )}
 
                     {/* Booking Section */}
-                    <div className="u-mb-12" style={{ padding: '2rem', background: 'var(--color-bg-muted)', borderRadius: '8px' }}>
+                    <div className={`u-mb-12 ${styles.mutedPanel}`}>
                         <h3 className="u-mb-4">Book this accommodation</h3>
                         <p className="u-mb-6">Ready to secure your stay at {accommodation.title}? Click below to proceed with your booking.</p>
-                        <div className="u-flex u-gap-4" style={{ flexWrap: 'wrap' }}>
+                        <div className={`u-flex u-gap-4 ${styles.buttons}`}>
                             {accommodation.website_url && (
                                 <a
                                     href={accommodation.website_url}
@@ -205,10 +199,10 @@ export default async function AccommodationPage({ params }: { params: { slug: st
                                         title={`Map showing location of ${accommodation.title}`}
                                     ></iframe>
                                 </div>
-                                <a 
-                                    href={embedUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
+                                <a
+                                    href={embedUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="embed-map__link"
                                 >
                                     View on Google Maps &rarr;
@@ -220,13 +214,13 @@ export default async function AccommodationPage({ params }: { params: { slug: st
             </div>
 
             {/* Final CTA */}
-            <section className="section section--muted" style={{ borderTop: '1px solid var(--color-border)' }}>
+            <section className={`section section--muted ${styles.divider}`}>
                 <div className="layout__container">
                     <div className="u-text-center">
                         <div className="stack stack--lg">
                             <h2>Have questions?</h2>
-                            <p className="text--lead" style={{ maxWidth: "700px", margin: "0 auto" }}>
-                                We're here to help you plan the perfect trip. Reach out to us for more information.
+                            <p className={`text--lead ${styles.ctaCopy}`}>
+                                We&apos;re here to help you plan the perfect trip. Reach out to us for more information.
                             </p>
                             <div className="u-mt-8">
                                 <a
