@@ -409,15 +409,15 @@ test('Joetsu district labels, Japanese fallback, price/type filters and sorting 
     assert.equal(searchProperties(properties, { ...initialFilters })[0].askingPriceJpy, 100);
 });
 
-test('Conditions render as exact escaped Japanese before enquiry, with linked attribution and placeholder', () => {
-    const property = customerProperty(joetsu)!;
+test('Non-Joetsu conditions render as exact escaped Japanese before enquiry, with linked attribution and placeholder', () => {
+    const property = customerProperty({ ...row, purchase_conditions_ja: joetsu.purchase_conditions_ja })!;
     const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
     assert(html.includes('Important Property Conditions'));
     assert(html.includes('Source disclosure (Japanese)'));
     assert(html.includes(`lang="ja"`));
     assert(html.includes(joetsu.purchase_conditions_ja!));
     assert(html.indexOf('Important Property Conditions') < html.indexOf('Ask Us for Help'));
-    assert(html.includes(`href="${joetsu.original_pdf_url}" target="_blank" rel="noopener noreferrer">Joetsu City Akiya Bank</a>`));
+    assert(html.includes(`href="${property.originalListingUrl}" target="_blank" rel="noopener noreferrer">Myoko Akiya Bank</a>`));
     assert(html.includes('Property image unavailable'));
     assert(!html.includes('<img'));
     assert(!html.includes('psychological'));
@@ -454,4 +454,39 @@ test('Joetsu images use exact source URL validation and retain missing/failed pl
         assert.equal(customerProperty({...joetsu,thumbnail_url})!.thumbnail,null);
     }
     assert(renderToStaticMarkup(createElement(PropertyFinderCard,{property:{...property,thumbnail:null}})).includes('Property image unavailable'));
+});
+
+
+test('Joetsu cards omit disclosure sections while preserving approved photos, source links and enquiry data', () => {
+    const src = 'https://joetsu-akiyabank.jp/wp-content/uploads/2026/10/exterior.jpg';
+    const property = customerProperty({ ...joetsu, thumbnail_url: src })!;
+    const before = JSON.stringify(property);
+    const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+    assert(html.includes(`src="${src}"`));
+    assert(!html.includes('Important Property Conditions'));
+    assert(!html.includes('Source disclosure (Japanese)'));
+    assert(!html.includes('lang="ja"'));
+    assert(!html.includes(joetsu.purchase_conditions_ja!));
+    assert(html.includes(`href="${joetsu.original_pdf_url}"`));
+    assert(html.includes('Ask Us for Help'));
+    assert(html.includes('Source:'));
+    assert.equal(JSON.stringify(property), before);
+    assert.equal(property.purchaseConditionsJa, joetsu.purchase_conditions_ja);
+    assert(new URL(enquiryMailto(property)).searchParams.get('body')!.includes(joetsu.purchase_conditions_ja!));
+    const placeholder = renderToStaticMarkup(createElement(PropertyFinderCard, { property: { ...property, thumbnail: null } }));
+    assert(placeholder.includes('Property image unavailable'));
+    assert(!placeholder.includes('Important Property Conditions'));
+    assert.equal(visibleThumbnail(property.thumbnail, src), null);
+});
+
+test('Myoko and Shinano retain their Japanese condition presentation and existing image behaviour', () => {
+    for (const input of [row, shinano]) {
+        const property = customerProperty({ ...input, purchase_conditions_ja: joetsu.purchase_conditions_ja })!;
+        const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property }));
+        assert(html.includes('Important Property Conditions'));
+        assert(html.includes('Source disclosure (Japanese)'));
+        assert(html.includes(joetsu.purchase_conditions_ja!));
+        if (property.thumbnail) assert(html.includes(`src="${property.thumbnail.src}"`));
+        if (input === shinano) assert(html.includes('Programme conditions'));
+    }
 });

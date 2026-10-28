@@ -38,7 +38,7 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
                     Enquiries and viewings are subject to the original programme’s eligibility and registration requirements. Investment or commercial use is not assured.{' '}
                     <a href="https://www.town.shinano.lg.jp/docs/369.html" target="_blank" rel="noopener noreferrer">Programme conditions ↗</a>
                 </p>}
-                {property.purchaseConditionsJa?.trim() && <section className={styles.conditions} aria-label="Important Property Conditions">
+                {property.sourceName !== 'Joetsu City Akiya Bank' && property.purchaseConditionsJa?.trim() && <section className={styles.conditions} aria-label="Important Property Conditions">
                     <h4>Important Property Conditions</h4>
                     <p className={styles.conditionsLabel}>Source disclosure (Japanese)</p>
                     <p lang="ja" className={styles.conditionsText}>{property.purchaseConditionsJa}</p>
