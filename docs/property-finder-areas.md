@@ -15,7 +15,7 @@ The third source region, Myoko (妙高), remains supported for future eligible l
 
 ## Finder presentation
 
-`propertyArea`, `propertyTitle` and `propertyLocation` in the Finder model share one regional rule. Cards, area-filter options, filter matching, titles, photograph alt labels and enquiry text use the same broad labels. The API exposes `area` as the visitor-facing label and retains `neighbourhood`, `areaJa` and region metadata separately. Keyword matching still recognizes original English/Japanese neighbourhoods, while area dropdowns present only Arai and Myoko Kogen for the current inventory.
+`propertyArea`, `propertyTitle` and `propertyLocation` in the Finder model share one regional rule. Area-filter options and filter matching use the broad labels. Cards, titles, photograph alt labels and enquiry text append the retained English neighbourhood, for example `Arai (Hakusancho)` or `Myoko Kogen (Taguchi)`. Missing, invalid, unreviewed or duplicate neighbourhood names leave only the main area; Japanese originals are unchanged. The API exposes `area` as the visitor-facing label and retains `neighbourhood`, `areaJa` and region metadata separately. Keyword matching still recognizes original English/Japanese neighbourhoods, while area dropdowns present only Arai and Myoko Kogen for the current inventory.
 
 Finder has no separate local property-detail route: its original-listing action opens the source PDF. Those links and source pages are unchanged. The shared Finder title/location formatters apply to any Finder detail presentation that uses them; unrelated CMS property pages are intentionally untouched.
 

@@ -51,14 +51,25 @@ export function propertyArea(property: FinderProperty): string | null {
     return sourceArea(property) || property.neighbourhood || property.area;
 }
 
+/** Display-only label. Filters continue to use the unadorned propertyArea. */
+export function propertyDisplayArea(property: FinderProperty): string | null {
+    const area = propertyArea(property);
+    const neighbourhood = typeof property.neighbourhood === 'string' ? property.neighbourhood.trim() : '';
+    if (!area || property.locationNeedsReview || !neighbourhood
+        || !/^\p{Script=Latin}[\p{Script=Latin}\p{M}0-9 .’'-]*$/u.test(neighbourhood)
+        || /^(unknown|undefined|null|n[/.]?a|not (provided|available))$/i.test(neighbourhood)
+        || neighbourhood.toLowerCase() === area.trim().toLowerCase()) return area;
+    return `${area} (${neighbourhood})`;
+}
+
 export function propertyTitle(property: FinderProperty): string {
     const area = sourceArea(property);
-    if (area) return `Property in ${area}`;
+    if (area) return `Property in ${propertyDisplayArea(property)}`;
     return property.title || [propertyArea(property), property.municipality].filter(Boolean).join(', ') || 'Property listing';
 }
 
 export function propertyLocation(property: FinderProperty): string {
-    return [propertyArea(property), property.municipality].filter(Boolean).join(' / ');
+    return [propertyDisplayArea(property), property.municipality].filter(Boolean).join(' / ');
 }
 
 export function formatPrice(price: number | null): string {

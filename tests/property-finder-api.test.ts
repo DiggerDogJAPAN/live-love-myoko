@@ -4,7 +4,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyG
 import { authenticateAdministrator, FinderHttpError } from '../server/property-finder/access';
 import { handleFinderRequest, type FinderEnv } from '../server/property-finder/api';
 import { customerProperty, databaseConfiguration, databaseClientConfiguration, type CustomerViewRow } from '../server/property-finder/database';
-import { enquiryMailto, visibleThumbnail, propertyArea, propertyLocation, propertyTitle } from '../src/lib/property-finder/model';
+import { enquiryMailto, visibleThumbnail, propertyArea, propertyDisplayArea, propertyLocation, propertyTitle } from '../src/lib/property-finder/model';
 import { initialFilters, searchProperties } from '../src/lib/property-finder/search';
 
 // Synthetic signing keys/rows only. No live credentials, DB calls or stored inventory.
@@ -190,17 +190,18 @@ function regionalProperty(ja: string, en: string, region_en: string, region_ja: 
         thumbnail_url: `https://www.city.myoko.niigata.jp/fs/offline-test/region-${id}.jpg` })!;
 }
 
-test('All 16 neighbourhoods use their verified source region in visible Finder labels', () => {
+test('All 16 neighbourhoods append English names while keeping their broad filter areas', () => {
     for (const [ja, en, region, regionJa] of reviewedAreas) {
         const property = regionalProperty(ja, en, region, regionJa);
         assert.equal(property.area, region);
         assert.equal(propertyArea(property), region);
-        assert.equal(propertyLocation(property), `${region} / Myoko`);
-        assert.equal(propertyTitle(property), `Property in ${region}`);
-        assert.equal(property.thumbnail!.alt, `Property in ${region}`);
+        assert.equal(propertyDisplayArea(property), `${region} (${en})`);
+        assert.equal(propertyLocation(property), `${region} (${en}) / Myoko`);
+        assert.equal(propertyTitle(property), `Property in ${region} (${en})`);
+        assert.equal(property.thumbnail!.alt, `Property in ${region} (${en})`);
         assert.equal(property.neighbourhood, en);
         assert.equal(property.areaJa, ja);
-        assert(!new URL(enquiryMailto(property)).searchParams.get('body')!.includes(`Area: ${en} /`));
+        assert(new URL(enquiryMailto(property)).searchParams.get('body')!.includes(`Area: ${region} (${en}) / Myoko`));
     }
 });
 
@@ -233,4 +234,21 @@ test('Outside Arai, missing metadata and conflicting regions are not guessed as 
     assert.equal(propertyArea(conflict), 'Sekigawa');
     const other = { ...missing, municipality: 'Joetsu', regionEn: 'Arai', regionJa: '新井' };
     assert.equal(propertyArea(other), 'Hakusancho');
+});
+
+
+test('Display neighbourhoods omit duplicate, missing, unreviewed and invalid English values', () => {
+    const property = regionalProperty('白山町', 'Hakusancho', 'Arai', '新井');
+    for (const neighbourhood of [undefined, null, '', '   ', 'Arai', ' arai ', '白山町',
+        'Unknown', 'N/A', 'null', '<Hakusancho>', 'Hakusancho (Arai)', 42]) {
+        const invalid = { ...property, neighbourhood } as typeof property;
+        assert.equal(propertyDisplayArea(invalid), 'Arai');
+        assert.equal(propertyLocation(invalid), 'Arai / Myoko');
+        assert.equal(propertyTitle(invalid), 'Property in Arai');
+        assert.equal(propertyArea(invalid), 'Arai');
+    }
+    assert.equal(propertyDisplayArea({ ...property, locationNeedsReview: true }), 'Arai');
+    assert.equal(propertyDisplayArea({ ...property, neighbourhood: ' Hakusancho ' }), 'Arai (Hakusancho)');
+    assert.equal(property.neighbourhood, 'Hakusancho');
+    assert.equal(property.areaJa, '白山町');
 });
