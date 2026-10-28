@@ -8,7 +8,7 @@ import { authenticateAdministrator, FinderHttpError } from '../server/property-f
 import { handleFinderRequest, type FinderEnv } from '../server/property-finder/api';
 import { customerProperty, databaseConfiguration, databaseClientConfiguration, type CustomerViewRow } from '../server/property-finder/database';
 import { enquiryMailto, finderMunicipalities, visibleThumbnail, propertyArea, propertyDisplayArea, propertyLocation, propertyTitle } from '../src/lib/property-finder/model';
-import { initialFilters, searchProperties } from '../src/lib/property-finder/search';
+import { initialFilters, locationOptions, searchProperties } from '../src/lib/property-finder/search';
 
 // Synthetic signing keys/rows only. No live credentials, DB calls or stored inventory.
 const env: FinderEnv = {
@@ -176,7 +176,7 @@ test('English card/filter names retain Japanese references and unknown-name revi
 
 
 const reviewedAreas = [
-    ['石塚町', 'Ishizukacho', 'Arai', '新井', 4],
+    ['石塚町', 'Ishizukacho', 'Arai', '新井', 3],
     ['経塚町', 'Kyozukacho', 'Arai', '新井', 1],
     ['白山町', 'Hakusancho', 'Arai', '新井', 2],
     ['小出雲', 'Oizumo', 'Arai', '新井', 1],
@@ -201,12 +201,13 @@ function regionalProperty(ja: string, en: string, region_en: string, region_ja: 
         thumbnail_url: `https://www.city.myoko.niigata.jp/fs/offline-test/region-${id}.jpg` })!;
 }
 
-test('All Myoko neighbourhoods use municipality and locality consistently', () => {
+test('All reviewed Myoko neighbourhoods retain regional labels and stable municipality filter values', () => {
     for (const [ja, en, region, regionJa] of reviewedAreas) {
         const property = regionalProperty(ja, en, region, regionJa);
-        const label = `Myoko (${en})`;
+        const label = `${region} (${en})`;
         assert.equal(property.area, en);
-        assert.equal(propertyArea(property), label);
+        assert.equal(property.municipality, 'Myoko');
+        assert.equal(propertyArea(property), `Myoko (${en})`);
         assert.equal(propertyDisplayArea(property), label);
         assert.equal(propertyLocation(property), label);
         assert.equal(propertyTitle(property), `Property in ${label}`);
@@ -343,9 +344,11 @@ test('Rendered live directory offers Myoko/Shinano municipalities and consistent
     const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, {
         mode: 'live', properties: [regionalProperty('田口', 'Taguchi', 'Myoko Kogen', '妙高高原'), customerProperty(shinano)!],
     }));
-    for (const label of ['Myoko', 'Shinano', 'Joetsu', 'Myoko (Taguchi)', 'Shinano (Nojiri)', 'Pension/Lodge']) {
+    for (const label of ['Myoko', 'Shinano', 'Joetsu', 'Pension/Lodge']) {
         assert(html.includes(`<option>${label}</option>`));
     }
+    assert(html.includes('<option value="Myoko (Taguchi)">Myoko Kogen (Taguchi)</option>'));
+    assert(html.includes('<option value="Shinano (Nojiri)">Shinano (Nojiri)</option>'));
     assert(!html.includes('<option>Shinano Town</option>'));
     assert(html.includes('id="finder-min"'));
     assert(html.includes('id="finder-max"'));
@@ -624,4 +627,54 @@ test('Iizuna Town filter uses verified English neighbourhoods while titles, orig
     assert.deepEqual(filtered.map(property => property.askingPriceJpy), [5000000, 4000000, 3000000, 2000000]);
     const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, { properties, mode: 'live' }));
     assert(html.includes('<option>Iizuna Town</option>') && html.includes('<option>Myoko</option>') && html.includes('<option>Shinano</option>') && html.includes('<option>Joetsu</option>'));
+});
+
+test('Entire Myoko location dropdown restores all 16 reviewed neighbourhood labels and preserves every selection value', () => {
+    const properties = reviewedAreas.flatMap(([ja, en, region, regionJa, count]) => Array.from({ length: count }, (_, index) => regionalProperty(ja, en, region, regionJa, index + 1)));
+    assert.equal(properties.length, 19);
+    assert.equal(properties.filter(p => propertyLocation(p).startsWith('Arai (')).length, 16);
+    assert.equal(properties.filter(p => propertyLocation(p).startsWith('Myoko Kogen (')).length, 3);
+    const options = locationOptions(properties, 'Myoko');
+    assert.equal(options.length, reviewedAreas.length);
+    const html = renderToStaticMarkup(createElement(PropertyFinderDirectory, { properties, mode: 'live' }));
+    for (const [ja, en, region, , count] of reviewedAreas) {
+        const value = `Myoko (${en})`, label = `${region} (${en})`;
+        assert(options.some(option => option.value === value && option.label === label));
+        assert(html.includes(`<option value="${value}">${label}</option>`));
+        const rows = searchProperties(properties, { ...initialFilters, municipality: 'Myoko', area: value });
+        assert.equal(rows.length, count);
+        assert(rows.every(p => p.neighbourhood === en && p.areaJa === ja && p.municipality === 'Myoko'));
+        assert.equal(searchProperties(properties, { ...initialFilters, area: label }).length, count);
+        assert.equal(searchProperties(properties, { ...initialFilters, keyword: label }).length, count);
+        const card = renderToStaticMarkup(createElement(PropertyFinderCard, { property: rows[0] }));
+        assert(card.includes(`${region} · ${en}`) && card.includes(`Property in ${label}`));
+        assert(card.includes(`src="${rows[0].thumbnail!.src}"`));
+        assert(new URL(enquiryMailto(rows[0])).searchParams.get('body')!.includes(`Area: ${label}`));
+    }
+});
+
+test('Myoko display areas require source regional evidence and preserve the separate Myoko region and unknown/conflicting fallbacks', () => {
+    const property = regionalProperty('白山町', 'Hakusancho', 'Arai', '新井');
+    assert.equal(propertyLocation({ ...property, regionEn: null }), 'Arai (Hakusancho)');
+    assert.equal(propertyLocation({ ...property, regionJa: null }), 'Arai (Hakusancho)');
+    assert.equal(propertyLocation({ ...property, regionEn: ' Arai ', regionJa: ' 新井 ' }), 'Arai (Hakusancho)');
+    assert.equal(propertyLocation({ ...property, municipality: 'Myoko City' }), 'Arai (Hakusancho)');
+    assert.equal(propertyLocation({ ...property, regionEn: 'Myoko', regionJa: '妙高' }), 'Myoko (Hakusancho)');
+    for (const patch of [{ regionEn: null, regionJa: null }, { regionEn: 'Unreviewed', regionJa: '未確認' }, { regionEn: 'Arai', regionJa: '妙高高原' }]) {
+        assert.equal(propertyLocation({ ...property, ...patch }), 'Myoko (Hakusancho)');
+    }
+    assert.equal(propertyLocation({ ...property, sourceName: 'Another agency' }), 'Myoko (Hakusancho)');
+    assert.equal(propertyLocation({ ...property, municipality: 'Joetsu' }), 'Joetsu (Hakusancho)');
+    assert.equal(propertyLocation({ ...property, neighbourhood: null, area: null }), 'Arai');
+    assert.equal(propertyLocation({ ...property, neighbourhood: 'Arai' }), 'Arai');
+    assert.equal(propertyLocation(regionalProperty('関山', 'Sekiyama', 'Myoko', '妙高')), 'Myoko (Sekiyama)');
+});
+
+test('Other municipalities keep their complete location labels and values when the municipality dropdown is selected', () => {
+    const properties = [regionalProperty('関川', 'Sekigawa', 'Myoko Kogen', '妙高高原'), customerProperty(shinano)!, customerProperty(joetsu)!, customerProperty(iizuna)!];
+    for (const [municipality, label] of [['Shinano', 'Shinano (Nojiri)'], ['Joetsu', 'Joetsu (Takada)'], ['Iizuna Town', 'Iizuna (Kurai)']]) {
+        assert.deepEqual(locationOptions(properties, municipality), [{ value: label, label }]);
+        assert.equal(searchProperties(properties, { ...initialFilters, municipality, area: label }).length, 1);
+    }
+    assert.deepEqual(locationOptions(properties, 'Myoko'), [{ value: 'Myoko (Sekigawa)', label: 'Myoko Kogen (Sekigawa)' }]);
 });

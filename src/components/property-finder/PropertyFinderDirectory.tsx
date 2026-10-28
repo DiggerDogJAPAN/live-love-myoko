@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { finderMunicipalities, municipalityLabel, propertyArea, type FinderProperty } from '@/lib/property-finder/model';
-import { hasListingDates, initialFilters, priceError, searchProperties, type FinderFilters } from '@/lib/property-finder/search';
+import { finderMunicipalities, municipalityLabel, type FinderProperty } from '@/lib/property-finder/model';
+import { hasListingDates, initialFilters, locationOptions, priceError, searchProperties, type FinderFilters } from '@/lib/property-finder/search';
 import PropertyFinderCard from './PropertyFinderCard';
 import styles from './finder.module.css';
 
@@ -24,7 +24,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
     const error = priceError(filters);
     const results = searchProperties(properties, filters);
     const municipalities = mode === 'live' ? finderMunicipalities : [...new Set(properties.map((p) => municipalityLabel(p.municipality)).filter((value): value is string => Boolean(value)))].sort();
-    const areas = [...new Set(properties.filter((p) => !filters.municipality || municipalityLabel(p.municipality) === filters.municipality).map(propertyArea).filter((value): value is string => Boolean(value)))].sort();
+    const areas = locationOptions(properties, filters.municipality);
     const types = [...new Set(properties.map((p) => p.propertyType).filter((value): value is NonNullable<FinderProperty['propertyType']> => Boolean(value)))].sort();
     const activeCount = [filters.keyword, filters.municipality, filters.area, filters.minPrice, filters.maxPrice, filters.propertyType].filter(Boolean).length;
 
@@ -66,7 +66,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
                         </label>
                         <label htmlFor="finder-area"><span>Location</span>
                             <select id="finder-area" value={filters.area} onChange={(event) => update({ area: event.target.value })}>
-                                <option value="">All locations</option>{areas.map((value) => <option key={value}>{value}</option>)}
+                                <option value="">All locations</option>{areas.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                             </select>
                         </label>
                         <label htmlFor="finder-min"><span>Min price (¥)</span>

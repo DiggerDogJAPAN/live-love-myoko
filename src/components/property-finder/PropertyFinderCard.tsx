@@ -2,18 +2,15 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { enquiryMailto, formatPrice, originalListingUrl, municipalityLabel, propertyLocation, propertyTitle, visibleThumbnail, type FinderProperty } from '@/lib/property-finder/model';
+import { enquiryMailto, formatPrice, originalListingUrl, propertyLocation, propertyTitle, visibleThumbnail, type FinderProperty } from '@/lib/property-finder/model';
 import styles from './finder.module.css';
 
 export default function PropertyFinderCard({ property }: { property: FinderProperty }) {
     const original = originalListingUrl(property);
     const title = propertyTitle(property);
     const location = propertyLocation(property);
-    const municipality = municipalityLabel(property.municipality);
     // Derive the compact eyebrow from the same validated label used by titles/filters.
-    const locationEyebrow = municipality && location.startsWith(`${municipality} (`)
-        ? `${municipality} · ${location.slice(municipality.length + 2, -1)}`
-        : location || 'Location not provided';
+    const locationEyebrow = location.replace(/ \(([^()]*)\)$/, ' · $1') || 'Location not provided';
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
     const thumbnail = visibleThumbnail(property.thumbnail, failedSrc);
     return (

@@ -40,27 +40,45 @@ export function municipalityLabel(value: string | null): string | null {
     return name === 'Shinano Town' ? 'Shinano' : name === 'Iizuna Town' ? 'Iizuna' : name;
 }
 
-/** One location label for cards, filters, image descriptions and enquiries.
- * District tags never override the actual locality, including Japanese fallbacks.
- */
-export function propertyLocation(property: FinderProperty): string {
-    const municipality = municipalityLabel(property.municipality);
+// Restore the reviewed Myoko-bank grouping from commit 784d763. Other sources'
+// district tags are deliberately not interpreted as display-area prefixes.
+const MYOKO_SOURCE_AREAS = new Map([
+    ['Arai', 'Arai'], ['新井', 'Arai'],
+    ['Myoko Kogen', 'Myoko Kogen'], ['妙高高原', 'Myoko Kogen'],
+    ['Myoko', 'Myoko'], ['妙高', 'Myoko'],
+]);
+
+function sourceDisplayArea(property: FinderProperty): string | null {
+    if (property.sourceName !== 'Myoko Akiya Bank' || !['Myoko', 'Myoko City'].includes(property.municipality || '')) return null;
+    const english = MYOKO_SOURCE_AREAS.get(property.regionEn?.trim() || '');
+    const japanese = MYOKO_SOURCE_AREAS.get(property.regionJa?.trim() || '');
+    if (english && japanese && english !== japanese) return null;
+    return english || japanese || null;
+}
+
+function locationLabel(property: FinderProperty, area: string | null): string {
     const value = property.neighbourhood ?? (property.locationNeedsReview ? property.areaJa : property.area);
     const neighbourhood = typeof value === 'string' ? value.trim() : '';
     const valid = neighbourhood && !/^(unknown|undefined|null|n[/.]?a|not (provided|available))$/i.test(neighbourhood)
         && !/[<>()[\]{}]/.test(neighbourhood);
-    if (!valid) return municipality || '';
-    if (!municipality) return neighbourhood;
-    if ([municipality, property.municipality].some(name => name?.trim().toLowerCase() === neighbourhood.toLowerCase())) return municipality;
-    return `${municipality} (${neighbourhood})`;
+    if (!valid) return area || '';
+    if (!area) return neighbourhood;
+    if ([area, property.municipality].some(name => name?.trim().toLowerCase() === neighbourhood.toLowerCase())) return area;
+    return `${area} (${neighbourhood})`;
 }
 
+/** Display area for cards, titles, image descriptions and enquiries. */
+export function propertyLocation(property: FinderProperty): string {
+    return locationLabel(property, sourceDisplayArea(property) || municipalityLabel(property.municipality));
+}
+
+/** Stable filter value: changing a geographic label never changes stored selections. */
 export function propertyArea(property: FinderProperty): string | null {
-    return propertyLocation(property) || null;
+    return locationLabel(property, municipalityLabel(property.municipality)) || null;
 }
 
 export function propertyDisplayArea(property: FinderProperty): string | null {
-    return propertyArea(property);
+    return propertyLocation(property) || null;
 }
 
 export function propertyTitle(property: FinderProperty): string {
