@@ -1,0 +1,9 @@
+# Copy to .dev.vars (Git-ignored). Values must come from your own Access app/DB.
+FINDER_ACCESS_TEAM_DOMAIN=""
+FINDER_ACCESS_AUD=""
+FINDER_ADMIN_EMAILS=""
+FINDER_DATABASE_PROJECT_REF=""
+FINDER_DATABASE_URL=""
+
+# Local workerd preview only: absolute path to the existing trusted DB CA PEM.
+FINDER_LOCAL_CA_FILE=""

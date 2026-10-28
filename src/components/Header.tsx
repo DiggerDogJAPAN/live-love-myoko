@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import styles from './Header.module.css';
 
 export default function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     return (
-        <header className="header">
+        <header className={`header ${styles.header}`}>
             <div className="layout__container header__inner">
                 <div className="header__logo">
                     <Link href="/">LoveLiveMyoko</Link>
@@ -25,6 +26,9 @@ export default function Header() {
                     </Link>
                     <Link href="/properties" className="header__link">
                         Properties
+                    </Link>
+                    <Link href="/property-finder" className={`header__link ${styles.finder}`}>
+                        Property Finder
                     </Link>
                 </nav>
 
@@ -85,6 +89,13 @@ export default function Header() {
                         onClick={() => setMobileMenuOpen(false)}
                     >
                         Properties
+                    </Link>
+                    <Link
+                        href="/property-finder"
+                        className={`header__mobile-link ${styles.finder}`}
+                        onClick={() => setMobileMenuOpen(false)}
+                    >
+                        Property Finder
                     </Link>
                 </nav>
 

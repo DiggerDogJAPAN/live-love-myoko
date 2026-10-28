@@ -1,0 +1,14 @@
+/* Keep all five navigation items clear of the brand and Contact button. */
+.header :global(.header__nav) { position: static; transform: none; gap: 1.3rem; align-items: center; }
+.finder { color: var(--color-accent-primary); background: #e6eee8; border: 1px solid #c7d7cc; border-radius: 30px; padding: 0.45rem 0.9rem; white-space: nowrap; }
+.finder::after { display: none; }
+.finder:hover { background: #dbe7df; text-decoration: none; }
+.header a:focus-visible { outline: 3px solid var(--color-accent-secondary); outline-offset: 4px; }
+@media (max-width: 1200px) {
+    .header :global(.header__nav) { display: none; }
+    .header :global(.header__actions) :global(.header__cta) { display: none; }
+    .header :global(.header__hamburger) { display: flex; }
+    .header :global(.header__mobile-menu) { display: flex; flex-direction: column; height: 100dvh; overflow-y: auto; }
+    .header :global(.header__mobile-nav) { gap: 0.3rem; }
+    .header :global(.header__mobile-cta) { padding-top: 1.5rem; }
+}

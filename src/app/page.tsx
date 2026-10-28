@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PropertyFinderFeature from "@/components/property-finder/PropertyFinderFeature";
 
 export default function Home() {
   return (
@@ -75,6 +76,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      <PropertyFinderFeature />
       {/* About Section */}
       <section className="section about">
         <div className="container">

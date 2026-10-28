@@ -52,3 +52,32 @@ the rules from `public/_redirects`.
 After deployment, verify both old URLs return HTTP `301` with
 `Location: /management` and that following each redirect reaches the combined
 Management page. Live redirect verification remains pending deployment.
+
+## Property Finder
+
+- [Production deployment checklist](docs/property-finder-deployment-checklist.md):
+  GitHub → Pages, production secrets, Hyperdrive and Access confirmations required
+  before pushing.
+
+- Landing page: `/property-finder/`.
+- `npm run dev` serves the labelled synthetic directory at
+  `/property-finder/search/` until live access is configured.
+- Production exports an access-checking shell with no inventory. The same-origin
+  Cloudflare Pages API verifies Access JWTs and an admin allowlist before using
+  the dedicated PostgreSQL reader against the restricted customer view.
+- The dedicated reader is provisioned and its connection is stored in private
+  `.dev.vars`. Real listings still require a verified Access administrator session.
+  The crawler's administrator credentials are never used by the website.
+- This database requires its existing Supabase CA. Use `npm run finder:dev:trusted`
+  after a build: the launcher configures Wrangler's local Hyperdrive emulator with
+  verified TLS and the CA without writing credentials to configuration or logs.
+  Production uses the configured hosted Hyperdrive binding.
+- Run `npm run finder:check` for the focused synthetic API/security checks.
+- [Setup guide](docs/property-finder-phase-2.md): exact Access dashboard steps,
+  runtime bindings, database provisioning and local/live preview instructions.
+  The reader was provisioned on 28 October 2026. The SQL in
+  `sql/provision-property-finder-reader.sql` is retained for reference; do not rerun
+  it against the existing reader.
+
+Existing Properties listings and Management services remain separate. Stripe,
+registration and paid subscription access are not implemented in this phase.
