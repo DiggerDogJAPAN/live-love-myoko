@@ -104,9 +104,9 @@ and **verify-full** origin verification, and supply its `FINDER_HYPERDRIVE` bind
 The API supports this binding and verifies the dedicated database session identity.
 `wrangler.jsonc` now binds `FINDER_HYPERDRIVE` to `myoko-property-finder`
 (`d2e1e9cc5947483f8747b8e84ccaf57b`) on the existing `livelove` Pages project.
-All five required Production settings are present: four plaintext values match
-local configuration and the database URI is an encrypted secret whose value cannot
-be read back. Hyperdrive's origin credentials were updated from private `.dev.vars`
+All five required Production settings are encrypted runtime secrets. The four
+original plaintext values were compared with local configuration before encryption;
+encrypted values cannot be read back. Hyperdrive's origin credentials were updated from private `.dev.vars`
 with the owner's authorization and the saved reader username/project suffix were
 verified. The same credentials can read the eligible view while internal-table
 reads, writes, privileged role changes and RLS bypass are denied. The existing CA,
@@ -159,7 +159,8 @@ No Supabase anon/service-role API key is needed. Keep unrelated Directus binding
 `wrangler.jsonc` enables `nodejs_compat`, defines `out` as the static assets folder,
 and names the verified existing `livelove` Pages project. Runtime secrets are not
 included in this configuration file. GitHub → Pages remains the deployment path;
-commit the freshly built export because the existing Pages build command is blank.
+commit the freshly built export. The Pages build command is `npm ci` to install
+the Function dependencies before compilation; it does not rebuild the Next.js site.
 
 ## 4. Local preview and later deployment
 

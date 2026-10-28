@@ -24,9 +24,11 @@ Confirm/report these non-secret settings:
 - Build root: **repository root** (blank/default or `/`), containing `package.json`
   and the sibling `functions/` directory.
 - Build output directory: **out**.
-- Current **build command: blank**. The existing workflow publishes the committed
-  static export and compiles root `functions/`; do not replace this with a new build
-  adapter or runtime.
+- Current **build command: `npm ci`**. This installs the Function dependencies
+  (`pg` and `jose`) before Pages compiles root `functions/`. The first deployment
+  with a blank command skipped installation and failed to resolve those modules.
+  Pages still publishes the committed static `out/` export; no new adapter or
+  runtime is required.
 
 The repository already tracks generated `out/` assets. If the established Pages
 build publishes that tracked export, preserve that method and include a freshly
@@ -44,9 +46,9 @@ already confirms this route is generated.
 
 ## 2. Production runtime variables/secrets
 
-The latest read-only inspection confirms **all five settings below are present in
-Production**. The four plaintext settings match local `.dev.vars`; the database
-URI is stored as an encrypted secret, so its value cannot be read back or compared.
+Inspection confirms **all five settings below are present in Production as
+encrypted secrets**. The four original plaintext values were compared with local
+`.dev.vars` before encryption. Encrypted values cannot be read back or compared.
 In **Workers & Pages → livelove → Settings → Variables and Secrets → Production**,
 keep these settings. Copy any corrections privately from `.dev.vars`; do not post
 their values in chat or commit the file.
@@ -59,7 +61,8 @@ their values in chat or commit the file.
 | `FINDER_DATABASE_PROJECT_REF` | Dedicated Myoko Property Finder project reference |
 | `FINDER_DATABASE_URL` | Provisioned restricted reader URI from local `.dev.vars` |
 
-Encrypt the values, especially the database URI. Keep existing unrelated website
+Keep these as encrypted runtime secrets rather than `vars` in Wrangler source.
+The Wrangler file controls ordinary variable bindings during deployment. Keep existing unrelated website
 bindings. Do not set `NODE_ENV=development` or use `NEXT_PUBLIC_*` for credentials.
 `FINDER_LOCAL_CA_FILE` is local-only and must not be copied as a hosted file path.
 
