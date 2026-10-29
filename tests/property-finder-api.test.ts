@@ -313,13 +313,13 @@ test('Location uses Japanese for unknown readings and ignores district tags; dup
     assert.equal(reviewedLocality.locationNeedsReview, true);
     const unknown = customerProperty({ ...shinano, location_en: null, location_needs_review: false })!;
     assert.equal(unknown.locationNeedsReview, true);
-    assert.equal(propertyLocation(unknown), 'Shinano (野尻)');
+    assert.equal(propertyLocation(unknown), 'Shinano (Nojiri)');
     for (const location_en of [null, '', 'Shinano', 'Shinano Town', 'Unknown', '<Nojiri>']) {
         const property = customerProperty({ ...shinano, location_en, location_ja: null })!;
         assert.equal(propertyArea(property), 'Shinano');
     }
     assert.equal(propertyLocation(customerProperty({ ...shinano, location_en: ' Furumi ' })!), 'Shinano (Furumi)');
-    assert.equal(propertyLocation(regionalProperty('関川', 'Sekigawa', 'Arai', '妙高高原')), 'Myoko (Sekigawa)');
+    assert.equal(propertyLocation(regionalProperty('関川', 'Sekigawa', 'Arai', '妙高高原')), 'Myoko Kogen (Sekigawa)');
 });
 
 
@@ -653,17 +653,17 @@ test('Entire Myoko location dropdown restores all 16 reviewed neighbourhood labe
     }
 });
 
-test('Myoko display areas require source regional evidence and preserve the separate Myoko region and unknown/conflicting fallbacks', () => {
+test('Verified Myoko locality geography is source-independent, while the separate Myoko region and unknown fallbacks remain supported', () => {
     const property = regionalProperty('白山町', 'Hakusancho', 'Arai', '新井');
     assert.equal(propertyLocation({ ...property, regionEn: null }), 'Arai (Hakusancho)');
     assert.equal(propertyLocation({ ...property, regionJa: null }), 'Arai (Hakusancho)');
     assert.equal(propertyLocation({ ...property, regionEn: ' Arai ', regionJa: ' 新井 ' }), 'Arai (Hakusancho)');
     assert.equal(propertyLocation({ ...property, municipality: 'Myoko City' }), 'Arai (Hakusancho)');
-    assert.equal(propertyLocation({ ...property, regionEn: 'Myoko', regionJa: '妙高' }), 'Myoko (Hakusancho)');
+    assert.equal(propertyLocation({ ...property, regionEn: 'Myoko', regionJa: '妙高' }), 'Arai (Hakusancho)');
     for (const patch of [{ regionEn: null, regionJa: null }, { regionEn: 'Unreviewed', regionJa: '未確認' }, { regionEn: 'Arai', regionJa: '妙高高原' }]) {
-        assert.equal(propertyLocation({ ...property, ...patch }), 'Myoko (Hakusancho)');
+        assert.equal(propertyLocation({ ...property, ...patch }), 'Arai (Hakusancho)');
     }
-    assert.equal(propertyLocation({ ...property, sourceName: 'Another agency' }), 'Myoko (Hakusancho)');
+    assert.equal(propertyLocation({ ...property, sourceName: 'Another agency' }), 'Arai (Hakusancho)');
     assert.equal(propertyLocation({ ...property, municipality: 'Joetsu' }), 'Joetsu (Hakusancho)');
     assert.equal(propertyLocation({ ...property, neighbourhood: null, area: null }), 'Arai');
     assert.equal(propertyLocation({ ...property, neighbourhood: 'Arai' }), 'Arai');
@@ -769,12 +769,12 @@ test('Municipal and portal Myoko locations share every previously reviewed area 
             assert.equal(propertyArea(property), `Myoko (${en})`);
             assert.equal(searchProperties([property], { ...initialFilters, area: `Myoko (${en})`, municipality: 'Myoko' }).length, 1);
             assert.equal(searchProperties([property], { ...initialFilters, area: `${area} (${en})` }).length, 1);
-            assert.equal(propertyLocation({ ...property, neighbourhood: ja }), `${area} (${ja})`);
+            assert.equal(propertyLocation({ ...property, neighbourhood: ja }), `${area} (${en})`);
         }
     }
     const unknown = customerProperty({ ...suumoRow, location_en: null, location_ja: '未確認地区', location_needs_review: true })!;
     assert.equal(propertyLocation(unknown), 'Myoko (未確認地区)');
     assert.equal(unknown.locationNeedsReview, true);
     assert.equal(propertyLocation({ ...customerProperty(suumoRow)!, areaJa: '中央町' }), 'Myoko (Suginosawa)');
-    assert.equal(propertyLocation({ ...customerProperty(suumoRow)!, regionEn: 'Arai', regionJa: '新井' }), 'Myoko (Suginosawa)');
+    assert.equal(propertyLocation({ ...customerProperty(suumoRow)!, regionEn: 'Arai', regionJa: '新井' }), 'Myoko Kogen (Suginosawa)');
 });

@@ -2,6 +2,7 @@
  * A future authenticated backend must project and authorize records before delivery.
  * Neither a browser flag nor this model is an entitlement/eligibility check.
  */
+import { locationMunicipality, normalizedNeighbourhood, reviewedLocation } from './locations';
 export const finderMunicipalities = ['Myoko', 'Shinano', 'Joetsu', 'Iizuna Town'] as const;
 
 export interface FinderProperty {
@@ -36,51 +37,37 @@ export function visibleThumbnail(thumbnail: FinderProperty['thumbnail'], failedS
 
 /** Keep stored municipality names intact; shorten only for visitors. */
 export function municipalityLabel(value: string | null): string | null {
-    const name = value?.trim() || null;
-    return name === 'Shinano Town' ? 'Shinano' : name === 'Iizuna Town' ? 'Iizuna' : name;
+    return locationMunicipality(value);
 }
 
-// Restore the reviewed Myoko-bank grouping from commit 784d763. Other sources'
-// district tags are deliberately not interpreted as display-area prefixes.
+// Explicit municipal-bank regions are a fallback for unreviewed localities.
+// Known neighbourhood geography is shared across sources in locations.ts.
 const MYOKO_SOURCE_AREAS = new Map([
     ['Arai', 'Arai'], ['新井', 'Arai'],
     ['Myoko Kogen', 'Myoko Kogen'], ['妙高高原', 'Myoko Kogen'],
     ['Myoko', 'Myoko'], ['妙高', 'Myoko'],
 ]);
 
-// Exact municipal-bank neighbourhood classifications reviewed in
-// docs/property-finder-areas.md. Reuse them for approved portals with no regions;
-// never translate or assign a district to an unreviewed neighbourhood.
-const REVIEWED_MYOKO_NEIGHBOURHOODS = [
-    ['Ishizukacho', '石塚町', 'Arai'], ['Kyozukacho', '経塚町', 'Arai'],
-    ['Hakusancho', '白山町', 'Arai'], ['Oizumo', '小出雲', 'Arai'],
-    ['Hidanomori', '美守', 'Arai'], ['Kurihara', '栗原', 'Arai'],
-    ['Gakkocho', '学校町', 'Arai'], ['Kamibaba', '上馬場', 'Arai'],
-    ['Kagomachi', '籠町', 'Arai'], ['Asahicho', '朝日町', 'Arai'],
-    ['Chuocho', '中央町', 'Arai'], ['Yukimori', '雪森', 'Arai'],
-    ['Tsukioka', '月岡', 'Arai'], ['Sekigawa', '関川', 'Myoko Kogen'],
-    ['Suginosawa', '杉野沢', 'Myoko Kogen'], ['Taguchi', '田口', 'Myoko Kogen'],
-];
-
 function sourceDisplayArea(property: FinderProperty): string | null {
-    if (!['Myoko', 'Myoko City'].includes(property.municipality || '')) return null;
+    if (municipalityLabel(property.municipality) !== 'Myoko') return null;
+    const value = neighbourhoodValue(property);
+    const locality = reviewedLocation(property.municipality, value);
+    const japanese = reviewedLocation(property.municipality, property.areaJa);
+    // Contradictory locality names are not evidence for assigning an area.
+    if (locality && japanese && locality.name !== japanese.name) return null;
+    // Verified geography is the same across sources, independent of district tags.
+    if (locality?.area) return locality.area;
     const english = MYOKO_SOURCE_AREAS.get(property.regionEn?.trim() || '');
-    const japanese = MYOKO_SOURCE_AREAS.get(property.regionJa?.trim() || '');
-    if (english && japanese && english !== japanese) return null;
-    if (property.sourceName === 'Myoko Akiya Bank') return english || japanese || null;
-    if (!['SUUMO', 'Rakusumu'].includes(property.sourceName)) return null;
-    const neighbourhood = property.neighbourhood?.trim();
-    const en = REVIEWED_MYOKO_NEIGHBOURHOODS.find(row => row[0] === neighbourhood);
-    const ja = REVIEWED_MYOKO_NEIGHBOURHOODS.find(row => row[1] === property.areaJa?.trim() || row[1] === neighbourhood);
-    if (en && ja && en !== ja) return null;
-    const reviewed = (en || ja)?.[2] || null;
-    if ((english || japanese) && (english || japanese) !== reviewed) return null;
-    return reviewed;
+    const regionalJapanese = MYOKO_SOURCE_AREAS.get(property.regionJa?.trim() || '');
+    if (english && regionalJapanese && english !== regionalJapanese) return null;
+    return property.sourceName === 'Myoko Akiya Bank' ? english || regionalJapanese || null : null;
 }
 
+function neighbourhoodValue(property: FinderProperty): string {
+    return (property.neighbourhood ?? (property.locationNeedsReview ? property.areaJa : property.area))?.trim() || '';
+}
 function locationLabel(property: FinderProperty, area: string | null): string {
-    const value = property.neighbourhood ?? (property.locationNeedsReview ? property.areaJa : property.area);
-    const neighbourhood = typeof value === 'string' ? value.trim() : '';
+    const neighbourhood = normalizedNeighbourhood(property.municipality, neighbourhoodValue(property));
     const valid = neighbourhood && !/^(unknown|undefined|null|n[/.]?a|not (provided|available))$/i.test(neighbourhood)
         && !/[<>()[\]{}]/.test(neighbourhood);
     if (!valid) return area || '';
@@ -94,13 +81,28 @@ export function propertyLocation(property: FinderProperty): string {
     return locationLabel(property, sourceDisplayArea(property) || municipalityLabel(property.municipality));
 }
 
-/** Stable filter value: changing a geographic label never changes stored selections. */
+/** Canonical municipality/locality filter key; existing English keys stay stable. */
 export function propertyArea(property: FinderProperty): string | null {
     return locationLabel(property, municipalityLabel(property.municipality)) || null;
 }
 
 export function propertyDisplayArea(property: FinderProperty): string | null {
     return propertyLocation(property) || null;
+}
+
+/** Also search verified Japanese names when a source only supplied English. */
+export function propertyJapaneseNeighbourhood(property: FinderProperty): string | null {
+    return reviewedLocation(property.municipality, neighbourhoodValue(property))?.japanese || null;
+}
+
+/** Canonical and legacy Japanese/display-area selections match the same records. */
+export function propertyMatchesArea(property: FinderProperty, selection: string): boolean {
+    if (propertyArea(property) === selection || propertyDisplayArea(property) === selection) return true;
+    const selected = /^([^()]+) \(([^()]+)\)$/.exec(selection.trim());
+    if (!selected) return false;
+    const prefix = selected[1].trim();
+    if (municipalityLabel(prefix) !== municipalityLabel(property.municipality) && prefix !== sourceDisplayArea(property)) return false;
+    return normalizedNeighbourhood(property.municipality, selected[2]) === normalizedNeighbourhood(property.municipality, neighbourhoodValue(property));
 }
 
 export function propertyTitle(property: FinderProperty): string {

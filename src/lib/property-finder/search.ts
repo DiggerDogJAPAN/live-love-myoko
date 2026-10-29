@@ -1,4 +1,4 @@
-import { municipalityLabel, propertyArea, propertyDisplayArea, type FinderProperty } from './model';
+import { municipalityLabel, propertyArea, propertyDisplayArea, propertyJapaneseNeighbourhood, propertyMatchesArea, type FinderProperty } from './model';
 
 export interface FinderFilters {
     keyword: string;
@@ -14,7 +14,7 @@ export const initialFilters: FinderFilters = {
     keyword: '', municipality: '', area: '', minPrice: '', maxPrice: '', propertyType: '', sort: 'price-asc',
 };
 
-/** Labels can evolve independently of the existing municipality/locality filter keys. */
+/** One canonical locality key is shared by Japanese/English records from all sources. */
 export function locationOptions(properties: readonly FinderProperty[], municipality = ''): { value: string; label: string }[] {
     const options = new Map<string, string>();
     for (const property of properties) {
@@ -52,10 +52,10 @@ export function searchProperties(properties: readonly FinderProperty[], filters:
     if (priceError(filters)) return [];
     const terms = filters.keyword.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
     const results = properties.filter((property) => {
-        const text = [property.title, property.municipality, propertyArea(property), propertyDisplayArea(property), property.neighbourhood, property.areaJa, property.regionJa, property.regionEn, property.propertyType, property.sourceName].filter(Boolean).join(' ').toLocaleLowerCase();
+        const text = [property.title, property.municipality, propertyArea(property), propertyDisplayArea(property), propertyJapaneseNeighbourhood(property), property.neighbourhood, property.areaJa, property.regionJa, property.regionEn, property.propertyType, property.sourceName].filter(Boolean).join(' ').toLocaleLowerCase();
         return terms.every((term) => text.includes(term))
             && (!filters.municipality || municipalityLabel(property.municipality) === municipalityLabel(filters.municipality))
-            && (!filters.area || propertyArea(property) === filters.area || propertyDisplayArea(property) === filters.area)
+            && (!filters.area || propertyMatchesArea(property, filters.area))
             && (!filters.propertyType || property.propertyType === filters.propertyType)
             && (filters.minPrice === '' || (property.askingPriceJpy !== null && property.askingPriceJpy >= Number(filters.minPrice)))
             && (filters.maxPrice === '' || (property.askingPriceJpy !== null && property.askingPriceJpy <= Number(filters.maxPrice)));
