@@ -25,6 +25,9 @@ export function announceSignout() {
 export function authMessage(code: string): string {
     const messages: Record<string, string> = {
         authentication_not_configured: 'Account sign-in is being prepared. Please try again later.',
+        authentication_failed: 'The account service could not complete this request. Please try again later or contact us for help.',
+        authentication_unavailable: 'The account service is temporarily unavailable. Please try again later or contact us for help.',
+        same_origin_required: 'Please open https://love-live-myoko.com and try again.',
         email_confirmation_not_configured: 'Registration is being prepared. Please try again later.',
         invalid_credentials: 'Check your email and password, and make sure your email address has been verified.',
         invalid_email: 'Enter a valid email address.', invalid_password: 'Use a password between 12 and 128 characters.',

@@ -46,7 +46,7 @@ function harness(reply?: (call: Call) => Response | Promise<Response>, record = 
         transport: async (input, init) => {
             const call = { url: new URL(String(input)), method: init?.method || 'GET', headers: new Headers(init?.headers), body: init?.body ? JSON.parse(String(init.body)) : null };
             calls.push(call); assert.equal(call.url.origin, `https://${env.FINDER_DATABASE_PROJECT_REF}.supabase.co`);
-            assert.equal(call.headers.get('apikey'), env.FINDER_SUPABASE_PUBLISHABLE_KEY); assert.equal(init?.redirect, 'error'); assert.equal(init?.cache, 'no-store');
+            assert.equal(call.headers.get('apikey'), env.FINDER_SUPABASE_PUBLISHABLE_KEY); assert.equal(init?.redirect, 'manual'); assert.equal(init?.cache, 'no-store');
             if (reply) return reply(call);
             if (call.url.pathname.endsWith('/settings')) return Response.json({ mailer_autoconfirm: false, external: { google: true } });
             if (call.url.pathname.endsWith('/user')) return Response.json(providerUser());
@@ -292,6 +292,77 @@ test('Email operations mask account existence and throttle errors survive withou
     }
     const h = harness(() => Response.json({ message: 'private provider body' }, { status: 429 }));
     const response = await handleAuthRequest(req('recover', { email: 'customer@example.com' }), env, h.dependencies); assert.equal(response.status, 429); assert.deepEqual(await response.json(), { code: 'too_many_attempts' });
+});
+
+test('Registration diagnostics distinguish key/settings failures from signup failures without reflecting provider details', async t => {
+    const logs: string[] = [];
+    t.mock.method(console, 'warn', (value: string) => { logs.push(value); });
+    const providerRequestId = '12345678-1234-1234-1234-123456789abc';
+    for (const failureAt of ['settings', 'signup']) {
+        logs.length = 0;
+        const h = harness(call => call.url.pathname.endsWith('/settings') && failureAt === 'signup'
+            ? Response.json({ mailer_autoconfirm: false })
+            : Response.json({ code: 'unexpected_failure', message: 'PRIVATE SMTP diagnostic customer@example.com password=private-password' },
+                { status: failureAt === 'settings' ? 401 : 500, headers: { 'sb-request-id': providerRequestId } }));
+        const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'private-password' }, '',
+            { 'X-Request-ID': 'attacker-controlled@example.com' }), env, h.dependencies);
+        assert.equal(response.status, failureAt === 'settings' ? 400 : 503);
+        assert.deepEqual(await response.json(), { code: 'authentication_failed' });
+        assert.match(response.headers.get('X-Request-ID')!, /^[a-f0-9-]{36}$/);
+        assert.equal(logs.length, 1, 'a provider failure is logged once, including when propagated');
+        const event = JSON.parse(logs[0]);
+        assert.equal(event.stage, 'provider_' + failureAt); assert.equal(event.action, 'register');
+        assert.equal(event.providerStatus, failureAt === 'settings' ? 401 : 500);
+        assert.equal(event.providerCode, 'unexpected_failure'); assert.equal(event.providerRequestId, providerRequestId);
+        assert.equal(event.requestId, response.headers.get('X-Request-ID'));
+        assert(!/PRIVATE|customer@|private-password|attacker-controlled|sb_publishable_|test-only-cookie/.test(logs.join('')));
+        if (failureAt === 'settings') assert.equal(h.calls.length, 1, 'settings/key failure never reaches signup');
+    }
+});
+
+test('Provider timeouts, network failures and malformed responses have safe distinct diagnostics', async t => {
+    const logs: string[] = [];
+    t.mock.method(console, 'warn', (value: string) => { logs.push(value); });
+    for (const kind of ['timeout', 'network', 'invalid_response']) {
+        logs.length = 0;
+        const h = harness(() => {
+            if (kind === 'timeout') throw new DOMException('PRIVATE timeout with password=private-password', 'TimeoutError');
+            if (kind === 'network') throw new TypeError('PRIVATE network https://secret@example.com/path');
+            return new Response('PRIVATE not JSON', { status: 200 });
+        });
+        const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
+        assert.equal(response.status, 503); assert.deepEqual(await response.json(), { code: 'authentication_unavailable' });
+        assert.equal(logs.length, 1); const event = JSON.parse(logs[0]);
+        assert.equal(event.failure, kind); assert.equal(event.stage, 'provider_settings');
+        assert(!/PRIVATE|secret@|private-password|customer@/.test(logs.join('')));
+    }
+});
+
+test('Masked signup rejections are logged safely and unrecognized provider fields cannot inject log content', async t => {
+    const logs: string[] = [];
+    t.mock.method(console, 'warn', (value: string) => { logs.push(value); });
+    const h = harness(call => call.url.pathname.endsWith('/settings') ? Response.json({ mailer_autoconfirm: false })
+        : Response.json({ code: 'PRIVATE customer@example.com', error: 'PRIVATE SMTP password' },
+            { status: 400, headers: { 'sb-request-id': 'PRIVATE customer@example.com', 'x-sb-error-code': 'PRIVATE token' } }));
+    const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
+    assert.equal(response.status, 200); assert.match((await response.json()).message, /If this address/);
+    const event = JSON.parse(logs[0]); assert.equal(event.stage, 'provider_signup'); assert.equal(event.providerStatus, 400);
+    assert.equal(event.providerCode, undefined); assert.equal(event.providerRequestId, undefined);
+    assert(!/PRIVATE|customer@|private-password/.test(logs.join('')));
+});
+
+test('Provider redirects fail closed without following a Location or proceeding to signup', async t => {
+    const logs: string[] = [];
+    t.mock.method(console, 'warn', (value: string) => { logs.push(value); });
+    for (const status of [301, 302, 303, 307, 308]) for (const stage of ['settings', 'signup']) {
+        const h = harness(call => stage === 'signup' && call.url.pathname.endsWith('/settings') ? Response.json({ mailer_autoconfirm: false })
+            : new Response(null, { status, headers: { Location: 'https://attacker.example/collect?secret=PRIVATE' } }));
+        const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
+        assert.equal(response.status, 503); assert.deepEqual(await response.json(), { code: 'authentication_unavailable' });
+        assert.equal(h.calls.length, stage === 'settings' ? 1 : 2); assert.equal(response.headers.get('Location'), null);
+        const event = JSON.parse(logs.at(-1)!); assert.equal(event.failure, 'redirect'); assert.equal(event.providerStatus, status);
+        assert(!/attacker|PRIVATE|customer@|private-password/.test(logs.join('')));
+    }
 });
 
 test('Static routing includes public Auth Functions and the browser never stores tokens or constructs privileged clients', () => {

@@ -937,19 +937,20 @@ a:hover {
 }
 
 .footer__content {
-  padding-top: 4rem;
-  padding-bottom: 3rem;
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-lg);
 }
 
 .footer__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 2.5rem;
+  gap: var(--space-lg);
 }
 
 .footer__section {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .footer__section--company,
@@ -963,11 +964,6 @@ a:hover {
 
 .footer__section--info {
   justify-content: flex-start;
-}
-
-.footer__section--contact {
-  justify-content: flex-start;
-  align-items: flex-start;
 }
 
 .footer__brand {
@@ -994,13 +990,14 @@ a:hover {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-primary);
-  margin: 0 0 1rem;
+  line-height: 1.5;
+  margin: 0 0 var(--space-sm);
 }
 
 .footer__nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
+  gap: calc(var(--space-md) / 2);
 }
 
 .footer__link {
@@ -1011,16 +1008,19 @@ a:hover {
   transition: color var(--motion-duration) ease;
   display: flex;
   align-items: center;
-  min-height: var(--control-height);
+  min-height: var(--space-md);
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
-.footer__link:hover {
+.footer__link:hover,
+.footer__link:focus-visible {
   color: var(--color-accent-primary);
   text-decoration: underline;
 }
 
 .footer__link--email {
+  margin-top: var(--space-sm);
   font-size: 0.95rem;
   color: var(--color-text-primary);
 }
@@ -1050,35 +1050,20 @@ a:hover {
 @media (max-width: 992px) {
   .footer__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2.5rem;
+  }
+
+  .footer__link {
+    min-height: var(--space-lg);
   }
 }
 
 @media (max-width: 600px) {
   .footer__grid {
     grid-template-columns: minmax(0, 1fr);
-    gap: 2rem;
-  }
-
-  .footer__section--contact {
-    align-items: flex-start;
-    text-align: left;
   }
 
   .footer__description {
     max-width: 100%;
-  }
-
-  .footer__nav {
-    gap: var(--space-2xs);
-  }
-
-  .footer__link {
-    padding: 0.25rem 0;
-    min-height: var(--control-height);
-    display: flex;
-    align-items: center;
-    overflow-wrap: anywhere;
   }
 }
 

@@ -4,7 +4,7 @@ import { before, test } from 'node:test';
 import { createElement, type ComponentType } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-import { authRequest, fetchAccount, refreshSession } from '../src/lib/auth/client';
+import { authMessage, authRequest, fetchAccount, refreshSession } from '../src/lib/auth/client';
 import type { AuthMode } from '../src/components/auth/AuthForm';
 
 let Form: ComponentType<{ mode: AuthMode }>, Pricing: ComponentType, Dashboard: ComponentType;
@@ -65,4 +65,11 @@ test('Expired browser sessions refresh once, then reload authoritative account d
 test('Invalid or disabled account responses never become an authenticated dashboard', async t => {
     t.mock.method(globalThis, 'fetch', async () => Response.json({ user: { email: 'spoofed@example.com' }, role: 'administrator' }));
     await assert.rejects(fetchAccount(), /authentication_unavailable/);
+});
+
+test('Provider outages and origin errors give safe actionable messages without provider internals', () => {
+    assert.match(authMessage('authentication_failed'), /account service.*contact us/i);
+    assert.match(authMessage('authentication_unavailable'), /temporarily unavailable/i);
+    assert.match(authMessage('same_origin_required'), /https:\/\/love-live-myoko\.com/);
+    assert(!authMessage('PRIVATE provider details').includes('PRIVATE'));
 });
