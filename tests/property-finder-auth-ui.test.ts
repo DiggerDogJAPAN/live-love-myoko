@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { authMessage, authRequest, fetchAccount, refreshSession } from '../src/lib/auth/client';
 import type { AuthMode } from '../src/components/auth/AuthForm';
+import { registrationFullName } from '../src/lib/auth/validation';
 
 let Form: ComponentType<{ mode: AuthMode }>, Pricing: ComponentType, Dashboard: ComponentType;
 before(async () => {
@@ -27,7 +28,7 @@ test('Auth forms have associated labels, correct password autofill, verification
         assert(html.includes('href="/membership"')); assert(html.includes('href="/verify-email"'));
     }
     assert(form('login').includes('autoComplete="current-password"'));
-    for (const mode of ['register', 'reset'] as const) { assert(form(mode).includes('autoComplete="new-password"')); assert(form(mode).includes('minLength="12"')); assert(form(mode).includes('Confirm password')); }
+    for (const mode of ['register', 'reset'] as const) { assert(form(mode).includes('autoComplete="new-password"')); assert(form(mode).includes('minLength="8"')); assert(form(mode).includes('Confirm password')); }
     assert(form('verify').includes('autoComplete="one-time-code"')); assert(form('verify').includes('Resend verification email'));
     assert(!form('login').includes('Continue with Google'), 'unconfigured Google provider is hidden');
 });
@@ -38,6 +39,29 @@ test('Pricing communicates both real planned prices without granting access or p
     assert(!/<form|checkout|fake-payment|role=administrator/.test(html));
     assert(renderToStaticMarkup(createElement(Dashboard)).includes('Checking your account'));
     assert(!renderToStaticMarkup(createElement(Dashboard)).includes('customer@example.com'));
+});
+
+test('The registration form requires Full Name and uses whitespace-safe shared validation', () => {
+    const html = form('register');
+    assert(html.includes('Full Name<input id="auth-name"'));
+    const input = html.match(/<input id="auth-name"[^>]*>/)![0];
+    assert(input.includes('required=""')); assert(input.includes('autoComplete="name"')); assert(input.includes('maxLength="80"'));
+    assert(!html.includes('optional'));
+    for (const value of ['', '   ', '\t\u3000', null, undefined, 4, 'X'.repeat(81)]) assert.equal(registrationFullName(value), null);
+    for (const value of [' Jane Smith ', ' 山田 太郎 ', ' X ']) assert.equal(registrationFullName(value), value.trim());
+});
+
+test('New password guidance is exact, with consistent minimums and an invisible technical maximum', () => {
+    for (const mode of ['register', 'reset'] as const) {
+        const html = form(mode);
+        assert.match(html, /id="password-policy">Must be 8 characters or more\.<\/p>/);
+        assert(html.includes('minLength="8"')); assert(html.includes('maxLength="128"'));
+        const visible = html.replace(/<[^>]*>/g, '');
+        assert(!/128|maximum|12 characters/.test(visible));
+    }
+    assert(form('login').includes('minLength="1"'));
+    assert.equal(authMessage('invalid_password'), 'Must be 8 characters or more.');
+    assert(!/128|maximum/.test(authMessage('password_too_long')));
 });
 
 test('Browser auth requests use same-origin cookies with no-store and never return session tokens to application state', async t => {

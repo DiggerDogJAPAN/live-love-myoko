@@ -4,18 +4,22 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createRequire } from 'node:module';
 import { before, test } from 'node:test';
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyGetKey } from 'jose';
-import { authenticateAdministrator, FinderHttpError } from '../server/property-finder/access';
+import { FinderHttpError } from '../server/property-finder/errors';
+import { verifySupabaseIdentity } from '../server/property-finder/customer-auth';
+import type { MembershipSnapshot } from '../server/property-finder/membership';
 import { handleFinderRequest, type FinderEnv } from '../server/property-finder/api';
 import { customerProperty, databaseConfiguration, databaseClientConfiguration, type CustomerViewRow } from '../server/property-finder/database';
 import { enquiryMailto, finderMunicipalities, visibleThumbnail, propertyArea, propertyDisplayArea, propertyLocation, propertyTitle } from '../src/lib/property-finder/model';
 import { initialFilters, locationOptions, searchProperties } from '../src/lib/property-finder/search';
 
 // Synthetic signing keys/rows only. No live credentials, DB calls or stored inventory.
-const env: FinderEnv = {
-    FINDER_ACCESS_TEAM_DOMAIN: 'https://test-team.cloudflareaccess.com',
-    FINDER_ACCESS_AUD: 'test-application-audience',
-    FINDER_ADMIN_EMAILS: 'admin@example.com',
-};
+const env: FinderEnv = { FINDER_AUTH_ENABLED: 'enabled', FINDER_CUSTOMER_ACCESS: 'disabled', FINDER_DATABASE_PROJECT_REF: 'abcdefghijklmnopqrst' };
+const user = '00000000-0000-4000-8000-000000000001';
+const session = '00000000-0000-4000-8000-000000000002';
+const adminSnapshot = (): MembershipSnapshot => ({ schemaVersion: 2, userId: user, sessionId: session,
+    role: 'administrator', accountActive: true, sessionActive: true, sessionValidUntil: null,
+    subscriptionActive: false, tier: null, status: 'inactive', paymentStatus: 'unpaid',
+    accessStartsAt: null, paidThrough: null, revokedAt: null });
 let PropertyFinderCard: typeof import('../src/components/property-finder/PropertyFinderCard').default;
 let PropertyFinderDirectory: typeof import('../src/components/property-finder/PropertyFinderDirectory').default;
 let privateKey: CryptoKey;
@@ -32,13 +36,14 @@ before(async () => {
 });
 async function token(overrides: Record<string, unknown> = {}, key = privateKey) {
     const now = Math.floor(Date.now() / 1000);
-    return new SignJWT({ iss: env.FINDER_ACCESS_TEAM_DOMAIN, aud: env.FINDER_ACCESS_AUD,
-        sub: 'synthetic-admin', email: 'admin@example.com', type: 'app', iat: now, exp: now + 600, ...overrides,
+    return new SignJWT({ iss: `https://${env.FINDER_DATABASE_PROJECT_REF}.supabase.co/auth/v1`, aud: 'authenticated',
+        sub: user, session_id: session, role: 'authenticated', is_anonymous: false, iat: now, exp: now + 600, ...overrides,
     }).setProtectedHeader({ alg: 'RS256', kid: 'test-key' }).sign(key);
 }
 function request(jwt?: string, path = '/properties') {
-    return new Request(`https://website.example/api/property-finder${path}`, { headers: jwt ? { 'Cf-Access-Jwt-Assertion': jwt } : {} });
+    return new Request(`https://website.example/api/property-finder${path}`, { headers: jwt ? { Authorization: 'Bearer ' + jwt } : {} });
 }
+const verifyIdentity = (req: Request, settings: FinderEnv) => verifySupabaseIdentity(req, settings, keys);
 const row: CustomerViewRow = {
     municipality: 'Myoko', property_type: null, transaction_type: null, purchase_conditions_ja: null,
     title: 'Property in Test Area', asking_price_jpy: '12500000',
@@ -49,47 +54,41 @@ const row: CustomerViewRow = {
     thumbnail_url: null, location_needs_review: false, region_en: null, region_ja: null,
 };
 
-test('Access validates signature, issuer, audience, expiry, identity and admin entitlement', async () => {
-    const authorize = (jwt: string) => authenticateAdministrator(request(jwt), env, keys);
-    assert.equal((await authorize(await token())).email, 'admin@example.com');
-    for (const patch of [{ iss: 'https://wrong.cloudflareaccess.com' }, { aud: 'wrong-app' }, { aud: 'search-page-application-audience' },
-        { exp: 1 }, { exp: undefined }, { nbf: Math.floor(Date.now() / 1000) + 600 }, { type: 'service' }, { sub: '' }]) {
-        await assert.rejects(authorize(await token(patch)), (error) => error instanceof FinderHttpError && error.status === 401);
+test('Supabase verification validates signature, issuer, audience, expiry and signed user/session identity', async () => {
+    const verify = (jwt: string) => verifySupabaseIdentity(request(jwt), env, keys);
+    assert.equal((await verify(await token())).userId, user);
+    for (const patch of [{ iss: 'https://wrong.supabase.co/auth/v1' }, { aud: 'wrong-app' },
+        { exp: 1 }, { exp: undefined }, { nbf: Math.floor(Date.now() / 1000) + 600 }, { role: 'service_role' }, { sub: '' }, { session_id: undefined }]) {
+        await assert.rejects(verify(await token(patch)), error => error instanceof FinderHttpError && error.status === 401);
     }
     const stranger = await generateKeyPair('RS256');
-    await assert.rejects(authorize(await token({}, stranger.privateKey)), (error) => error instanceof FinderHttpError && error.status === 401);
-    await assert.rejects(authorize(await token({ email: 'not-an-admin@example.com' })), (error) => error instanceof FinderHttpError && error.status === 403);
-    await assert.rejects(authenticateAdministrator(request(await token()), {}, keys));
-    await assert.rejects(authenticateAdministrator(new Request(request().url, { headers: { 'Cf-Access-Authenticated-User-Email': 'admin@example.com' } }), env, keys));
+    await assert.rejects(verify(await token({}, stranger.privateKey)), error => error instanceof FinderHttpError && error.status === 401);
+    await assert.rejects(verifySupabaseIdentity(new Request(request().url, { headers: { 'Cf-Access-Authenticated-User-Email': 'admin@example.com' } }), env, keys));
 });
 
-test('Unauthorized/missing configuration never reaches database; no cross-origin read', async () => {
-    let reads = 0;
-    const dependencies = { authenticate: (req: Request, settings: FinderEnv) => authenticateAdministrator(req, settings, keys), load: async () => { reads++; return []; } };
+test('Unauthorized, unpaid and missing configuration never reach properties; cross-origin reads are denied', async () => {
+    let reads = 0; let record = adminSnapshot();
+    const dependencies = { verifyIdentity, loadMembership: async () => record, load: async () => { reads++; return []; } };
     assert.equal((await handleFinderRequest(request(), env, dependencies)).status, 401);
     assert.equal((await handleFinderRequest(request('forged'), env, dependencies)).status, 401);
-    assert.equal((await handleFinderRequest(request(await token({ email: 'other@example.com' })), env, dependencies)).status, 403);
+    record = { ...adminSnapshot(), role: 'customer' };
+    assert.equal((await handleFinderRequest(request(await token()), env, dependencies)).status, 403);
     assert.equal((await handleFinderRequest(request(await token()), {}, dependencies)).status, 503);
     const cross = new Request(request().url, { headers: { Origin: 'https://other.example' } });
     const response = await handleFinderRequest(cross, env, dependencies);
-    assert.equal(response.status, 403);
-    assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
-    assert.equal(reads, 0);
+    assert.equal(response.status, 403); assert.equal(response.headers.get('Access-Control-Allow-Origin'), null); assert.equal(reads, 0);
 });
 
-test('Authorized API projects eligible rows, derives counts, is private and signs in safely', async () => {
+test('A private Supabase administrator receives eligible rows without a subscription and obsolete Access login is removed', async () => {
     const property = customerProperty(row)!;
-    const dependencies = { authenticate: (req: Request, settings: FinderEnv) => authenticateAdministrator(req, settings, keys), load: async () => [property] };
+    const dependencies = { verifyIdentity, loadMembership: async () => adminSnapshot(), load: async () => [property] };
     const jwt = await token();
     const response = await handleFinderRequest(request(jwt), env, dependencies);
-    assert.equal(response.status, 200);
-    assert.match(response.headers.get('Cache-Control')!, /no-store/);
+    assert.equal(response.status, 200); assert.match(response.headers.get('Cache-Control')!, /no-store/);
     assert.equal(response.headers.get('Cloudflare-CDN-Cache-Control'), 'no-store');
     assert.deepEqual(await response.json(), { properties: [property], count: 1, municipalities: finderMunicipalities });
-    const loginRequest = new Request(request(jwt, '/login?return=https://attacker.example'), { headers: { 'Cf-Access-Jwt-Assertion': jwt, 'Sec-Fetch-Site': 'cross-site' } });
-    const login = await handleFinderRequest(loginRequest, env, dependencies);
-    assert.equal(login.status, 303);
-    assert.equal(login.headers.get('Location'), 'https://love-live-myoko.com/property-finder/search/');
+    const login = await handleFinderRequest(request(jwt, '/login?return=https://attacker.example'), env, dependencies);
+    assert.equal(login.status, 404); assert.equal(login.headers.get('Location'), null);
     const failed = await handleFinderRequest(request(jwt), env, { ...dependencies, load: async () => { throw new Error('private postgres://password'); } });
     assert.equal(await failed.text(), '{"code":"directory_unavailable"}');
 });
@@ -437,7 +436,7 @@ test('Non-Joetsu conditions render as exact escaped Japanese before enquiry, wit
 
 test('API and empty live directory advertise all four municipalities including Iizuna Town', async () => {
     const response = await handleFinderRequest(request(await token()), env, {
-        authenticate: (req, settings) => authenticateAdministrator(req, settings, keys), load: async () => [],
+        verifyIdentity, loadMembership: async () => adminSnapshot(), load: async () => [],
     });
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { properties: [], count: 0, municipalities: ['Myoko', 'Shinano', 'Joetsu', 'Iizuna Town'] });

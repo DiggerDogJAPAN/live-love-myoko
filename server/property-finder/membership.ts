@@ -1,4 +1,4 @@
-import { FinderHttpError } from './access';
+import { FinderHttpError } from './errors';
 import type { CustomerIdentity } from './customer-auth';
 
 export type MembershipTier = 'basic' | 'premium';

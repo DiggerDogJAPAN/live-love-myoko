@@ -1,5 +1,7 @@
 # Private Property Finder deployment — dashboard confirmation
 
+> Current implementation/preparation: see [Supabase-only cutover](property-finder-supabase-cutover.md). Access-dependent code, login routes and required bindings described below are historical; the replacement no longer trusts them. Keep the existing dashboard gate and rollback secrets until the staged verification/removal sequence is approved and completed.
+
 **Deployment workflow stays GitHub → Cloudflare Pages automatic builds.**
 No Wrangler deployment, direct upload, new Pages project, domain change, SSR,
 Next.js API route or Node.js hosting service is required. `output: 'export'`

@@ -1,5 +1,7 @@
 # Property Finder authentication — Phase 2
 
+> Current implementation/preparation: see [Supabase-only cutover](property-finder-supabase-cutover.md). Access-dependent code, login routes and required bindings described below are historical; the replacement no longer trusts them. Keep the existing dashboard gate and rollback secrets until the staged verification/removal sequence is approved and completed.
+
 Status: application implementation remains local/uncommitted and is not deployed. The separately approved revised database migrations 001 and 002 were applied on 29 October 2026 at 17:22 JST; see [the production receipt](property-finder-membership-migration-results.md). The owner subsequently completed Supabase email/SMTP/redirect/session configuration. This deployment preparation changes no production provider, Access, Hyperdrive, Directus or crawler settings and creates no production users, administrator assignments or memberships. Phase 1 changes are preserved. See the [exact Pages bindings and first-registration deployment checklist](property-finder-authentication-deployment.md).
 
 

@@ -4,16 +4,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { before, test } from 'node:test';
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyGetKey } from 'jose';
-import { authenticateAdministrator, FinderHttpError } from '../server/property-finder/access';
-import { authenticateCustomer, type CustomerIdentity } from '../server/property-finder/customer-auth';
+import { FinderHttpError } from '../server/property-finder/errors';
+import { verifySupabaseIdentity, type CustomerIdentity } from '../server/property-finder/customer-auth';
 import { authorizeFinderRequest } from '../server/property-finder/authorization';
 import { authorizeMembership, requireCurrentGrant, type MembershipSnapshot, type FinderPermission } from '../server/property-finder/membership';
 import { handleFinderRequest, type FinderEnv } from '../server/property-finder/api';
 import { finderArtifactProblem, checkFinderExport } from '../scripts/check-finder-export.mjs';
 
 const env: FinderEnv = {
-    FINDER_CUSTOMER_ACCESS: 'enabled', FINDER_DATABASE_PROJECT_REF: 'abcdefghijklmnopqrst',
-    FINDER_ACCESS_TEAM_DOMAIN: 'https://test-team.cloudflareaccess.com', FINDER_ACCESS_AUD: 'api-only', FINDER_ADMIN_EMAILS: 'admin@example.com',
+    FINDER_AUTH_ENABLED: 'enabled', FINDER_CUSTOMER_ACCESS: 'enabled', FINDER_DATABASE_PROJECT_REF: 'abcdefghijklmnopqrst',
 };
 const user = '00000000-0000-4000-8000-000000000001';
 const session = '00000000-0000-4000-8000-000000000002';
@@ -34,7 +33,7 @@ async function customerToken(patch: Record<string, unknown> = {}, ec = false) {
 }
 async function adminToken(patch: Record<string, unknown> = {}) {
     const now = Math.floor(Date.now() / 1000);
-    return new SignJWT({ iss: env.FINDER_ACCESS_TEAM_DOMAIN, aud: env.FINDER_ACCESS_AUD, sub: 'real-admin-subject',
+    return new SignJWT({ iss: 'https://legacy.cloudflareaccess.com', aud: 'legacy-access-app', sub: 'real-admin-subject',
         email: 'admin@example.com', type: 'app', iat: now, exp: now + 600, ...patch,
     }).setProtectedHeader({ alg: 'RS256', kid: 'rsa' }).sign(privateKey);
 }
@@ -43,39 +42,42 @@ function request(token?: string, suffix = '/properties', extra: Record<string, s
 }
 const identity = (): CustomerIdentity => ({ kind: 'customer', userId: user, sessionId: session, tokenExpiresAt: Date.now() + 3600000 });
 function membership(patch: Partial<MembershipSnapshot> = {}): MembershipSnapshot {
-    return { schemaVersion: 1, userId: user, sessionId: session, sessionActive: true, sessionValidUntil: null, accountActive: true,
+    return { schemaVersion: 2, role: 'customer', subscriptionActive: true, userId: user, sessionId: session, sessionActive: true, sessionValidUntil: null, accountActive: true,
         tier: 'basic', status: 'active', paymentStatus: 'paid', accessStartsAt: new Date(Date.now() - 1000).toISOString(),
         paidThrough: new Date(Date.now() + 3600000).toISOString(), revokedAt: null, ...patch };
 }
-const verifyCustomer = (req: Request, settings: FinderEnv) => authenticateCustomer(req, settings, keys);
-const verifyAdmin = (req: Request, settings: FinderEnv) => authenticateAdministrator(req, settings, keys);
+const verifyCustomer = (req: Request, settings: FinderEnv) => verifySupabaseIdentity(req, settings, keys);
 function status(error: unknown, value: number) { return error instanceof FinderHttpError && error.status === value; }
 
 test('Customer JWT verification pins project issuer, audience, role, real session identity and RSA/EC algorithms', async () => {
     for (const ec of [false, true]) {
-        const result = await authenticateCustomer(request(await customerToken({}, ec)), env, keys);
+        const result = await verifySupabaseIdentity(request(await customerToken({}, ec)), env, keys);
         assert.equal(result.userId, user); assert.equal(result.sessionId, session); assert.equal(result.kind, 'customer');
     }
     for (const patch of [{ iss: 'https://other.supabase.co/auth/v1' }, { aud: 'other-app' }, { aud: ['authenticated', 'other-app'] },
         { role: 'service_role' }, { role: 'crawler_writer' }, { role: 'anon' }, { is_anonymous: true }, { is_anonymous: undefined },
         { sub: '' }, { sub: 'not-a-uuid' }, { session_id: anotherUser + ',sql' }, { session_id: undefined }, { exp: 1 },
         { exp: undefined }, { iat: 0 }, { iat: -1 }, { iat: undefined }, { iat: Date.now() / 1000 + 600 }, { nbf: Math.floor(Date.now() / 1000) + 600 }]) {
-        await assert.rejects(authenticateCustomer(request(await customerToken(patch)), env, keys), e => status(e, 401));
+        await assert.rejects(verifySupabaseIdentity(request(await customerToken(patch)), env, keys), e => status(e, 401));
     }
     for (const token of ['forged', (await customerToken()).replace(/\.[^.]+$/, '.forged'), 'a'.repeat(17000)]) {
-        await assert.rejects(authenticateCustomer(request(token), env, keys), e => status(e, 401));
+        await assert.rejects(verifySupabaseIdentity(request(token), env, keys), e => status(e, 401));
     }
     const stranger = await generateKeyPair('RS256');
     const forged = await new SignJWT({ sub: user }).setProtectedHeader({ alg: 'RS256', kid: 'rsa' }).sign(stranger.privateKey);
-    await assert.rejects(authenticateCustomer(request(forged), env, keys), e => status(e, 401));
+    await assert.rejects(verifySupabaseIdentity(request(forged), env, keys), e => status(e, 401));
     const sharedSecret = await new SignJWT({ sub: user }).setProtectedHeader({ alg: 'HS256', kid: 'rsa' }).sign(new Uint8Array(32));
-    await assert.rejects(authenticateCustomer(request(sharedSecret), env, keys), e => status(e, 401));
+    await assert.rejects(verifySupabaseIdentity(request(sharedSecret), env, keys), e => status(e, 401));
 });
 
-test('Customer gate is disabled by default and never calls customer adapters or the property loader', async () => {
-    let reads = 0;
-    const dependencies = { authenticateCustomer: async () => { reads++; return identity(); }, loadMembership: async () => { reads++; return membership(); }, load: async () => { reads++; return []; } };
+test('Authentication fails closed when disabled; customers stay gated while administrators bypass only the paid rollout', async () => {
+    let lookups = 0, propertyReads = 0;
+    const dependencies = { verifyIdentity: verifyCustomer, loadMembership: async () => { lookups++; return membership(); }, load: async () => { propertyReads++; return []; } };
     const jwt = await customerToken();
+    for (const flag of [undefined, 'disabled', 'true']) {
+        assert.equal((await handleFinderRequest(request(jwt), { ...env, FINDER_AUTH_ENABLED: flag }, dependencies)).status, 503);
+    }
+    assert.equal(lookups, 0);
     for (const setting of [undefined, 'disabled']) {
         const settings = { ...env, FINDER_CUSTOMER_ACCESS: setting };
         assert.equal((await handleFinderRequest(request(), settings, dependencies)).status, 401);
@@ -83,7 +85,7 @@ test('Customer gate is disabled by default and never calls customer adapters or 
     }
     for (const setting of ['true', 'test', 'shadow', 'enabled ']) assert.equal((await handleFinderRequest(request(jwt), { ...env, FINDER_CUSTOMER_ACCESS: setting }, dependencies)).status, 503);
     assert.equal((await handleFinderRequest(request(jwt), { ...env, FINDER_DATABASE_PROJECT_REF: undefined }, dependencies)).status, 503);
-    assert.equal(reads, 0);
+    assert.equal(propertyReads, 0);
 });
 
 test('Basic and Premium capability sets are server-chosen; refund permission only requests a review', () => {
@@ -113,7 +115,7 @@ test('Inactive, unpaid, past-due, expired, future, refunded, revoked and mismatc
 test('Request flags and account IDs cannot select a victim membership or upgrade a Basic account', async () => {
     const jwt = await customerToken({ user_metadata: { tier: 'premium', is_subscribed: true }, app_metadata: { tier: 'premium' }, is_subscribed: true });
     let lookedUp: CustomerIdentity | undefined;
-    const deps = { authenticateCustomer: verifyCustomer, loadMembership: async (_env: FinderEnv, who: CustomerIdentity) => { lookedUp = who; return membership(); } };
+    const deps = { verifyIdentity: verifyCustomer, loadMembership: async (_env: FinderEnv, who: CustomerIdentity) => { lookedUp = who; return membership(); } };
     const req = request(jwt, `/properties?user_id=${anotherUser}&tier=premium&is_subscribed=true`, { 'X-User-Id': anotherUser, 'X-Membership-Tier': 'premium', 'Cf-Access-Authenticated-User-Email': 'admin@example.com' });
     const grant = await authorizeFinderRequest(req, env, 'listings:read', deps);
     assert.equal(grant.kind, 'customer'); assert.equal(lookedUp!.userId, user); assert.equal(lookedUp!.sessionId, session);
@@ -121,21 +123,45 @@ test('Request flags and account IDs cannot select a victim membership or upgrade
     await assert.rejects(authorizeFinderRequest(request(undefined, '/properties?access_token=' + jwt), env, 'listings:read', deps), e => status(e, 401));
 });
 
-test('Administrator Access remains independent and failed assertions never fall back to a paid customer', async () => {
-    let customerReads = 0;
-    const deps = { authenticate: verifyAdmin, authenticateCustomer: async () => { customerReads++; return identity(); }, loadMembership: async () => { customerReads++; return membership({ tier: 'premium' }); } };
-    const admin = request('forged-customer-token', '/properties', { 'Cf-Access-Jwt-Assertion': await adminToken() });
-    assert.equal((await authorizeFinderRequest(admin, { ...env, FINDER_CUSTOMER_ACCESS: 'typo' }, 'maps:read', deps)).kind, 'administrator');
-    for (const assertion of ['forged', '', await adminToken({ email: 'not-admin@example.com' }), await adminToken({ aud: 'search-page-audience' }), await customerToken()]) {
-        await assert.rejects(authorizeFinderRequest(request(await customerToken(), '/properties', { 'Cf-Access-Jwt-Assertion': assertion }), env, 'listings:read', deps));
+test('Only private Supabase administrator roles authorize; real/forged Access assertions, email headers and cookies never grant access', async () => {
+    let record = membership({ role: 'administrator', subscriptionActive: false, tier: null, status: 'inactive', paymentStatus: 'unpaid' });
+    const deps = { verifyIdentity: verifyCustomer, loadMembership: async () => record };
+    const settings = { ...env, FINDER_CUSTOMER_ACCESS: 'disabled' };
+    const jwt = await customerToken();
+    await assert.rejects(authorizeFinderRequest(request(await adminToken()), settings, 'listings:read', deps), error => status(error, 401));
+    for (const assertion of ['forged', '', await adminToken(), await adminToken({ email: 'not-admin@example.com' })]) {
+        const headers = { 'Cf-Access-Jwt-Assertion': assertion, 'Cf-Access-Authenticated-User-Email': 'admin@example.com', Cookie: 'CF_Authorization=' + assertion };
+        await assert.rejects(authorizeFinderRequest(request(undefined, '/properties', headers), settings, 'listings:read', deps), error => status(error, 401));
+        assert.equal((await authorizeFinderRequest(request(jwt, '/properties', headers), settings, 'maps:read', deps)).role, 'administrator');
+        await assert.rejects(authorizeFinderRequest(request('forged-supabase', '/properties', headers), settings, 'listings:read', deps), error => status(error, 401));
     }
-    assert.equal(customerReads, 0);
+    record = membership({ role: 'customer', subscriptionActive: false, tier: null, status: 'inactive', paymentStatus: 'unpaid' });
+    await assert.rejects(authorizeFinderRequest(request(jwt, '/properties', { 'Cf-Access-Jwt-Assertion': await adminToken() }), settings, 'listings:read', deps), error => status(error, 403));
+    record = membership({ schemaVersion: 1, role: 'administrator' });
+    await assert.rejects(authorizeFinderRequest(request(jwt), settings, 'listings:read', deps), error => status(error, 403));
+});
+
+test('Disabled/revoked administrator accounts, sessions and tokens cannot bypass checks or fall back to Access', async () => {
+    let reads = 0;
+    const jwt = await customerToken();
+    for (const record of [null, membership({ role: 'administrator', accountActive: false }),
+        membership({ role: 'administrator', sessionActive: false }),
+        membership({ role: 'administrator', sessionValidUntil: new Date(Date.now() - 1000).toISOString() }),
+        membership({ role: 'administrator', userId: anotherUser })]) {
+        const response = await handleFinderRequest(request(jwt, '/properties', { 'Cf-Access-Jwt-Assertion': await adminToken() }),
+            { ...env, FINDER_CUSTOMER_ACCESS: 'disabled' },
+            { verifyIdentity: verifyCustomer, loadMembership: async () => record, load: async () => { reads++; return []; } });
+        assert.equal(response.status, 403);
+    }
+    const response = await handleFinderRequest(request(await customerToken({ exp: 1 })), env,
+        { verifyIdentity: verifyCustomer, loadMembership: async () => membership({ role: 'administrator' }), load: async () => { reads++; return []; } });
+    assert.equal(response.status, 401); assert.equal(reads, 0);
 });
 
 test('Every data response requires fresh authorization; revocation, downgrade, lookup failures and invalid tokens never read properties', async (t) => {
     let propertyReads = 0, membershipReads = 0;
     let snapshot: MembershipSnapshot | null = membership({ tier: 'premium' });
-    const dependencies = { authenticate: verifyAdmin, authenticateCustomer: verifyCustomer,
+    const dependencies = { verifyIdentity: verifyCustomer,
         loadMembership: async () => { membershipReads++; return snapshot; }, load: async () => { propertyReads++; return []; } };
     const jwt = await customerToken();
     assert.equal((await handleFinderRequest(request(jwt), env, dependencies)).status, 200);
@@ -162,20 +188,20 @@ test('Every data response requires fresh authorization; revocation, downgrade, l
 
 test('No unguarded details, pagination variants, Premium endpoints, alternate verbs, cross-origin reads or customer admin-login redirects', async () => {
     let reads = 0;
-    const deps = { authenticate: verifyAdmin, authenticateCustomer: verifyCustomer, loadMembership: async () => membership(), load: async () => { reads++; return []; } };
+    const deps = { verifyIdentity: verifyCustomer, loadMembership: async () => membership(), load: async () => { reads++; return []; } };
     const jwt = await customerToken();
     for (const suffix of ['/properties/id', '/details/1', '/properties.json', '/properties/page/2', '/saved-properties', '/maps', '/premium', '/refund', '/']) {
         assert.equal((await handleFinderRequest(request(jwt, suffix), env, deps)).status, 404);
     }
     for (const method of ['POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD']) assert.equal((await handleFinderRequest(new Request(request(jwt), { method }), env, deps)).status, 405);
     for (const extra of [{ Origin: 'https://attacker.example' }, { 'Sec-Fetch-Site': 'cross-site' }] as Record<string, string>[]) assert.equal((await handleFinderRequest(request(jwt, '/properties', extra), env, deps)).status, 403);
-    assert.equal((await handleFinderRequest(request(jwt, '/login'), env, deps)).status, 401);
+    assert.equal((await handleFinderRequest(request(jwt, '/login'), env, deps)).status, 404);
     assert.equal(reads, 0);
     for (const suffix of ['/properties?page=2&limit=1', '/properties?user_id=' + anotherUser]) assert.equal((await handleFinderRequest(request(undefined, suffix), env, deps)).status, 401);
 });
 
 test('Authorized and denied responses disable browser/CDN caching and vary by every authentication mechanism', async () => {
-    const deps = { authenticate: verifyAdmin, authenticateCustomer: verifyCustomer, loadMembership: async () => membership(), load: async () => [] };
+    const deps = { verifyIdentity: verifyCustomer, loadMembership: async () => membership(), load: async () => [] };
     const jwt = await customerToken();
     const responses = [await handleFinderRequest(request(jwt, '/properties', { 'If-None-Match': '*' }), env, deps),
         await handleFinderRequest(request(), env, deps), await handleFinderRequest(request('forged'), env, deps),
@@ -184,7 +210,7 @@ test('Authorized and denied responses disable browser/CDN caching and vary by ev
     for (const response of responses) {
         assert.match(response.headers.get('cache-control')!, /private, no-store/);
         for (const name of ['CDN-Cache-Control', 'Cloudflare-CDN-Cache-Control']) assert.equal(response.headers.get(name), 'no-store');
-        for (const header of ['Authorization', 'Cf-Access-Jwt-Assertion', 'Cookie']) assert(response.headers.get('vary')!.includes(header));
+        for (const header of ['Authorization', 'Cookie']) assert(response.headers.get('vary')!.includes(header));
         assert.equal(response.headers.get('Access-Control-Allow-Origin'), null); assert.equal(response.headers.get('ETag'), null);
         assert.equal(response.headers.get('Cross-Origin-Resource-Policy'), 'same-origin');
     }
@@ -221,6 +247,11 @@ test('Route inventory has exactly one runtime Finder handler, no static API file
     assert(readFileSync('functions/api/property-finder/[[path]].ts', 'utf8').includes('handleFinderRequest(context.request, context.env)'));
     const access = readFileSync('src/components/property-finder/PropertyFinderAccess.tsx', 'utf8');
     assert(access.includes("cache: 'no-store'"));
+    assert(access.includes('href="/login"')); assert(!access.includes('/api/property-finder/login'));
+    const source = ['server/property-finder/authorization.ts', 'server/property-finder/api.ts', 'src/components/auth/AuthForm.tsx',
+        'src/components/auth/AccountDashboard.tsx', 'src/components/property-finder/PropertyFinderAccess.tsx', '.dev.vars.example']
+        .map(file => readFileSync(file, 'utf8')).join('\n');
+    assert(!/FINDER_ACCESS_TEAM_DOMAIN|FINDER_ACCESS_AUD|FINDER_ADMIN_EMAILS|authenticateAdministrator|cloudflareaccess\.com|Cloudflare Access|\/api\/property-finder\/login/.test(source));
     const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts;
     assert(scripts.build.includes('node scripts/check-finder-export.mjs'));
     assert.equal(scripts.postinstall, 'node scripts/check-finder-export.mjs');

@@ -36,7 +36,8 @@ export default function PropertyFinderAccess() {
                     } catch { /* Failed/disabled refresh keeps the directory locked. */ }
                 }
                 if (controller.signal.aborted || requestNumber !== sequence) return;
-                // Access may send a sign-in redirect/HTML instead of an API response.
+                // During the staged edge transition, a proxy challenge may still
+                // return HTML. It never constitutes an authenticated API response.
                 if ([0, 401, 403].includes(response.status) || !response.headers.get('Content-Type')?.includes('application/json')) {
                     setState({ kind: 'locked' });
                     return;
@@ -76,7 +77,7 @@ export default function PropertyFinderAccess() {
                     {state.kind === 'error' && <p>The live directory is not available right now. Please try again later.</p>}
                 </div>
                 <div className={styles.gatedActions}>
-                    {state.kind === 'locked' && <a href="https://love-live-myoko.com/api/property-finder/login" className="button button--primary">Administrator Sign In</a>}
+                    {state.kind === 'locked' && <Link href="/login" className="button button--primary">Sign In</Link>}
                     {state.kind === 'locked' && <Link href="/account" className="button button--secondary">Your Account</Link>}
                     {state.kind !== 'loading' && <button type="button" onClick={retry} className="button button--secondary">Check Access Again</button>}
                     <Link href="/property-finder" className="button button--secondary">About Property Finder</Link>

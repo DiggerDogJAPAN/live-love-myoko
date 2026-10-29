@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
-import { FinderHttpError } from './access';
+import { FinderHttpError } from './errors';
 
 export interface CustomerAuthEnv {
     /** Same dedicated Supabase project as the restricted property reader. */
@@ -27,12 +27,6 @@ export function requireCustomerRollout(env: CustomerAuthEnv): void {
     if (env.FINDER_CUSTOMER_ACCESS !== 'enabled' || !/^[a-z0-9]{20}$/.test(env.FINDER_DATABASE_PROJECT_REF || '')) {
         throw new FinderHttpError(503, 'customer_access_not_configured');
     }
-}
-
-/** Verification only: no login, cookies, refresh tokens or client-supplied IDs. */
-export async function authenticateCustomer(request: Request, env: CustomerAuthEnv, verificationKey?: JWTVerifyGetKey): Promise<CustomerIdentity> {
-    requireCustomerRollout(env);
-    return verifySupabaseIdentity(request, env, verificationKey);
 }
 
 /** Shared verification for account sessions, including unpaid accounts. */

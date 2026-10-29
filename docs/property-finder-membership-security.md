@@ -1,5 +1,7 @@
 # Property Finder membership security — Phase 1
 
+> Current implementation/preparation: see [Supabase-only cutover](property-finder-supabase-cutover.md). Access-dependent code, login routes and required bindings described below are historical; the replacement no longer trusts them. Keep the existing dashboard gate and rollback secrets until the staged verification/removal sequence is approved and completed.
+
 Status: application implementation remains local/uncommitted and is not deployed. The revised database migrations 001/002 were separately applied on 29 October 2026 at 17:22 JST; see [the production receipt](property-finder-membership-migration-results.md). The owner subsequently completed Supabase email/SMTP/redirect/session settings. Deployment preparation changes no production settings; Access, Hyperdrive and crawler configuration remain unchanged. Customer access remains disabled. No memberships or fake active accounts were created. Account-only deployment instructions are in the [Phase 2 checklist](property-finder-authentication-deployment.md).
 
 Phase 2 extends this foundation with cookie-backed account authentication, separate private administrator roles and schema version 2. See [the Phase 2 implementation, rollout controls and operator actions](property-finder-authentication.md). Its Auth rollout does not activate paid customer listing access; existing Cloudflare Access remains in place.

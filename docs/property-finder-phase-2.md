@@ -1,5 +1,7 @@
 # Property Finder: secure live-data setup
 
+> Current implementation/preparation: see [Supabase-only cutover](property-finder-supabase-cutover.md). Access-dependent code, login routes and required bindings described below are historical; the replacement no longer trusts them. Keep the existing dashboard gate and rollback secrets until the staged verification/removal sequence is approved and completed.
+
 The dedicated `property_finder_web_reader` login was provisioned on **28 October
 2026 (Japan time)**. Its connection is stored only in owner-readable, Git-ignored
 `.dev.vars`. The existing verified administrator connection was used only for

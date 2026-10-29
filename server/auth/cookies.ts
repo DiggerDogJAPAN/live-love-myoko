@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { FinderHttpError } from '../property-finder/access';
+import { FinderHttpError } from '../property-finder/errors';
 export const AUTH_COOKIES = { access: '__Host-llm-access', refresh: '__Host-llm-refresh', flow: '__Host-llm-flow', recovery: '__Host-llm-recovery' } as const;
 export function authCookie(request: Request, name: string): string | null {
     const values = (request.headers.get('Cookie') || '').split(';').map(v => v.trim()).filter(v => v.startsWith(name + '='));

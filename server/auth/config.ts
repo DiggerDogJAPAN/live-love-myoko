@@ -1,4 +1,4 @@
-import { FinderHttpError } from '../property-finder/access';
+import { FinderHttpError } from '../property-finder/errors';
 import type { FinderAuthorizationEnv } from '../property-finder/authorization';
 export interface AuthEnv extends FinderAuthorizationEnv {
     FINDER_AUTH_SITE_ORIGIN?: string;

@@ -1,4 +1,4 @@
-import { FinderHttpError } from '../property-finder/access';
+import { FinderHttpError } from '../property-finder/errors';
 import { verifySupabaseIdentity, type CustomerIdentity } from '../property-finder/customer-auth';
 import { loadMembershipSnapshot } from '../property-finder/membership-database';
 import { authorizeMembership, type MembershipSnapshot } from '../property-finder/membership';

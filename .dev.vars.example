@@ -1,7 +1,4 @@
-# Copy to .dev.vars (Git-ignored). Values must come from your own Access app/DB.
-FINDER_ACCESS_TEAM_DOMAIN=""
-FINDER_ACCESS_AUD=""
-FINDER_ADMIN_EMAILS=""
+# Copy to .dev.vars (Git-ignored). Use your own Supabase/reader configuration.
 FINDER_DATABASE_PROJECT_REF=""
 FINDER_DATABASE_URL=""
 

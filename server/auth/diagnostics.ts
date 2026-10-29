@@ -1,7 +1,7 @@
-import { FinderHttpError } from '../property-finder/access';
+import { FinderHttpError } from '../property-finder/errors';
 import { ProviderError } from './provider';
 
-const safeCodes = new Set(['authentication_not_configured', 'same_origin_required', 'invalid_email', 'invalid_password',
+const safeCodes = new Set(['authentication_not_configured', 'same_origin_required', 'invalid_email', 'invalid_name', 'invalid_password', 'password_too_long', 'weak_password',
     'invalid_request', 'json_required', 'request_too_large', 'email_confirmation_not_configured', 'authentication_required',
     'account_unavailable', 'email_verification_required', 'invalid_credentials', 'invalid_verification_code',
     'password_recovery_required', 'link_expired', 'google_not_configured', 'authentication_failed',

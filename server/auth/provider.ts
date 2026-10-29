@@ -1,4 +1,4 @@
-import { FinderHttpError } from '../property-finder/access';
+import { FinderHttpError } from '../property-finder/errors';
 import { authConfiguration, type AuthEnv } from './config';
 export type AuthFetch = typeof fetch;
 export type ProviderSession = { access_token: string; refresh_token: string; expires_in: number };
@@ -13,7 +13,8 @@ export class ProviderError extends FinderHttpError {
     constructor(public readonly providerStatus: number, public readonly providerCode?: string,
         public readonly providerRequestId?: string, public readonly failure: ProviderFailure = 'http') {
         super(failure !== 'http' ? 503 : providerStatus === 429 ? 429 : providerStatus >= 500 ? 503 : 400,
-            providerStatus === 429 ? 'too_many_attempts' : failure !== 'http' ? 'authentication_unavailable' : 'authentication_failed');
+            providerStatus === 429 ? 'too_many_attempts' : failure !== 'http' ? 'authentication_unavailable'
+                : providerCode === 'weak_password' ? 'weak_password' : 'authentication_failed');
     }
 }
 export async function providerRequest(env: AuthEnv, path: string, body?: object, access?: string, method?: string, transport: AuthFetch = fetch): Promise<Record<string, unknown>> {

@@ -108,7 +108,7 @@ test('Same-origin JSON, exact actions/methods and bounded bodies are enforced be
 test('Registration sends only allowed profile fields, uses PKCE and requires provider email confirmation', async () => {
     const h = harness();
     for (const key of ['role', 'tier', 'user_id', 'is_admin', 'app_metadata', 'data']) {
-        assert.equal((await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'a-long-password', [key]: 'administrator' }), env, h.dependencies)).status, 400);
+        assert.equal((await handleAuthRequest(req('register', { name: 'Customer', email: 'customer@example.com', password: 'a-long-password', [key]: 'administrator' }), env, h.dependencies)).status, 400);
     }
     assert.equal(h.calls.length, 0);
     const response = await handleAuthRequest(req('register', { email: 'Customer@example.com', password: 'a-long-password', name: ' Customer ' }), env, h.dependencies);
@@ -121,14 +121,72 @@ test('Registration sends only allowed profile fields, uses PKCE and requires pro
     assert.equal(signup.body?.code_challenge, createHash('sha256').update(String(flow.verifier)).digest('base64url'));
     assert.equal(signup.body?.code_challenge_method, 's256'); assert(!JSON.stringify(await response.json()).includes(token));
     const badSettings = harness(() => Response.json({ mailer_autoconfirm: true }));
-    assert.equal((await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'a-long-password' }), env, badSettings.dependencies)).status, 503);
+    assert.equal((await handleAuthRequest(req('register', { name: 'Customer', email: 'customer@example.com', password: 'a-long-password' }), env, badSettings.dependencies)).status, 503);
     assert.equal(badSettings.calls.length, 1);
+});
+
+test('Registration requires a nonblank full name before contacting the provider', async () => {
+    const h = harness();
+    for (const name of [undefined, null, 12, {}, '', '  \t\u3000 ', 'X'.repeat(81)]) {
+        const body = { email: 'customer@example.com', password: 'a-long-password', ...(name !== undefined ? { name } : {}) };
+        const response = await handleAuthRequest(req('register', body), env, h.dependencies);
+        assert.equal(response.status, 400); assert.deepEqual(await response.json(), { code: 'invalid_name' });
+        assert.equal(response.headers.get('Set-Cookie'), null);
+    }
+    assert.equal(h.calls.length, 0);
+});
+
+test('Registration trims full names into the existing profile field and the account reads that same name', async () => {
+    for (const name of ['  Jane Smith  ', '\u3000山田 太郎\u3000', '  X  ']) {
+        let storedName = '';
+        const h = harness(call => {
+            if (call.url.pathname.endsWith('/settings')) return Response.json({ mailer_autoconfirm: false });
+            if (call.url.pathname.endsWith('/signup')) { storedName = (call.body?.data as { full_name: string }).full_name; return Response.json({}); }
+            return Response.json({ ...providerUser(), user_metadata: { full_name: storedName } });
+        });
+        const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'a-long-password', name }), env, h.dependencies);
+        assert.equal(response.status, 200); assert.equal(storedName, name.trim());
+        const account = await handleAuthRequest(req('session', undefined, AUTH_COOKIES.access + '=' + token), env, h.dependencies);
+        assert.equal(account.status, 200); assert.equal((await account.json()).user.name, name.trim());
+    }
+});
+
+test('Existing verified accounts without a full name can still log in and read their own account', async () => {
+    const h = harness(call => Response.json(call.url.pathname.endsWith('/user')
+        ? { ...providerUser(), user_metadata: {} } : { ...session(), user: { ...providerUser(), user_metadata: {} } }));
+    const login = await handleAuthRequest(req('login', { email: 'customer@example.com', password: 'a-long-password' }), env, h.dependencies);
+    assert.equal(login.status, 200);
+    const account = await handleAuthRequest(req('session', undefined, cookie(login, AUTH_COOKIES.access)), env, h.dependencies);
+    assert.equal(account.status, 200); assert.equal((await account.json()).user.name, '');
+});
+
+test('Registration enforces eight characters and the technical maximum without trimming passwords', async () => {
+    const rejected = harness();
+    for (const value of [undefined, null, '', 'Aa1!abc', 'X'.repeat(129)]) {
+        const response = await handleAuthRequest(req('register', { name: 'Full Name', email: 'customer@example.com', password: value }), env, rejected.dependencies);
+        assert.equal(response.status, 400);
+        assert.deepEqual(await response.json(), { code: typeof value === 'string' && value.length > 128 ? 'password_too_long' : 'invalid_password' });
+    }
+    assert.equal(rejected.calls.length, 0);
+    for (const value of ['Aa1!abcd', ' Abc123!', 'Aa1!' + 'X'.repeat(124)]) {
+        const h = harness();
+        const response = await handleAuthRequest(req('register', { name: 'Full Name', email: 'customer@example.com', password: value }), env, h.dependencies);
+        assert.equal(response.status, 200); assert.equal(h.calls[1].body?.password, value);
+    }
+});
+
+test('Stronger provider password policy remains enforced and is never masked as successful registration', async () => {
+    const h = harness(call => call.url.pathname.endsWith('/settings') ? Response.json({ mailer_autoconfirm: false })
+        : Response.json({ code: 'weak_password', message: 'PRIVATE provider policy details' }, { status: 422 }));
+    const response = await handleAuthRequest(req('register', { name: 'Full Name', email: 'customer@example.com', password: 'Aa1!abcd' }), env, h.dependencies);
+    assert.equal(response.status, 400); assert.deepEqual(await response.json(), { code: 'weak_password' });
+    assert.equal(response.headers.get('Set-Cookie'), null);
 });
 
 test('Signup, resend and recovery ConfirmationURL flows preserve PKCE and return only to the canonical production callback', async () => {
     for (const action of ['register', 'resend', 'recover']) {
         const h = harness();
-        const body = action === 'register' ? { email: 'customer@example.com', password: 'a-long-password' } : { email: 'customer@example.com' };
+        const body = action === 'register' ? { name: 'Customer', email: 'customer@example.com', password: 'a-long-password' } : { email: 'customer@example.com' };
         const response = await handleAuthRequest(req(action, body), env, h.dependencies);
         assert.equal(response.status, 200);
         const state = cookie(response, AUTH_COOKIES.flow);
@@ -270,19 +328,43 @@ test('Unpaid and self-promoted users never read Finder; only private server role
     const finderRequest = () => new Request(origin + '/api/property-finder/properties?role=administrator&user_id=' + otherId, { headers: { Cookie: AUTH_COOKIES.access + '=' + token } });
     for (const record of [snapshot(), snapshot({ role: 'administrator' }), snapshot({ schemaVersion: 1, role: 'administrator' })]) {
         const h = harness(undefined, record);
-        const deps = { authenticateCustomer: h.dependencies.verify, loadMembership: h.dependencies.snapshot, load: async () => { loads++; return []; } };
+        const deps = { verifyIdentity: h.dependencies.verify, loadMembership: h.dependencies.snapshot, load: async () => { loads++; return []; } };
         const response = await handleFinderRequest(finderRequest(), env, deps);
         assert.equal(response.status, record.role === 'administrator' && record.schemaVersion === 2 ? 200 : 403);
     }
     assert.equal(loads, 1);
     const paid = snapshot({ subscriptionActive: true, tier: 'basic', status: 'active', paymentStatus: 'paid', accessStartsAt: new Date(Date.now() - 1000).toISOString(), paidThrough: new Date(Date.now() + 60000).toISOString() });
-    const h = harness(undefined, paid); const deps = { authenticateCustomer: h.dependencies.verify, loadMembership: h.dependencies.snapshot, load: async () => { loads++; return []; } };
+    const h = harness(undefined, paid); const deps = { verifyIdentity: h.dependencies.verify, loadMembership: h.dependencies.snapshot, load: async () => { loads++; return []; } };
     assert.equal((await handleFinderRequest(finderRequest(), env, deps)).status, 403);
     assert.equal((await handleFinderRequest(finderRequest(), { ...env, FINDER_CUSTOMER_ACCESS: 'enabled' }, deps)).status, 200);
     assert.throws(() => authorizeMembership({ kind: 'customer', userId, sessionId, tokenExpiresAt: Date.now() + 60000 }, paid, 'maps:read'));
     const admin = harness(undefined, snapshot({ role: 'administrator' }));
     const details = await (await handleAuthRequest(req('session', undefined, AUTH_COOKIES.access + '=' + token), env, admin.dependencies)).json();
     assert.equal(details.role, 'administrator'); assert.equal(details.membership.tier, null); assert.equal(details.membership.status, 'not_required'); assert.equal(details.finderAccess, true);
+});
+
+test('A fresh Supabase administrator login reaches account and Finder without Access; logout revokes both', async () => {
+    let record: MembershipSnapshot | null = snapshot({ role: 'administrator' });
+    const h = harness(call => {
+        if (call.url.pathname.endsWith('/logout')) { record = null; return new Response(null, { status: 204 }); }
+        if (call.url.pathname.endsWith('/user')) return Response.json(providerUser());
+        return Response.json(session());
+    });
+    h.dependencies.snapshot = async () => record;
+    const login = await handleAuthRequest(req('login', { email: 'customer@example.com', password: 'a-long-password' }), env, h.dependencies);
+    assert.equal(login.status, 200);
+    const credentials = [cookie(login, AUTH_COOKIES.access), cookie(login, AUTH_COOKIES.refresh)].join('; ');
+    const account = await handleAuthRequest(req('session', undefined, credentials), env, h.dependencies);
+    assert.equal(account.status, 200);
+    const details = await account.json(); assert.equal(details.role, 'administrator'); assert.equal(details.membership.tier, null); assert.equal(details.finderAccess, true);
+    let reads = 0;
+    const dependencies = { verifyIdentity: h.dependencies.verify, loadMembership: h.dependencies.snapshot, load: async () => { reads++; return []; } };
+    const finder = () => new Request(origin + '/api/property-finder/properties', { headers: { Cookie: credentials, 'Cf-Access-Jwt-Assertion': 'ignored-legacy-header' } });
+    assert.equal((await handleFinderRequest(finder(), env, dependencies)).status, 200); assert.equal(reads, 1);
+    const logout = await handleAuthRequest(req('logout', {}, credentials), env, h.dependencies);
+    assert.equal(logout.status, 200); cleared(logout);
+    assert.equal((await handleAuthRequest(req('session', undefined, credentials), env, h.dependencies)).status, 403);
+    assert.equal((await handleFinderRequest(finder(), env, dependencies)).status, 403); assert.equal(reads, 1);
 });
 
 test('Email operations mask account existence and throttle errors survive without provider internals', async () => {
@@ -304,7 +386,7 @@ test('Registration diagnostics distinguish key/settings failures from signup fai
             ? Response.json({ mailer_autoconfirm: false })
             : Response.json({ code: 'unexpected_failure', message: 'PRIVATE SMTP diagnostic customer@example.com password=private-password' },
                 { status: failureAt === 'settings' ? 401 : 500, headers: { 'sb-request-id': providerRequestId } }));
-        const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'private-password' }, '',
+        const response = await handleAuthRequest(req('register', { name: 'Customer', email: 'customer@example.com', password: 'private-password' }, '',
             { 'X-Request-ID': 'attacker-controlled@example.com' }), env, h.dependencies);
         assert.equal(response.status, failureAt === 'settings' ? 400 : 503);
         assert.deepEqual(await response.json(), { code: 'authentication_failed' });
@@ -330,7 +412,7 @@ test('Provider timeouts, network failures and malformed responses have safe dist
             if (kind === 'network') throw new TypeError('PRIVATE network https://secret@example.com/path');
             return new Response('PRIVATE not JSON', { status: 200 });
         });
-        const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
+        const response = await handleAuthRequest(req('register', { name: 'Customer', email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
         assert.equal(response.status, 503); assert.deepEqual(await response.json(), { code: 'authentication_unavailable' });
         assert.equal(logs.length, 1); const event = JSON.parse(logs[0]);
         assert.equal(event.failure, kind); assert.equal(event.stage, 'provider_settings');
@@ -344,7 +426,7 @@ test('Masked signup rejections are logged safely and unrecognized provider field
     const h = harness(call => call.url.pathname.endsWith('/settings') ? Response.json({ mailer_autoconfirm: false })
         : Response.json({ code: 'PRIVATE customer@example.com', error: 'PRIVATE SMTP password' },
             { status: 400, headers: { 'sb-request-id': 'PRIVATE customer@example.com', 'x-sb-error-code': 'PRIVATE token' } }));
-    const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
+    const response = await handleAuthRequest(req('register', { name: 'Customer', email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
     assert.equal(response.status, 200); assert.match((await response.json()).message, /If this address/);
     const event = JSON.parse(logs[0]); assert.equal(event.stage, 'provider_signup'); assert.equal(event.providerStatus, 400);
     assert.equal(event.providerCode, undefined); assert.equal(event.providerRequestId, undefined);
@@ -357,7 +439,7 @@ test('Provider redirects fail closed without following a Location or proceeding 
     for (const status of [301, 302, 303, 307, 308]) for (const stage of ['settings', 'signup']) {
         const h = harness(call => stage === 'signup' && call.url.pathname.endsWith('/settings') ? Response.json({ mailer_autoconfirm: false })
             : new Response(null, { status, headers: { Location: 'https://attacker.example/collect?secret=PRIVATE' } }));
-        const response = await handleAuthRequest(req('register', { email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
+        const response = await handleAuthRequest(req('register', { name: 'Customer', email: 'customer@example.com', password: 'private-password' }), env, h.dependencies);
         assert.equal(response.status, 503); assert.deepEqual(await response.json(), { code: 'authentication_unavailable' });
         assert.equal(h.calls.length, stage === 'settings' ? 1 : 2); assert.equal(response.headers.get('Location'), null);
         const event = JSON.parse(logs.at(-1)!); assert.equal(event.failure, 'redirect'); assert.equal(event.providerStatus, status);

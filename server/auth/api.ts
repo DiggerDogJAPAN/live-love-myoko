@@ -1,17 +1,19 @@
-import { FinderHttpError } from '../property-finder/access';
+import { FinderHttpError } from '../property-finder/errors';
 import { verifySupabaseIdentity } from '../property-finder/customer-auth';
 import { AUTH_HEADERS, authConfiguration, readAuthBody, requireSameOrigin, type AuthEnv } from './config';
 import { AUTH_COOKIES, authCookie, clearAuthCookies, createPkce, readFlow, setAuthCookie, signFlow, type AuthFlow } from './cookies';
 import { ProviderError, providerRequest, providerSession, type ProviderSession } from './provider';
 import { accountDetails, verifiedAccount, type AuthDependencies } from './account';
 import { reportAuthFailure } from './diagnostics';
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, registrationFullName } from '../../src/lib/auth/validation';
 
 function email(value: unknown): string {
     if (typeof value !== 'string' || value.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new FinderHttpError(400, 'invalid_email');
     return value.trim().toLowerCase();
 }
 function password(value: unknown, creating = true): string {
-    if (typeof value !== 'string' || value.length < (creating ? 12 : 1) || value.length > 128) throw new FinderHttpError(400, 'invalid_password');
+    if (typeof value !== 'string' || value.length < (creating ? MIN_PASSWORD_LENGTH : 1)) throw new FinderHttpError(400, 'invalid_password');
+    if (value.length > MAX_PASSWORD_LENGTH) throw new FinderHttpError(400, 'password_too_long');
     return value;
 }
 function fields(body: Record<string, unknown>, allowed: string[]) {
@@ -19,7 +21,7 @@ function fields(body: Record<string, unknown>, allowed: string[]) {
 }
 function providerClientRejection(error: unknown): error is ProviderError {
     return error instanceof ProviderError && error.failure === 'http'
-        && error.providerStatus >= 400 && error.providerStatus < 500 && error.providerStatus !== 429;
+        && error.providerStatus >= 400 && error.providerStatus < 500 && error.providerStatus !== 429 && error.providerCode !== 'weak_password';
 }
 function sessionCookies(headers: Headers, value: ProviderSession) {
     setAuthCookie(headers, AUTH_COOKIES.access, value.access_token, value.expires_in);
@@ -155,6 +157,8 @@ export async function handleAuthRequest(request: Request, env: AuthEnv, dependen
         }
         fields(body, action === 'register' ? ['email', 'password', 'name'] : ['email']);
         const address = email(body.email);
+        const fullName = action === 'register' ? registrationFullName(body.name) : null;
+        if (action === 'register' && !fullName) throw new FinderHttpError(400, 'invalid_name');
         stage = 'pkce';
         if (action === 'resend') {
             // Resent ConfirmationURL links need their own PKCE state too; an
@@ -171,11 +175,10 @@ export async function handleAuthRequest(request: Request, env: AuthEnv, dependen
             if (action === 'register') {
                 kind = 'signup';
                 const value = password(body.password);
-                if (body.name !== undefined && (typeof body.name !== 'string' || body.name.trim().length > 80)) throw new FinderHttpError(400, 'invalid_request');
                 const settings = await provider('/settings');
                 if (settings.mailer_autoconfirm !== false) throw new FinderHttpError(503, 'email_confirmation_not_configured');
                 try { await provider('/signup?redirect_to=' + encodeURIComponent(callback), { email: address, password: value,
-                    data: { full_name: typeof body.name === 'string' ? body.name.trim() : '' }, code_challenge: pkce.challenge, code_challenge_method: 's256' }); }
+                    data: { full_name: fullName }, code_challenge: pkce.challenge, code_challenge_method: 's256' }); }
                 catch (error) { if (!providerClientRejection(error)) throw error; }
             } else {
                 try { await provider('/recover?redirect_to=' + encodeURIComponent(callback), { email: address, code_challenge: pkce.challenge, code_challenge_method: 's256' }); }

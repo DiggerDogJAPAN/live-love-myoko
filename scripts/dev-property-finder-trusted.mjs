@@ -1,6 +1,6 @@
 // Local Pages Functions with Wrangler's supported Hyperdrive emulator.
 // The emulator verifies the origin certificate/hostname using the existing CA.
-// Access JWT verification, reader identity checks and SQL run unchanged in workerd.
+// Supabase JWT/session verification, reader identity checks and SQL run unchanged.
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -56,7 +56,7 @@ for (const output of [worker.stdout, worker.stderr]) {
     });
     output.on('end', () => { pending += decoder.end(); if (pending) print(pending); });
 }
-console.log('Local Pages preview: http://127.0.0.1:8788 (real Access authentication required)');
+console.log('Local Pages preview: http://127.0.0.1:8788 (configured Supabase authentication required)');
 console.log('FINDER_HYPERDRIVE uses local emulation with verify-full and the existing CA; hosted pooling is not exercised.');
 process.on('SIGINT', () => worker.kill('SIGTERM'));
 process.on('SIGTERM', () => worker.kill('SIGTERM'));
