@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { FinderProperty } from '@/lib/property-finder/model';
+import { authRequest, refreshSession } from '@/lib/auth/client';
 import PropertyFinderDirectory from './PropertyFinderDirectory';
 import styles from './finder.module.css';
 
@@ -20,10 +21,20 @@ export default function PropertyFinderAccess() {
         const load = async () => {
             const requestNumber = ++sequence;
             try {
-                const response = await fetch('/api/property-finder/properties', {
+                const options: RequestInit = {
                     credentials: 'same-origin', cache: 'no-store', redirect: 'manual',
                     headers: { Accept: 'application/json' }, signal: controller.signal,
-                });
+                };
+                let response = await fetch('/api/property-finder/properties', options);
+                if (response.status === 401 && response.headers.get('Content-Type')?.includes('application/json')) {
+                    try {
+                        const config = await authRequest('config');
+                        if (config.enabled === true && !controller.signal.aborted && requestNumber === sequence) {
+                            await refreshSession();
+                            response = await fetch('/api/property-finder/properties', options);
+                        }
+                    } catch { /* Failed/disabled refresh keeps the directory locked. */ }
+                }
                 if (controller.signal.aborted || requestNumber !== sequence) return;
                 // Access may send a sign-in redirect/HTML instead of an API response.
                 if ([0, 401, 403].includes(response.status) || !response.headers.get('Content-Type')?.includes('application/json')) {
@@ -41,8 +52,14 @@ export default function PropertyFinderAccess() {
         };
         void load();
         const refresh = () => { if (document.visibilityState === 'visible') void load(); };
+        const signout = () => { sequence++; setState({ kind: 'locked' }); };
+        const pageShow = (event: PageTransitionEvent) => { if (event.persisted) { setState({ kind: 'loading' }); void load(); } };
+        const channel = 'BroadcastChannel' in window ? new BroadcastChannel('llm-auth') : null;
+        if (channel) channel.onmessage = event => { if (event.data === 'signed-out') signout(); };
         document.addEventListener('visibilitychange', refresh);
-        return () => { controller.abort(); document.removeEventListener('visibilitychange', refresh); };
+        window.addEventListener('llm-signout', signout);
+        window.addEventListener('pageshow', pageShow);
+        return () => { controller.abort(); channel?.close(); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('llm-signout', signout); window.removeEventListener('pageshow', pageShow); };
     }, [attempt]);
 
     if (state.kind === 'ready') return <PropertyFinderDirectory properties={state.properties} mode="live" />;
@@ -60,6 +77,7 @@ export default function PropertyFinderAccess() {
                 </div>
                 <div className={styles.gatedActions}>
                     {state.kind === 'locked' && <a href="https://love-live-myoko.com/api/property-finder/login" className="button button--primary">Administrator Sign In</a>}
+                    {state.kind === 'locked' && <Link href="/account" className="button button--secondary">Your Account</Link>}
                     {state.kind !== 'loading' && <button type="button" onClick={retry} className="button button--secondary">Check Access Again</button>}
                     <Link href="/property-finder" className="button button--secondary">About Property Finder</Link>
                 </div>

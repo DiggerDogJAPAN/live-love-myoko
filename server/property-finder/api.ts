@@ -1,20 +1,25 @@
-import { authenticateAdministrator, FinderHttpError, type FinderAccessEnv, type FinderIdentity } from './access';
-import { loadCustomerProperties, type FinderDatabaseEnv } from './database';
+import { authenticateAdministrator, FinderHttpError, type FinderIdentity } from './access';
+import { loadCustomerProperties } from './database';
 import { finderMunicipalities, type FinderProperty } from '../../src/lib/property-finder/model';
+import { authorizeFinderRequest, type AuthorizationDependencies, type FinderAuthorizationEnv } from './authorization';
+import { requireCurrentGrant } from './membership';
 
-export interface FinderEnv extends FinderAccessEnv, FinderDatabaseEnv {}
+export type FinderEnv = FinderAuthorizationEnv;
 
 const privateHeaders = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'private, no-store, max-age=0',
     'CDN-Cache-Control': 'no-store',
     'Cloudflare-CDN-Cache-Control': 'no-store',
-    'Vary': 'Cf-Access-Jwt-Assertion, Cookie',
+    'Vary': 'Cf-Access-Jwt-Assertion, Authorization, Cookie',
     'X-Content-Type-Options': 'nosniff',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'Pragma': 'no-cache',
+    'Expires': '0',
 };
 
-interface Dependencies {
-    authenticate: (request: Request, env: FinderEnv) => Promise<FinderIdentity>;
+interface Dependencies extends Partial<AuthorizationDependencies> {
+    authenticate?: (request: Request, env: FinderEnv) => Promise<FinderIdentity>;
     load: (env: FinderEnv) => Promise<FinderProperty[]>;
 }
 
@@ -31,12 +36,14 @@ export async function handleFinderRequest(request: Request, env: FinderEnv, depe
     // the verified login redirect, but never a cross-origin properties response.
     if (!isLogin && ((origin && origin !== url.origin) || request.headers.get('Sec-Fetch-Site') === 'cross-site')) return reply(403, { code: 'same_origin_required' });
     try {
-        // Authentication AND admin entitlement before any database connection.
-        await dependencies.authenticate(request, env);
+        // Login stays administrator-only; all data passes the common authorization gate.
         if (isLogin) {
+            await (dependencies.authenticate || authenticateAdministrator)(request, env);
             return new Response(null, { status: 303, headers: { ...privateHeaders, Location: 'https://love-live-myoko.com/property-finder/search/' } });
         }
+        const grant = await authorizeFinderRequest(request, env, 'listings:read', dependencies);
         const properties = await dependencies.load(env);
+        if (grant.kind === 'customer') requireCurrentGrant(grant);
         return reply(200, { properties, count: properties.length, municipalities: finderMunicipalities });
     } catch (error) {
         if (error instanceof FinderHttpError) return reply(error.status, { code: error.code });

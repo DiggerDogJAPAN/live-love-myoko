@@ -4,29 +4,31 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "rm -rf .next && rm -rf out && node scripts/download-cms-assets.mjs && next build",
+    "build": "rm -rf .next && rm -rf out && node scripts/download-cms-assets.mjs && next build && node scripts/check-finder-export.mjs",
     "start": "next start",
     "lint": "eslint",
     "finder:dev": "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false wrangler pages dev out --ip 127.0.0.1 --port 8788",
     "finder:check": "node --import tsx --test tests/property-finder-api.test.ts",
-    "finder:dev:trusted": "node scripts/dev-property-finder-trusted.mjs"
+    "finder:dev:trusted": "node scripts/dev-property-finder-trusted.mjs",
+    "postinstall": "node scripts/check-finder-export.mjs"
   },
   "dependencies": {
     "@directus/sdk": "^21.1.0",
     "jose": "^6.2.13",
-    "next": "^16.3.5",
+    "next": "^16.4.3",
     "pg": "^8.23.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.13",
     "@types/node": "^20",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "dotenv": "^17.2.4",
     "eslint": "^9",
-    "eslint-config-next": "^16.3.5",
+    "eslint-config-next": "^16.4.3",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "wrangler": "^4.153.0"

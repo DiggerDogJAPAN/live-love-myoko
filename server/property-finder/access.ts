@@ -55,9 +55,8 @@ export async function authenticateAdministrator(
     }
 }
 
-/** Server-only entitlement boundary. Login alone never grants directory access.
- * Future subscriptions must be checked here against authoritative server-held state.
- * Do not accept a browser/payment-success flag or simply allow every signed-in user.
+/** Administrator-only allowance. Customer subscription permissions are handled
+ * separately in authorization.ts against authoritative membership/session state.
  */
 export async function requireFinderEntitlement(identity: FinderIdentity, env: FinderAccessEnv): Promise<void> {
     const admins = (env.FINDER_ADMIN_EMAILS || '').split(',').map((email) => email.trim().toLowerCase()).filter(Boolean);

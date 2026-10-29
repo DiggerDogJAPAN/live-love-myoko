@@ -1,5 +1,10 @@
 {
     "version": 1,
-    "include": ["/api/property-finder", "/api/property-finder/*"],
+    "include": [
+        "/api/property-finder",
+        "/api/property-finder/*",
+        "/api/auth",
+        "/api/auth/*"
+    ],
     "exclude": []
 }

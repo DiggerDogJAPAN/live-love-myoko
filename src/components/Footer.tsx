@@ -25,6 +25,8 @@ export default function Footer() {
                             <Link href="/accommodation" className="footer__link">Accommodation</Link>
                             <Link href="/properties" className="footer__link">Properties</Link>
                             <Link href="/property-finder" className="footer__link">Property Finder</Link>
+                            <Link href="/membership" className="footer__link">Finder Memberships</Link>
+                            <Link href="/account" className="footer__link">Your Account</Link>
                             <Link href="/management" className="footer__link">Property Management</Link>
                             <Link href="/purchase-property" className="footer__link">Purchase Property</Link>
                         </nav>
