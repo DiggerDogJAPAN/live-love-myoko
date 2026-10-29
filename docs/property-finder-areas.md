@@ -19,6 +19,8 @@ The reviewed regional rule from commit `784d763` is restored for Myoko Akiya Ban
 
 `propertyArea` retains the existing municipality/locality selection values, such as `Myoko (Hakusancho)`. `propertyDisplayArea` and `propertyLocation` supply the corrected label. The dropdown uses an explicit stable `value` and the geographic display label; selection and keyword matching also recognize the corrected labels. The API retains the original `municipality`, `area`, `neighbourhood`, Japanese and regional fields. Only derived titles and image alt text change. Shinano, Joetsu and Iizuna keep their existing labels and values.
 
+Approved SUUMO and Rakusumu listings in Myoko have no bank regional metadata. Their exact English/Japanese neighbourhood names reuse the 16 reviewed classifications above. Conflicting names or explicit regional evidence retain the existing fallback. Unreviewed names stay unchanged; no additional readings or areas are guessed. This presentation rule does not alter municipality, neighbourhood data, stable filter values or portal eligibility. Shinano portal labels are unchanged.
+
 Finder has no separate local property-detail route: its original-listing action opens the source PDF. Those links and source pages are unchanged. The shared Finder title/location formatters apply to any Finder detail presentation that uses them; unrelated CMS property pages are intentionally untouched.
 
 The API already selects the regional columns from the restricted view; no query, stored record or database change is needed. Access, Hyperdrive, TLS, eligibility, photos, original links, database grants and Next.js static export remain unchanged. Unknown/conflicting regional labels are not silently assigned to Arai.

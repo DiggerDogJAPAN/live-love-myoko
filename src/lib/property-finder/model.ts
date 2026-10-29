@@ -48,12 +48,34 @@ const MYOKO_SOURCE_AREAS = new Map([
     ['Myoko', 'Myoko'], ['妙高', 'Myoko'],
 ]);
 
+// Exact municipal-bank neighbourhood classifications reviewed in
+// docs/property-finder-areas.md. Reuse them for approved portals with no regions;
+// never translate or assign a district to an unreviewed neighbourhood.
+const REVIEWED_MYOKO_NEIGHBOURHOODS = [
+    ['Ishizukacho', '石塚町', 'Arai'], ['Kyozukacho', '経塚町', 'Arai'],
+    ['Hakusancho', '白山町', 'Arai'], ['Oizumo', '小出雲', 'Arai'],
+    ['Hidanomori', '美守', 'Arai'], ['Kurihara', '栗原', 'Arai'],
+    ['Gakkocho', '学校町', 'Arai'], ['Kamibaba', '上馬場', 'Arai'],
+    ['Kagomachi', '籠町', 'Arai'], ['Asahicho', '朝日町', 'Arai'],
+    ['Chuocho', '中央町', 'Arai'], ['Yukimori', '雪森', 'Arai'],
+    ['Tsukioka', '月岡', 'Arai'], ['Sekigawa', '関川', 'Myoko Kogen'],
+    ['Suginosawa', '杉野沢', 'Myoko Kogen'], ['Taguchi', '田口', 'Myoko Kogen'],
+];
+
 function sourceDisplayArea(property: FinderProperty): string | null {
-    if (property.sourceName !== 'Myoko Akiya Bank' || !['Myoko', 'Myoko City'].includes(property.municipality || '')) return null;
+    if (!['Myoko', 'Myoko City'].includes(property.municipality || '')) return null;
     const english = MYOKO_SOURCE_AREAS.get(property.regionEn?.trim() || '');
     const japanese = MYOKO_SOURCE_AREAS.get(property.regionJa?.trim() || '');
     if (english && japanese && english !== japanese) return null;
-    return english || japanese || null;
+    if (property.sourceName === 'Myoko Akiya Bank') return english || japanese || null;
+    if (!['SUUMO', 'Rakusumu'].includes(property.sourceName)) return null;
+    const neighbourhood = property.neighbourhood?.trim();
+    const en = REVIEWED_MYOKO_NEIGHBOURHOODS.find(row => row[0] === neighbourhood);
+    const ja = REVIEWED_MYOKO_NEIGHBOURHOODS.find(row => row[1] === property.areaJa?.trim() || row[1] === neighbourhood);
+    if (en && ja && en !== ja) return null;
+    const reviewed = (en || ja)?.[2] || null;
+    if ((english || japanese) && (english || japanese) !== reviewed) return null;
+    return reviewed;
 }
 
 function locationLabel(property: FinderProperty, area: string | null): string {

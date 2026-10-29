@@ -678,3 +678,103 @@ test('Other municipalities keep their complete location labels and values when t
     }
     assert.deepEqual(locationOptions(properties, 'Myoko'), [{ value: 'Myoko (Sekigawa)', label: 'Myoko Kogen (Sekigawa)' }]);
 });
+
+const suumoRow: CustomerViewRow = {
+    ...row, source_attribution: 'Source: SUUMO', municipality: 'Myoko', transaction_type: 'sale', property_type: 'house',
+    location_en: 'Suginosawa', location_ja: '杉野沢', region_en: null, region_ja: null,
+    original_pdf_url: 'https://suumo.jp/chukoikkodate/niigata/sc_myoko/nc_90000001/',
+    thumbnail_url: 'https://img01.suumo.com/jj/resizeImage?src=gazo%2Fbukken%2F040%2FN010000%2Fimg%2F001%2F90000001%2F90000001_0001.jpg&w=192&h=144',
+};
+const rakusumuRow: CustomerViewRow = {
+    ...suumoRow, source_attribution: 'Source: Rakusumu', location_en: 'Chuocho', location_ja: '中央町',
+    original_pdf_url: 'https://www.rakusumu.com/sale/detail/99999-900001',
+    thumbnail_url: 'https://www.rakusumu.com/images/99999/99999-900001/img_99999-900001_G_0_smd.JPG?u=123',
+};
+
+test('Approved portal photographs use exact original URLs and the same redesigned card, source links, yen prices and enquiries', () => {
+    for (const source of [suumoRow, rakusumuRow]) {
+        const p = customerProperty(source)!;
+        assert(p && p.thumbnail);
+        assert.equal(p.thumbnail.src, source.thumbnail_url);
+        assert.equal(p.originalListingUrl, source.original_pdf_url);
+        assert.equal(p.askingPriceJpy, 12500000);
+        assert.equal(p.sourceName, source.source_attribution.slice(8));
+        const html = renderToStaticMarkup(createElement(PropertyFinderCard, { property: p }));
+        assert(html.includes(`src="${source.thumbnail_url!.replaceAll('&', '&amp;')}"`));
+        assert(!html.includes('/_next/image') && !html.includes('Property image unavailable'));
+        assert(html.includes('¥12,500,000') && html.includes('<dt>Type</dt><dd>House</dd>'));
+        assert(html.includes(`href="${source.original_pdf_url}" target="_blank" rel="noopener noreferrer"`));
+        assert(html.includes(`<h3>${propertyTitle(p)}</h3>`) && html.includes('Ask Us for Help'));
+        assert(new URL(enquiryMailto(p)).searchParams.get('body')!.includes(source.original_pdf_url!));
+        assert.equal(visibleThumbnail(p.thumbnail, p.thumbnail.src), null);
+        assert.equal(visibleThumbnail(p.thumbnail, 'https://previous.invalid/image.jpg'), p.thumbnail);
+        const missing = customerProperty({ ...source, thumbnail_url: null })!;
+        assert.equal(missing.thumbnail, null);
+        assert(renderToStaticMarkup(createElement(PropertyFinderCard, { property: missing })).includes('Property image unavailable'));
+    }
+});
+
+test('SUUMO thumbnail host, source identity, decoded property path and exact bounded resize queries are required', () => {
+    const src = suumoRow.thumbnail_url!;
+    for (const image of [src.replace('https:', 'http:'), src.replace('img01.suumo.com', 'img01.suumo.com.evil.invalid'),
+        src.replace('https://', 'https://user:password@'), src.replace('.com/', '.com:8443/'), src + '#photo', src + '&redirect=https://evil.invalid',
+        src + '&w=300', src.replace('w=192', 'w=10000'), src.replace('h=144', 'h=0'), src.replace('h=144', 'h=auto'), src.replace('&h=144', ''),
+        src.replace('90000001_0001', '90000002_0001'), src.replace('001%2F90000001', '001%2F90000002'),
+        src.replace('.jpg', '.svg'), src.replace('resizeImage', 'arbitraryProxy'), src.replace('src=gazo', 'src=https%3A%2F%2Fevil.invalid%2Fgazo'),
+        src.replaceAll('%2F', '%252F'), src.replace('gazo%2Fbukken', 'gazo%2Fbukken%2F..'),
+    ]) assert.equal(customerProperty({ ...suumoRow, thumbnail_url: image })!.thumbnail, null, image);
+    for (const extension of ['jpg', 'jpeg', 'png']) assert(customerProperty({ ...suumoRow, thumbnail_url: src.replace('.jpg', '.' + extension) })!.thumbnail);
+    const reordered = src.replace('?src=', '?h=144&src=').replace('&h=144', '');
+    assert.equal(customerProperty({ ...suumoRow, thumbnail_url: reordered })!.thumbnail!.src, reordered);
+});
+
+test('Rakusumu photographs require the exact agency/listing identity, G photographs and optional numeric cache query', () => {
+    const src = rakusumuRow.thumbnail_url!;
+    for (const image of [src.replace('https:', 'http:'), src.replace('www.rakusumu.com', 'www.rakusumu.com.evil.invalid'),
+        src.replace('https://', 'https://user:password@'), src.replace('.com/', '.com:8443/'), src + '#photo', src + '&redirect=https://evil.invalid',
+        src + '&u=456', src.replace('u=123', 'u=abc'), src.replace('_G_', '_M_'), src.replace('_G_', '_gallery_'),
+        src.replace('/images/99999/', '/images/99998/'), src.replace('/99999-900001/', '/99999-900002/'),
+        src.replace('img_99999-900001', 'img_99999-900002'), src.replace('.JPG', '.svg'),
+        suumoRow.thumbnail_url!,
+    ]) assert.equal(customerProperty({ ...rakusumuRow, thumbnail_url: image })!.thumbnail, null, image);
+    const uncached = src.split('?')[0];
+    assert.equal(customerProperty({ ...rakusumuRow, thumbnail_url: uncached })!.thumbnail!.src, uncached);
+    assert(customerProperty({ ...rakusumuRow, original_pdf_url: rakusumuRow.original_pdf_url!.replace('/detail/', '/fdetail/') })!.thumbnail);
+});
+
+test('Portal projection excludes Joetsu/Iizuna, unsafe or mismatched source URLs, rentals, land and unavailable records', () => {
+    for (const source of [suumoRow, rakusumuRow]) {
+        for (const municipality of ['Joetsu', 'Iizuna Town', null]) assert.equal(customerProperty({ ...source, municipality }), null);
+        for (const transaction_type of ['rent', null]) assert.equal(customerProperty({ ...source, transaction_type }), null);
+        for (const property_type of ['land', 'lodge', 'commercial', null]) assert.equal(customerProperty({ ...source, property_type }), null);
+        for (const availability_status of ['under_negotiation', 'sold', 'unknown']) assert.equal(customerProperty({ ...source, availability_status }), null);
+        for (const original_pdf_url of [null, source.original_pdf_url! + '?redirect=1', source.original_pdf_url! + '#photo', source.original_pdf_url!.replace('https:', 'http:'), source.original_pdf_url!.replace('https://', 'https://user:password@'), 'https://evil.invalid/listing/90000001']) {
+            assert.equal(customerProperty({ ...source, original_pdf_url }), null);
+        }
+    }
+    assert.equal(customerProperty({ ...suumoRow, original_pdf_url: suumoRow.original_pdf_url!.replace('sc_myoko', 'sc_joetsu') }), null);
+    assert.equal(customerProperty({ ...suumoRow, municipality: 'Shinano Town' }), null);
+    assert.equal(customerProperty({ ...rakusumuRow, municipality: 'Shinano Town' }), null);
+    const shinanoPortal = customerProperty({ ...suumoRow, municipality: 'Shinano Town', location_en: 'Nojiri', location_ja: '野尻', original_pdf_url: suumoRow.original_pdf_url!.replace('niigata/sc_myoko', 'nagano/sc_kamiminochigun') })!;
+    assert.equal(propertyLocation(shinanoPortal), 'Shinano (Nojiri)');
+    assert(shinanoPortal.thumbnail);
+    assert(customerProperty({ ...suumoRow, original_pdf_url: suumoRow.original_pdf_url!.replace('/chukoikkodate/', '/ikkodate/') }));
+});
+
+test('Municipal and portal Myoko locations share every previously reviewed area while stable filters and unknown readings stay intact', () => {
+    for (const [ja, en, area] of reviewedAreas) {
+        for (const source of [suumoRow, rakusumuRow]) {
+            const property = customerProperty({ ...source, location_en: en, location_ja: ja })!;
+            assert.equal(propertyLocation(property), `${area} (${en})`);
+            assert.equal(propertyArea(property), `Myoko (${en})`);
+            assert.equal(searchProperties([property], { ...initialFilters, area: `Myoko (${en})`, municipality: 'Myoko' }).length, 1);
+            assert.equal(searchProperties([property], { ...initialFilters, area: `${area} (${en})` }).length, 1);
+            assert.equal(propertyLocation({ ...property, neighbourhood: ja }), `${area} (${ja})`);
+        }
+    }
+    const unknown = customerProperty({ ...suumoRow, location_en: null, location_ja: '未確認地区', location_needs_review: true })!;
+    assert.equal(propertyLocation(unknown), 'Myoko (未確認地区)');
+    assert.equal(unknown.locationNeedsReview, true);
+    assert.equal(propertyLocation({ ...customerProperty(suumoRow)!, areaJa: '中央町' }), 'Myoko (Suginosawa)');
+    assert.equal(propertyLocation({ ...customerProperty(suumoRow)!, regionEn: 'Arai', regionJa: '新井' }), 'Myoko (Suginosawa)');
+});
