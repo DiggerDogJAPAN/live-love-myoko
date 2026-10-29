@@ -331,5 +331,5 @@ class JoetsuTests(TestCase):
     def test_workflow_preserves_approved_three_sources_and_schedule(self):
         workflow=Path('../.github/workflows/myoko-crawler.yml').read_text()
         active='\n'.join(line for line in workflow.splitlines() if not line.lstrip().startswith('#'))
-        self.assertIn('["myoko_akiya_bank","shinano_akiya_bank","joetsu_akiya_bank","iizuna_akiya_bank"]',active)
+        self.assertIn('["myoko_akiya_bank","shinano_akiya_bank","joetsu_akiya_bank","iizuna_akiya_bank","suumo","rakusumu"]',active)
         self.assertIn("cron: '17 21 * * *'",active)

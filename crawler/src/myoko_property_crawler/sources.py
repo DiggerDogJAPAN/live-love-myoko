@@ -11,6 +11,8 @@ class Source:
     additional_origins: tuple = ()
 
 SOURCES = {
+    'suumo': Source('suumo','SUUMO','https://suumo.jp/','suumo.jp','/chukoikkodate/',(('suumo.jp','/ikkodate/'),)),
+    'rakusumu': Source('rakusumu','Rakusumu','https://www.rakusumu.com/','www.rakusumu.com','/sale/detail/'),
     'iizuna_akiya_bank': Source('iizuna_akiya_bank', 'Iizuna Town Akiya Bank',
         'https://www.town.iizuna.nagano.jp/ijuportal/live/sale/search/', 'www.town.iizuna.nagano.jp', '/ijuportal/live/sale/',
         (('rakuen-akiya.jp','/bukken/'),)),
@@ -26,6 +28,9 @@ SOURCES = {
 def valid_property_number(source_key, value):
     """Preserve published string IDs, including Joetsu's significant zero padding."""
     import re
+    if source_key in {'suumo','rakusumu'}:
+        pattern=r'[0-9]{8}' if source_key=='suumo' else r'[0-9]{5}-[0-9]{6}'
+        return isinstance(value,str) and re.fullmatch(pattern,value) is not None
     if source_key == 'iizuna_akiya_bank':
         return isinstance(value,str) and re.fullmatch(r'(?:reg-[0-9]{3,}|rakuen-[0-9]+)',value) is not None
     pattern = r'(?:[1-9]|1[0-9]|2[0-8])-[0-9]+' if source_key == 'joetsu_akiya_bank' else r'[0-9]+'

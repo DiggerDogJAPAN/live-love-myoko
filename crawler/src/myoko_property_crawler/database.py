@@ -49,6 +49,10 @@ def prepare_sync(state, source_key=SOURCE):
                 or p.image_permission == ContentPermission.SYNTHETIC
                 or p.description_permission == ContentPermission.SYNTHETIC):
             raise SyncError('Only reviewed real source inventory is accepted; fixture/source mismatch rejected')
+    if source_key in {'suumo','rakusumu'} and any((p.source_facts or {}).get('duplicate_review_pending') not in {'true','false'} for p in properties):
+        raise SyncError('Portal inventory requires duplicate review classification')
+    if source_key in {'suumo','rakusumu'} and any((p.source_facts or {}).get('portal_inventory_complete')!='true' for p in properties):
+        raise SyncError('Partial portal inventory rejected')
     if source_key == 'iizuna_akiya_bank' and any((p.source_facts or {}).get('inventory_complete') != 'true' for p in properties):
         raise SyncError('Partial Iizuna previews cannot be synced; both feeds must validate')
     events = sorted((e for e in state.price_changes if e.source_key == source_key),
@@ -88,11 +92,12 @@ def history_covers_transition(old, prop, events):
 
 
 def _count(connection, source_key=SOURCE):
+    duplicate_gate = " AND NOT p.portal_duplicate_review_pending AND p.municipality IN ('Myoko','Shinano Town')" if source_key in {'suumo','rakusumu'} else ''
     return connection.execute("""SELECT
         (SELECT count(*) FROM crawler.properties WHERE source_key=%s) AS internal_properties,
         (SELECT count(*) FROM crawler.properties p JOIN crawler.sources s USING(source_key)
          WHERE p.source_key=%s AND NOT s.synthetic AND crawler.source_customer_eligible(
-             p.source_key,p.listing_status,p.availability_status,p.source_status_ja,p.transaction_type,p.property_type)) AS customer_properties""", (source_key,source_key)).fetchone()
+             p.source_key,p.listing_status,p.availability_status,p.source_status_ja,p.transaction_type,p.property_type)"""+duplicate_gate+""" ) AS customer_properties""", (source_key,source_key)).fetchone()
 
 
 def _apply(connection, properties, events, checked_at, snapshot, *, complete=False, warnings=(), source_key=SOURCE, records_extracted=None):
@@ -216,7 +221,7 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
         summary = {'inserted': inserted, 'updated': updated, 'price_events_added': price_events,
             'status_events_added': status_events, 'source_observed_at': checked_at.isoformat(),
             'absence_inference': complete, 'input': 'validated_html_index' if complete else 'reconciled_local_json'}
-        if source_key == 'iizuna_akiya_bank' and properties:
+        if source_key in {'iizuna_akiya_bank','suumo','rakusumu'} and properties:
             current = next((p for p in properties if p.last_checked_at == checked_at and p.listing_status.value != 'not_found'), properties[0])
             summary['feed_summary'] = json.loads((current.source_facts or {}).get('feed_summary', '{}'))
         finished = datetime.now(timezone.utc)

@@ -7,7 +7,7 @@ on:
         required: true
         default: all
         type: choice
-        options: [all, myoko_akiya_bank, shinano_akiya_bank, joetsu_akiya_bank, iizuna_akiya_bank]
+        options: [all, portals, myoko_akiya_bank, shinano_akiya_bank, joetsu_akiya_bank, iizuna_akiya_bank, suumo, rakusumu]
   schedule:
     - cron: '17 21 * * *' # 06:17 JST (UTC+9)
 permissions:
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        source: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source != 'all' && inputs.source != '' && format('["{0}"]', inputs.source) || '["myoko_akiya_bank","shinano_akiya_bank","joetsu_akiya_bank","iizuna_akiya_bank"]') }}
+        source: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.source == 'portals' && '["suumo","rakusumu"]' || github.event_name == 'workflow_dispatch' && inputs.source != 'all' && inputs.source != '' && format('["{0}"]', inputs.source) || '["myoko_akiya_bank","shinano_akiya_bank","joetsu_akiya_bank","iizuna_akiya_bank","suumo","rakusumu"]') }}
     name: Crawl ${{ matrix.source }}
     runs-on: ubuntu-latest
     timeout-minutes: 10

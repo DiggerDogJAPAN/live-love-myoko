@@ -197,8 +197,8 @@ class SchemaTests(unittest.TestCase):
     def test_prepared_sql_tests_parse_and_end_in_rollback(self):
         with patch("socket.socket", side_effect=AssertionError("Connections forbidden")):
             statement_count, body_count = parse_future_tests()
-        self.assertEqual(statement_count, 89)
-        self.assertEqual(body_count, 24)
+        self.assertEqual(statement_count, 95)
+        self.assertEqual(body_count, 26)
         for path in Path("sql/tests").glob("*.sql"):
             with self.subTest(path=path):
                 statements = parse_sql(path.read_text(encoding="utf-8"))

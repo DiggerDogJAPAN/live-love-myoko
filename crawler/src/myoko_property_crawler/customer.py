@@ -16,17 +16,28 @@ def is_customer_eligible(prop: Property) -> bool:
     Empty labels represent ordinary published cards; NEW/price badges do not
     restrict enquiries. Unmapped place names are unrelated to availability.
     """
-    if (prop.source_key not in {"myoko_akiya_bank", "shinano_akiya_bank", "joetsu_akiya_bank", "iizuna_akiya_bank"} or prop.listing_status != ListingStatus.ACTIVE
+    if (prop.source_key not in {"myoko_akiya_bank", "shinano_akiya_bank", "joetsu_akiya_bank", "iizuna_akiya_bank", "suumo", "rakusumu"} or prop.listing_status != ListingStatus.ACTIVE
             or prop.availability_status != AvailabilityStatus.ACTIVE):
         return False
     if prop.source_key in {'shinano_akiya_bank', 'joetsu_akiya_bank', 'iizuna_akiya_bank'} and (prop.transaction_type != 'sale' or prop.property_type not in {PropertyType.HOUSE,PropertyType.APARTMENT,PropertyType.LODGE,PropertyType.COMMERCIAL}):
         return False
-    if prop.source_key == 'iizuna_akiya_bank' and prop.property_type != PropertyType.HOUSE:
+    if prop.source_key in {'iizuna_akiya_bank','suumo','rakusumu'} and (prop.property_type != PropertyType.HOUSE or prop.transaction_type != 'sale'):
         return False
     if prop.source_key == 'joetsu_akiya_bank' and prop.source_property_id == '5-34':
         return False
+    if prop.source_key in {'suumo','rakusumu'}:
+        from .portal_scope import APPROVED_MUNICIPALITIES
+        if prop.municipality not in APPROVED_MUNICIPALITIES:return False
+        from .adapters.portal_common import geographic_scope
+        municipality,scope,_=geographic_scope(prop.address)
+        if scope!='verified' or municipality!=prop.municipality:
+            return False
+    if prop.source_key in {'suumo','rakusumu'} and (prop.source_facts or {}).get('residential_building_verified')!='true':
+        return False
+    if prop.source_key in {'suumo','rakusumu'} and (prop.source_facts or {}).get('duplicate_review_pending')=='true':
+        return False
     label = prop.source_status_ja
-    if label is None:
+    if label is None or prop.source_key in {'suumo','rakusumu'} and label in {'販売中','公開中'}:
         return True
     if not isinstance(label, str):
         return False
@@ -40,7 +51,7 @@ def customer_properties(properties: Iterable[Property]) -> list:
 
 
 def customer_property(prop: Property) -> dict:
-    if prop.source_key not in {"myoko_akiya_bank", "shinano_akiya_bank", "joetsu_akiya_bank", "iizuna_akiya_bank"}:
+    if prop.source_key not in {"myoko_akiya_bank", "shinano_akiya_bank", "joetsu_akiya_bank", "iizuna_akiya_bank", "suumo", "rakusumu"}:
         raise ValueError("Unknown customer property source")
     if not is_customer_eligible(prop):
         raise ValueError("Property is not eligible for the customer feed")
@@ -55,7 +66,7 @@ def customer_property(prop: Property) -> dict:
         "location_display": prop.area_en or prop.area,
         "region_ja": prop.region_ja, "region_en": prop.region_en,
         "location_needs_review": bool(prop.unmapped_locations),
-        "thumbnail_url": iizuna_photo(prop) if prop.source_key == 'iizuna_akiya_bank' else public_photo(prop) if prop.source_key == 'joetsu_akiya_bank' else prop.main_image_url if prop.image_permission == ContentPermission.PERMITTED else None,
+        "thumbnail_url": portal_photo(prop) if prop.source_key in {"suumo","rakusumu"} else iizuna_photo(prop) if prop.source_key == 'iizuna_akiya_bank' else public_photo(prop) if prop.source_key == 'joetsu_akiya_bank' else prop.main_image_url if prop.image_permission == ContentPermission.PERMITTED else None,
         "original_pdf_url": prop.original_listing_url,
         "publication_status": prop.listing_status.value,
         "availability_status": prop.availability_status.value,
@@ -65,3 +76,9 @@ def customer_property(prop: Property) -> dict:
         "last_checked_at": prop.last_checked_at.isoformat(),
         "purchase_conditions_ja": prop.purchase_conditions_ja,
     }
+
+
+def portal_photo(prop):
+    from .adapters.portal_common import photo
+    if prop.image_permission!=ContentPermission.PERMITTED:return None
+    return photo(prop.source_key,prop.source_property_id,prop.main_image_url)

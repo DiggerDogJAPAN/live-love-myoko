@@ -18,6 +18,7 @@ from .sources import SOURCES
 from .shinano_live import crawl_shinano, ShinanoClient
 from .joetsu_live import crawl_joetsu, JoetsuClient
 from .iizuna_live import crawl_iizuna, IizunaClient
+from .portal_live import crawl_suumo, crawl_rakusumu, PortalClient
 
 
 def database_state(connection, source_key=SOURCE):
@@ -29,7 +30,7 @@ def database_state(connection, source_key=SOURCE):
     rows = connection.execute('SELECT '+','.join(columns)+' FROM crawler.properties WHERE source_key=%s', (source_key,)).fetchall()
     properties = tuple(Property(**dict(row, source_agency_name=source['agency_name'], source_website=source['website'])) for row in rows)
     checked = source['last_successful_check_at']
-    if not properties and checked is None and source_key in {'shinano_akiya_bank', 'joetsu_akiya_bank', 'iizuna_akiya_bank'} and source['crawl_config'].get('allow_initial_empty') is True:
+    if not properties and checked is None and source_key in {'shinano_akiya_bank', 'joetsu_akiya_bank', 'iizuna_akiya_bank', 'suumo', 'rakusumu'} and source['crawl_config'].get('allow_initial_empty') is True:
         return State()
     if not properties or not checked or any(p.last_checked_at > checked for p in properties):
         raise PreflightError('Database baseline is empty or inconsistent; refusing an unseeded daily crawl')
@@ -38,7 +39,7 @@ def database_state(connection, source_key=SOURCE):
 
 def apply_live(connection, state, *, client=None, source_key=SOURCE):
     try:
-        result = ({SOURCE: crawl_live, 'shinano_akiya_bank': crawl_shinano, 'joetsu_akiya_bank': crawl_joetsu, 'iizuna_akiya_bank': crawl_iizuna}[source_key])(state, client=client)
+        result = ({SOURCE: crawl_live, 'shinano_akiya_bank': crawl_shinano, 'joetsu_akiya_bank': crawl_joetsu, 'iizuna_akiya_bank': crawl_iizuna, 'suumo':crawl_suumo, 'rakusumu':crawl_rakusumu}[source_key])(state, client=client)
     except ValueError as error:
         raise PreflightError('Source validation failed: '+str(error)) from None
     except HTTPError as error:
@@ -47,7 +48,19 @@ def apply_live(connection, state, *, client=None, source_key=SOURCE):
         raise PreflightError('Source network/TLS request failed') from None
     if not result.complete:
         raise PreflightError('Partial snapshot rejected; all existing property records preserved')
-    props, events, checked, snapshot = prepare_sync(result.reconciliation.state,source_key)
+    if source_key in {'suumo','rakusumu'}:
+        from dataclasses import replace
+        from .duplicate_review import annotate
+        columns=[f.name for f in fields(Property) if f.name not in ('source_agency_name','source_website')]
+        rows=connection.execute('SELECT '+','.join('p.'+c for c in columns)+',s.agency_name AS source_agency_name,s.website AS source_website FROM crawler.properties p JOIN crawler.sources s USING(source_key) WHERE p.source_key<>%s',(source_key,)).fetchall()
+        others=tuple(Property(**dict(row)) for row in rows)
+        from .portal_scope import APPROVED_MUNICIPALITIES
+        current=tuple(p for p in result.reconciliation.state.properties if p.municipality in APPROVED_MUNICIPALITIES)
+        reviewed={p.identity:p for p in annotate(current,others)}
+        state=replace(result.reconciliation.state,properties=tuple(reviewed.get(p.identity,p) for p in result.reconciliation.state.properties))
+    else:
+        state=result.reconciliation.state
+    props, events, checked, snapshot = prepare_sync(state,source_key)
     return _apply(connection, props, events, checked, snapshot, complete=True, warnings=result.warnings, source_key=source_key, records_extracted=result.records_extracted)
 
 
@@ -62,8 +75,8 @@ def main(argv=None):
         if not lock['acquired']:
             raise PreflightError('Another daily crawler is running')
         state = database_state(connection,source_key)
-        client_type={SOURCE: HTMLClient, 'shinano_akiya_bank': ShinanoClient, 'joetsu_akiya_bank': JoetsuClient, 'iizuna_akiya_bank': IizunaClient}[source_key]
-        result = apply_live(connection, state, client=client_type(user_agent=os.getenv('MYOKO_USER_AGENT', USER_AGENT)),source_key=source_key)
+        client_type={SOURCE: HTMLClient, 'shinano_akiya_bank': ShinanoClient, 'joetsu_akiya_bank': JoetsuClient, 'iizuna_akiya_bank': IizunaClient, 'suumo':PortalClient, 'rakusumu':PortalClient}[source_key]
+        result = apply_live(connection, state, client=PortalClient(source_key,user_agent=os.getenv('MYOKO_USER_AGENT', USER_AGENT)) if source_key in {'suumo','rakusumu'} else client_type(user_agent=os.getenv('MYOKO_USER_AGENT', USER_AGENT)),source_key=source_key)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except Exception as error:
