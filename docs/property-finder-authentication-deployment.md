@@ -1,6 +1,6 @@
 # Property Finder authentication deployment
 
-The current, authoritative procedure is the [Supabase-only application cutover](property-finder-supabase-cutover.md). It supersedes the previous Access-dependent staging commands and binding requirements. Application changes are local only; existing dashboard protection and rollback secrets remain unchanged.
+Supabase Auth is the sole production authentication provider. Both old Finder Access applications have been removed by the owner, who verified real administrator login and Finder access. Use the [current production checklist](property-finder-deployment-checklist.md); retain the [short cutover/rollback record](property-finder-supabase-cutover.md). Current runtime configuration does not require an Access gate, allowlist or legacy redirect.
 
 ## Registration password policy
 
@@ -14,6 +14,6 @@ Supabase email registration/confirmation, SMTP, canonical Site URL and exact `/a
 
 ## Complete static CMS release
 
-Every approved production release must run `npm run build` against the normal Directus setup, including its asset-download step. Independently verify the current 25 public properties, 2 accommodations, 377 CMS images, full descriptions, all existing routes, footer/navigation and other public assets in `out/`. A framework page count alone is insufficient. Stop if required content/assets are missing. Stage the whole regenerated export and approved source, then use the existing GitHub main → Pages workflow (`npm ci`, repository root, `out`). Do not deploy a partial export or switch to SSR/manual infrastructure.
+Every approved production release must run `npm run build` against the normal Directus setup, including its asset-download step. Independently verify the current 25 public properties, 2 accommodations, 377 CMS images, 418 public assets, full descriptions, all existing routes, footer/navigation and other public assets in `out/`. A framework page count alone is insufficient. Stop if required content/assets are missing. Stage the whole regenerated export and approved source, then use the existing GitHub main → Pages workflow (`npm ci`, repository root, `out`). Do not deploy a partial export or switch to SSR/manual infrastructure.
 
-Run all local tests, TypeScript, changed-file lint, the export security guard and production Pages Functions compilation. The detailed cutover guide specifies the owner approval gates, real administrator login acceptance while Access still protects the edge, later Access removal, clean-browser tests and rollback. No commit, push, deployment or dashboard change is authorized by preparation alone.
+Run all local tests, TypeScript, relevant lint, the export security guard and production Pages Functions compilation. Follow the current checklist for real administrator login, public CMS and anonymous/unpaid denial. Retain legacy rollback secrets until explicit deletion approval; do not recreate Access applications during routine deployment. Customer listing access stays disabled and no Stripe activation is included.

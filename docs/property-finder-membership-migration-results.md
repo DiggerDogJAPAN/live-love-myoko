@@ -1,5 +1,7 @@
 # Production membership migrations — applied 29 October 2026
 
+> Historical report: counts, rollout state and Cloudflare Access references below describe that earlier operation. Current production uses Supabase Auth only; the owner has removed both Finder Access applications. Follow the [current deployment checklist](property-finder-deployment-checklist.md) and preserve these migration/release facts as evidence.
+
 Applied to **Myoko Property Finder**, project `fgdoqsepihlzfqlqymet`, database `postgres`, PostgreSQL 17.11, using the existing administrator and verified TLS. The owner confirmed that automatic physical backups dated 27/28 October were completed with Restore available. PITR is not enabled. Restorability evidence was the owner's dashboard confirmation; no backup was restored or new backup service configured.
 
 | Applied SQL | Database commit time (JST) | SHA-256 |

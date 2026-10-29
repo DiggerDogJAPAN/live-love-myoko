@@ -56,8 +56,8 @@ Management page. Live redirect verification remains pending deployment.
 ## Property Finder
 
 - [Supabase-only cutover checklist](docs/property-finder-supabase-cutover.md):
-  staged GitHub → Pages release, complete CMS export, administrator acceptance,
-  then separately approved removal of the existing edge gate.
+  completed migration/rollback record; current releases use Supabase only.
+  Both old Finder edge applications have been removed by the owner.
 
 - Landing page: `/property-finder/`.
 - `npm run dev` serves the labelled synthetic directory at
@@ -82,5 +82,6 @@ Management page. Live redirect verification remains pending deployment.
 
 Existing Properties listings and Management services remain publicly accessible.
 Registration/account authentication is implemented; Stripe and paid customer
-listing activation remain later phases. Existing edge protection stays enabled
-until the staged Supabase administrator checks pass and its removal is approved.
+listing activation remain later phases. Supabase administrators need no subscription.
+Planned Basic is ¥2,000/month and Premium is ¥4,000/month; all customer listing
+access remains disabled.

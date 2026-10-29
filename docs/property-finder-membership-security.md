@@ -1,17 +1,13 @@
 # Property Finder membership security — Phase 1
 
-> Current implementation/preparation: see [Supabase-only cutover](property-finder-supabase-cutover.md). Access-dependent code, login routes and required bindings described below are historical; the replacement no longer trusts them. Keep the existing dashboard gate and rollback secrets until the staged verification/removal sequence is approved and completed.
-
-Status: application implementation remains local/uncommitted and is not deployed. The revised database migrations 001/002 were separately applied on 29 October 2026 at 17:22 JST; see [the production receipt](property-finder-membership-migration-results.md). The owner subsequently completed Supabase email/SMTP/redirect/session settings. Deployment preparation changes no production settings; Access, Hyperdrive and crawler configuration remain unchanged. Customer access remains disabled. No memberships or fake active accounts were created. Account-only deployment instructions are in the [Phase 2 checklist](property-finder-authentication-deployment.md).
-
-Phase 2 extends this foundation with cookie-backed account authentication, separate private administrator roles and schema version 2. See [the Phase 2 implementation, rollout controls and operator actions](property-finder-authentication.md). Its Auth rollout does not activate paid customer listing access; existing Cloudflare Access remains in place.
+Supabase Auth is the sole deployed authentication provider. The owner removed both Finder Cloudflare Access applications after real administrator acceptance. Migrations 001/002 are already applied; preserve their checksums, private helpers, roles and RLS. **Customer listing access remains disabled.** Current setup is in the [deployment checklist](property-finder-deployment-checklist.md); historical transition/rollback is in the [cutover record](property-finder-supabase-cutover.md).
 
 ## Current data routes and audit
 
 | Surface | Data/access boundary |
 | --- | --- |
 | `GET /api/property-finder/properties` (optional trailing slash/query) | The only Finder inventory endpoint. Common authorization runs before the property loader. Returns the bounded eligible snapshot; browser filters, sorting and six-card pagination operate on that authorized response. Pagination/query parameters do not bypass authorization or expand SQL eligibility. |
-| `GET /api/property-finder/login` | Cloudflare Access administrator verification only; fixed redirect to the protected search page, no property response. Customer tokens cannot use this as an administrator login. |
+| Legacy `GET /api/property-finder/login` | Removed; returns 404. Administrator login is `/login/` through Supabase. |
 | Detail, map, saved-property/search, refund and alternate data paths | Not implemented. Catch-all handler returns 404; unsupported methods return 405. There is no separate Finder detail endpoint; cards link directly to the original source. Future routes must choose a server-side permission through `authorizeFinderRequest`. The route-inventory test fails if another Functions handler is added without review. |
 | `/property-finder/search/`, `index.html`, RSC `.txt`, `/_next/` JS | Static access shell and presentation logic only. Live inventory is fetched after authorization, never imported during export or persisted in browser storage. The development fixture route remains development-only. An automated export guard checks HTML, RSC, JSON and JS for inventory, private artifacts, credential references and embedded tokens. |
 | Browser-to-Supabase REST, GraphQL, RPC or SQL | No Supabase client/keys or database credentials exist in Finder client code. Supabase browser roles receive no paid-schema grants, even when authenticated. Membership does not grant a PostgreSQL reader role to a customer. |
@@ -30,22 +26,9 @@ Read-only production checks:
 
 ## Server-side authorization
 
-```mermaid
-flowchart TD
-    A[Finder request] --> R[Explicit route and method allowlist]
-    R --> C{Access assertion present?}
-    C -->|yes| D[Verify API Access JWT and administrator email allowance]
-    C -->|no| E{Customer rollout enabled?}
-    E -->|no| X[Deny without a database read]
-    E -->|yes| F[Verify dedicated Supabase issuer, asymmetric signature, audience and session claims]
-    F --> G[Read private session/account/membership snapshot using verified user and session IDs]
-    G --> H[Validate paid period, active state, tier and server-chosen permission]
-    D --> I[Restricted eligible-property view]
-    H --> I
-    I --> J[Recheck customer time boundary; return private no-store JSON]
-```
+Every request first passes the explicit route/method/origin allowlist, verifies a Supabase JWT, then reads a fresh version-2 private account/session snapshot using the signed user/session IDs. An inactive or invalid account/session is denied. A private active administrator receives the selected permission without payment. A customer additionally requires the real active paid membership, permitted tier and valid dates, followed by the customer rollout flag. Finally the handler loads the restricted eligible-property view, rechecks the grant deadline and returns private no-store JSON.
 
-`FINDER_CUSTOMER_ACCESS` is **unset/`disabled` by default**. Only the exact server binding `enabled` admits the customer path. Unknown values deny customers. This setting is never read from a URL, cookie, header or browser flag. Administrator requests remain available independently, including when customer configuration is missing or invalid. A bad Access assertion never falls back to customer authentication.
+`FINDER_CUSTOMER_ACCESS=disabled` denies all customer listing access, including real paid memberships; unknown values also deny customers. The flag is server-only, never taken from a URL, header or browser flag. Administrators are independent of that flag but always require a verified active Supabase account/session. Cloudflare Access headers/cookies convey no permission.
 
 The customer verifier accepts only ES256/RS256 tokens from `https://<FINDER_DATABASE_PROJECT_REF>.supabase.co/auth/v1`, using that project's fixed JWKS endpoint. Audience must be exactly `authenticated`; the role must be `authenticated`, anonymous sessions are rejected, and signed user/session UUIDs plus issuance/expiry are validated. HS256 legacy shared secrets, service-role tokens, unrelated issuers/audiences, forged signatures and query-string tokens are not accepted. No service-role key is needed.
 
@@ -59,11 +42,11 @@ JWT/user metadata, payment-success URLs, request account IDs and `is_subscribed`
 | --- | --- |
 | Basic — planned ¥2,000/month | `listings:read`, `search:use` |
 | Premium — planned ¥4,000/month | Basic plus `saved-properties:use`, `saved-searches:use`, `maps:read`, `refund:request-review` |
-| Existing Access administrator | Existing independent administrator access |
+| Active private Supabase administrator | All defined Finder permissions; no subscription required |
 
 These permissions prepare the boundary; they do not implement Premium features or billing. `refund:request-review` only permits requesting a future review. It never establishes purchase/refund eligibility, pays money, or promises an automatic three-month refund. The later verified agency-purchase workflow must enforce the stated eligibility and maximum of three paid Premium months. Trusted billing code must map approved payment-provider price IDs to the tier; no client-supplied amount/tier can establish payment.
 
-All API responses, including denials, set private/no-store browser and CDN headers, no-cache/expiry headers, `Vary: Authorization, Cf-Access-Jwt-Assertion, Cookie`, same-origin resource policy and no CORS allowance. No ETag, cache API, 304 data path or persistent client inventory cache is used. A CDN rule must not override these controls; Hyperdrive membership query caching must stay disabled. Already viewed/downloaded data cannot be recalled from an authorized user's browser.
+All API responses, including denials, set private/no-store browser and CDN headers, no-cache/expiry headers, `Vary: Authorization, Cookie`, same-origin resource policy and no CORS allowance. No ETag, cache API, 304 data path or persistent client inventory cache is used. A CDN rule must not override these controls; Hyperdrive membership query caching must stay disabled. Already viewed/downloaded data cannot be recalled from an authorized user's browser.
 
 ## Database migration — revised and applied
 
@@ -77,12 +60,7 @@ The revised proposals have now been applied and verified in production; do not r
 
 ## Before customer enforcement may be activated
 
-1. Review the already-applied migration receipt and preserve its checksums; do not rerun 001/002. Production verification confirmed both snapshots, empty private tables, public-role denial and unchanged eligible-listing/crawler permissions. Local migration tests also exercise managed ownership restrictions; they do not replace real hosted lifecycle acceptance.
-2. Deploy and test the separately reviewed Phase 2 account flow using the [account-only checklist](property-finder-authentication-deployment.md). The owner has configured email/SMTP/redirect/session settings; real email, refresh/signout and account-deactivation tests remain acceptance actions. The foundation checks session existence and `not_after`; test any additional inactivity/single-session policies chosen for launch. Phase 2 already clears displayed data on signout/account switch and reauthorizes at expiry.
-3. Implement separately reviewed billing synchronization with authoritative paid-through/tier state, verified events, replay/idempotency handling, renewals, cancellations, failed payments, refunds and revocation. Provision no fake production entitlements and do not use the crawler writer or browser metadata.
-4. Implement each Premium endpoint with a server-chosen permission and verified-user ownership. Add saved-data schema/RLS tests before those features exist. Do not expose the private property or membership schemas via Data API grants.
-5. Review the existing Access applications and zone cache rules with appropriate dashboard permissions. Choose a controlled customer edge route/policy without removing administrator protection or opening an unguarded data path. Reconfirm exposed schemas and direct REST/GraphQL/RPC denial.
-6. Only after staging passes, explicitly approve enabling `FINDER_CUSTOMER_ACCESS=enabled`. Enabling early fails closed because there is no helper/paid ledger. Unset/disable the flag to stop customer requests while preserving administrator access. No public launch, production settings change or deployment is part of Phase 1.
+Preserve the applied migrations, exposed-schema restrictions, RLS, verified reader/TLS and isolated crawler writer. Implement separately reviewed billing synchronization with real paid entitlement writes and trusted tier mapping, then test lifecycle cancellation/expiry/refund behavior. Complete authenticated customer acceptance and explicitly approve enabling `FINDER_CUSTOMER_ACCESS`. Never create fake payments, seed active memberships, trust metadata or open a second unguarded data route. Registration/account management alone does not grant Finder access. Stripe, saved properties/searches, maps and refund processing remain future work.
 
 ## Validation
 

@@ -1,5 +1,7 @@
 # Membership migration compatibility and recovery
 
+> Historical report: counts, rollout state and Cloudflare Access references below describe that earlier operation. Current production uses Supabase Auth only; the owner has removed both Finder Access applications. Follow the [current deployment checklist](property-finder-deployment-checklist.md) and preserve these migration/release facts as evidence.
+
 Reviewed 29 October 2026. **The revised migrations were subsequently applied and verified in production at 17:22 JST on 29 October.** See [the application receipt](property-finder-membership-migration-results.md). Application configuration and code deployment remain unchanged; no accounts or memberships were created and no Git commit/push was performed. The design/local-validation discussion below records the review preceding that application.
 
 ## Revised ownership model

@@ -1,17 +1,12 @@
 # Property Finder authentication — Phase 2
 
-> Current implementation/preparation: see [Supabase-only cutover](property-finder-supabase-cutover.md). Access-dependent code, login routes and required bindings described below are historical; the replacement no longer trusts them. Keep the existing dashboard gate and rollback secrets until the staged verification/removal sequence is approved and completed.
-
-Status: application implementation remains local/uncommitted and is not deployed. The separately approved revised database migrations 001 and 002 were applied on 29 October 2026 at 17:22 JST; see [the production receipt](property-finder-membership-migration-results.md). The owner subsequently completed Supabase email/SMTP/redirect/session configuration. This deployment preparation changes no production provider, Access, Hyperdrive, Directus or crawler settings and creates no production users, administrator assignments or memberships. Phase 1 changes are preserved. See the [exact Pages bindings and first-registration deployment checklist](property-finder-authentication-deployment.md).
-
-
-The production preflight exposed managed Auth ownership restrictions that the first SQL fixture missed. Both proposals have now been revised locally; see [migration compatibility, validation limits and backup confirmation](property-finder-migration-compatibility.md). They were subsequently applied after the owner confirmed completed physical backups with Restore available; no application rollout was activated.
+Supabase Auth is deployed as the sole authentication provider. The owner has removed both Finder Cloudflare Access applications and verified real administrator login, Finder access and logout/fresh login. Production migrations 001/002 are already applied; do not replay them. See the [database receipt](property-finder-membership-migration-results.md), [current deployment guide](property-finder-authentication-deployment.md) and [short migration/rollback record](property-finder-supabase-cutover.md). Customer listing access remains disabled; no billing or paid fixtures are introduced by cleanup.
 
 ## Architecture and boundaries
 
 The Next.js export contains public, generic account screens. Cloudflare Pages Functions under `/api/auth/*` act as a same-origin backend for Supabase Auth. There is no Supabase browser SDK, browser database credential or browser-readable session store. Passwords travel over HTTPS to the Function and then to the fixed Supabase Auth origin; they are never logged, stored or reflected by this code.
 
-Supabase access and rotating refresh tokens are set only in `__Host-` cookies: HttpOnly, Secure, SameSite=Lax, Path=/ and no Domain. Access-cookie lifetime follows the provider response; the refresh cookie lasts at most 30 days. Supabase's own expiry/reuse/session policies remain authoritative. The account screen refreshes before access-token expiry, on return to the page, and after an expired session. Refresh requests are coalesced within a tab. No tokens are returned in JSON, URLs, localStorage or sessionStorage. Logout revokes the Supabase session and clears all four application cookies; a provider failure clears this browser but explicitly reports that server revocation was not confirmed. Cloudflare Access sessions are separate and are not signed out by account logout.
+Supabase access and rotating refresh tokens are set only in `__Host-` cookies: HttpOnly, Secure, SameSite=Lax, Path=/ and no Domain. Access-cookie lifetime follows the provider response; the refresh cookie lasts at most 30 days. Supabase's own expiry/reuse/session policies remain authoritative. The account screen refreshes before access-token expiry, on return to the page, and after an expired session. Refresh requests are coalesced within a tab. No tokens are returned in JSON, URLs, localStorage or sessionStorage. Logout revokes the Supabase session and clears all four application cookies; a provider failure clears this browser but explicitly reports that server revocation was not confirmed.
 
 All mutations require an exact trusted Origin, JSON content and a bounded body. Foreign origins, cross-site requests, unknown fields, role/tier/account-ID inputs and alternate actions/methods are rejected. Responses, including errors and callback redirects, disable browser/CDN caching and expose no CORS allowance. Provider calls use the fixed project host, no redirects, no cache and a ten-second timeout. Provider diagnostics are not reflected. Public Auth rate limits remain enforced by Supabase and 429 responses are retained; no rate-limit bypass or service-role key is used.
 
@@ -45,19 +40,16 @@ Account screens are public shells, with no personal information in generated HTM
 | Customer, active paid Basic | Own account | Standard listings/search, only after customer rollout is separately enabled |
 | Customer, active paid Premium | Own account | Basic and reserved Premium permissions, only after rollout; Premium features themselves remain unimplemented |
 | Private `administrator` role | Own account | No subscription required; valid live verified session/account required |
-| Existing allowlisted Cloudflare Access administrator | Existing workflow | Unchanged, independently of new Auth/database/account settings |
 
 The new private `finder_security.account_roles` stores `customer`/`administrator` separately from `memberships.tier`. Missing role rows mean customer; missing membership rows mean unpaid with no tier. No registration trigger, fake paid row, public administrator registration or metadata-based role assignment exists. Only an authorized database operator may promote a verified user by their real Auth UUID after approval. The web reader, browser roles, service_role and crawler writer have no private role/membership write grants. No administrator credential/seed is included.
 
-Schema version 2 validates email confirmation, account role/disable state and live Auth session independently of paid-ledger state. Version 1 remains available for the existing Phase 1 rollout, but cannot accept an injected administrator role. Customers still need a real active/paid ledger and valid dates. An account being registered or having `user_metadata.role`, `app_metadata.tier`, a claimed user ID, or a modified browser flag conveys no listing permission.
+Schema version 2 validates email confirmation, account role/disable state and live Auth session independently of paid-ledger state. The legacy version-1 helper remains for migration compatibility, but the deployed Finder request boundary requires schema version 2 and cannot accept an injected administrator role. Customers still need a real active/paid ledger and valid dates. An account being registered or having `user_metadata.role`, `app_metadata.tier`, a claimed user ID, or a modified browser flag conveys no listing permission.
 
-## Two independent rollout controls
+## Independent Auth and customer rollout controls
 
-`FINDER_AUTH_ENABLED` must be exactly `enabled` for account sessions and schema version 2. The pending `wrangler.jsonc` production section now sets this value; local/preview defaults remain disabled. Missing/invalid configuration fails closed. This flag does **not** activate customer listing access. Read-only Cloudflare inspection confirmed both new encrypted Auth secrets are present with matching names; the local flags will take effect only in the next approved deployment.
+Production `FINDER_AUTH_ENABLED=enabled` enables the existing Supabase account/session flows; local/preview defaults remain disabled. Missing or invalid configuration fails closed. This does not activate customer listing access. Keep `FINDER_CUSTOMER_ACCESS=disabled`: even a genuinely paid customer cannot retrieve listings while disabled. Private active administrators authorize independently of payment/that flag, using the same verified Supabase identity and fresh session/account checks. Old Access assertions, cookies and email headers never grant permission, and there is no alternative administrator login redirect.
 
-Keep `FINDER_CUSTOMER_ACCESS` **unset or `disabled`** throughout Phase 2. Even a genuinely paid customer snapshot cannot read listings while it is disabled. Private server-assigned administrators may authorize without payment; existing Cloudflare administrators retain their original independent route. Invalid Cloudflare assertions never fall back to a cookie/token.
-
-Cloudflare Access protection on the existing Finder page/API is preserved. New public Auth routes serve identity/account flows only and never return property inventory. A new Supabase role does not itself grant entry through an existing Cloudflare Access edge policy. The account dashboard therefore keeps the Cloudflare administrator sign-in link. Do not widen/remove those edge policies to make customer login appear to unlock listings. A later reviewed Access transition is still required before customers can use Finder.
+Registration requires a trimmed Full Name (up to 80 characters) and a password of at least eight characters on frontend and server. Guidance is exactly **Must be 8 characters or more.** The owner confirmed the Supabase production minimum is eight; the technical maximum of 128 remains enforced but is not displayed. Profile metadata stores `full_name` without granting permissions; existing registered accounts remain compatible.
 
 ## SQL proposals and safe testing
 
@@ -75,20 +67,20 @@ Apply [001](../sql/proposals/001_finder_membership_foundation.sql), then [002](.
 
 PGlite tests real PostgreSQL SQL, privileges and RLS in isolation; it is **not a hosted Supabase replica**. The revised fixture models non-superuser postgres and separate managed Auth owners, without Auth grant authority. The owner elected to skip the disposable hosted test; the subsequent approved production application and verification are recorded in the receipt. This preparation preserves those exact SQL checksums and applies no migration. Confirm the Data API exposed schemas exclude `finder_security` and preserve direct REST/GraphQL/RPC denial.
 
-## Operator configuration still required
+## Existing operator configuration
 
-Do not put values in source code, tracked `out/`, client environment variables or this document. Set server-only Pages bindings/secrets only for the separately approved account deployment. The [deployment checklist](property-finder-authentication-deployment.md) lists every new/existing binding, its source and whether it is secret:
+Do not put values in source code, tracked `out/`, client environment variables or this document. Preserve the existing server-only Pages bindings/secrets. The [deployment checklist](property-finder-authentication-deployment.md) lists every new/existing binding, its source and whether it is secret:
 
 | Binding | Required value/purpose |
 | --- | --- |
-| `FINDER_AUTH_ENABLED` | `enabled` only for the separately approved Auth rollout |
+| `FINDER_AUTH_ENABLED` | `enabled` in production; disabled by default locally |
 | `FINDER_AUTH_SITE_ORIGIN` | `https://love-live-myoko.com`; exact canonical origin. Local HTTP localhost/127.0.0.1 is accepted for isolated Functions tests, but cookies always remain Secure. Other preview/staging hosts need an explicitly reviewed origin allowlist change. |
 | `FINDER_SUPABASE_PUBLISHABLE_KEY` | Modern `sb_publishable_…` key for the same project as `FINDER_DATABASE_PROJECT_REF`. Secret/service-role/legacy JWT keys are rejected. |
 | `FINDER_AUTH_COOKIE_SECRET` | Independently generated cryptographically random signing secret (e.g. 32 random bytes encoded as base64url, at least 43 characters); keep private. Rotation invalidates pending verification/recovery flow cookies, not Supabase sessions. |
 | `FINDER_GOOGLE_LOGIN_ENABLED` | `enabled` only after Google OAuth is configured and tested; otherwise `disabled` |
 | `FINDER_CUSTOMER_ACCESS` | **Keep `disabled`** |
 
-Existing reader/Hyperdrive/TLS/Access bindings remain unchanged. Do not use the crawler writer or Supabase secret/service-role key.
+Existing reader/Hyperdrive/TLS bindings remain unchanged; old Access secrets are retained only for the separately approved rollback window. Do not use the crawler writer or Supabase secret/service-role key.
 
 Supabase dashboard status and remaining acceptance actions:
 
@@ -99,7 +91,7 @@ Supabase dashboard status and remaining acceptance actions:
 5. Optional Google: create the OAuth client in Google Cloud, configure the allowed Google redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`, and enter its client ID/secret in Supabase's Google provider dashboard only. Preserve the exact app callback allowlist above. Test consent, cancellation, verification and account-linking behaviour before enabling our Google flag.
 6. Any future administrator promotion requires separate approval using the intended verified Auth user UUID. No new administrator is needed to test ordinary registration. Do not add administrators to public registration or seed fictitious accounts/payments.
 
-No dashboard/provider settings were changed during this preparation. No real signup, email, OAuth consent or production payment was exercised. The first real email/browser acceptance checklist follows the separately approved deployment; existing Cloudflare Access/cache-policy review remains required. Local UI/HTTP tests are not a claim of working email delivery or OAuth configuration.
+The owner has verified real registration/login and administrator Finder access. This cleanup changes no provider settings and creates no users, roles, memberships or payments. New email recovery/refresh behavior still requires real-flow acceptance when changed; automated provider mocks do not establish email delivery or optional Google configuration.
 
 ## Validation and later phases
 
@@ -113,10 +105,10 @@ Deployment preparation revalidated on 29 October 2026 after the PKCE resend fix 
 
 ### Dependency security patches
 
-Deployment preparation updated Next and the matching ESLint configuration from 16.3.5 to **16.4.3**, with compatible transitive patches, using no forced major upgrades. The initial full audit reported 13 findings, including critical/high framework and transitive advisories; the patched lockfile's full `npm audit` reports **zero vulnerabilities**. React, database access and the static-export architecture are preserved. The framework release includes the fixes recommended by the maintainer's [ImageResponse advisory](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j), [Cache Components advisory](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr) and [development-server disclosure](https://github.com/vercel/next.js/security/advisories/GHSA-39w2-rjm5-chcv); see the [16.4.3 release](https://github.com/vercel/next.js/releases/tag/v16.4.3).
+Deployment preparation updated Next and the matching ESLint configuration from 16.3.5 to **16.4.3**, with compatible transitive patches, using no forced major upgrades. The initial full audit reported 13 findings, including critical/high framework and transitive advisories; the deployment-preparation audit of the patched lockfile reported **zero vulnerabilities**. React, database access and the static-export architecture are preserved. The framework release includes the fixes recommended by the maintainer's [ImageResponse advisory](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j), [Cache Components advisory](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr) and [development-server disclosure](https://github.com/vercel/next.js/security/advisories/GHSA-39w2-rjm5-chcv); see the [16.4.3 release](https://github.com/vercel/next.js/releases/tag/v16.4.3).
 
-This production architecture serves a static export and separate Pages Functions, without a Next server, ImageResponse route or `use cache` function in application source. Dependency patches are local and are included in the production rebuild/Functions checks; they have not been deployed. An audit result does not replace the application authorization tests or real registration acceptance.
+This production architecture serves a static export and separate Pages Functions, without a Next server, ImageResponse route or `use cache` function in application source. Dependency patches are local and are included in the production rebuild/Functions checks; they are included in the deployed authentication release. An audit result does not replace the application authorization tests or real registration acceptance.
 
-Before paid access: implement separately reviewed billing synchronization with real paid entitlement writes, complete the controlled Cloudflare customer-access transition, and obtain explicit approval to enable `FINDER_CUSTOMER_ACCESS`. Stripe Checkout/billing, saved properties/searches, interactive map and refund processing are intentionally not implemented here.
+Before paid access: implement separately reviewed billing synchronization with real paid entitlement writes, complete real customer acceptance, and obtain explicit approval to enable `FINDER_CUSTOMER_ACCESS`. Stripe Checkout/billing, saved properties/searches, interactive map and refund processing are intentionally not implemented here.
 
 Primary references: [Supabase Auth REST schema](https://github.com/supabase/auth/blob/master/openapi.yaml), [PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow), [password flows](https://supabase.com/docs/guides/auth/passwords), [PGlite](https://pglite.dev/docs/).

@@ -1,171 +1,44 @@
-# Private Property Finder deployment — dashboard confirmation
+# Property Finder — current production deployment checklist
 
-> Current implementation/preparation: see [Supabase-only cutover](property-finder-supabase-cutover.md). Access-dependent code, login routes and required bindings described below are historical; the replacement no longer trusts them. Keep the existing dashboard gate and rollback secrets until the staged verification/removal sequence is approved and completed.
+Supabase Auth is the sole authentication provider. The owner removed both Finder Cloudflare Access applications after testing Supabase administrator login and Finder access. No Access application, allowlist or redirect is a deployment prerequisite. Keep the short [migration/rollback record](property-finder-supabase-cutover.md) and [legacy-secret review](property-finder-access-removal.md).
 
-**Deployment workflow stays GitHub → Cloudflare Pages automatic builds.**
-No Wrangler deployment, direct upload, new Pages project, domain change, SSR,
-Next.js API route or Node.js hosting service is required. `output: 'export'`
-remains enabled. The static site is `out/`; the API is a separate Pages Function
-compiled from `functions/` at repository root.
+## Existing deployment and database configuration
 
-Local preflight passes: 41 static pages, TypeScript, five focused tests, targeted
-lint (zero errors/four existing homepage image warnings), Pages Functions
-compilation, local asset/link checks, redirects/SEO preservation and public
-artifact scans excluding secrets and synthetic inventory. Account inspection
-confirms the existing project and required production settings below. Deployment
-uses the reviewed source and generated export committed to `main`.
+- Repository `DiggerDogJAPAN/live-love-myoko`, branch `main`, Pages project `livelove`.
+- Existing GitHub → Pages automatic deployment: repository root, command `npm ci`, output `out`. This installs Function dependencies and publishes the **tracked complete static export**; it does not fetch CMS content or rebuild Next.js remotely.
+- Root `functions/` contains `/api/auth/*` and `/api/property-finder/*`; retain `nodejs_compat`, static export and `out/_routes.json`. No separate manual deployment, SSR adapter or new infrastructure.
+- Existing `FINDER_HYPERDRIVE` resource `d2e1e9cc5947483f8747b8e84ccaf57b`, restricted reader, Supabase CA/verify-full and disabled query caching remain unchanged. Never use crawler/admin writer credentials in the website. Keep production migrations 001/002, RLS and grants intact.
 
-## 1. Existing Pages project and Git build settings
+## Production bindings — preserve values
 
-Open **Workers & Pages → existing Love Live Myoko Pages project → Settings**.
-Confirm/report these non-secret settings:
-
-- Existing **Pages project name: `livelove`** (`wrangler.jsonc.name` now matches).
-- Connected GitHub repository: **DiggerDogJAPAN/live-love-myoko**.
-- Production branch: **main**, with automatic deployments enabled.
-- Build root: **repository root** (blank/default or `/`), containing `package.json`
-  and the sibling `functions/` directory.
-- Build output directory: **out**.
-- Current **build command: `npm ci`**. This installs the Function dependencies
-  (`pg` and `jose`) before Pages compiles root `functions/`. The first deployment
-  with a blank command skipped installation and failed to resolve those modules.
-  Pages still publishes the committed static `out/` export; no new adapter or
-  runtime is required.
-
-The repository already tracks generated `out/` assets. If the established Pages
-build publishes that tracked export, preserve that method and include a freshly
-verified export in the upcoming commit. If Pages instead runs `npm run build`,
-preserve it only with working existing Directus build bindings: its CMS download
-step must reach a real remote CMS, not the local `127.0.0.1:8057` used on this Mac.
-Do not substitute an SSR framework adapter, `.next`, `next start`, OpenNext or
-`next-on-pages` for the existing static build.
-
-Git-connected Pages automatically compiles a repository-root `functions/`
-directory. Its source must be committed with the static export; a static-only
-artifact upload is not the deployment method. After deployment, confirm the
-Functions list includes `/api/property-finder/*`. Local Wrangler compilation
-already confirms this route is generated.
-
-## 2. Production runtime variables/secrets
-
-Inspection confirms **all five settings below are present in Production as
-encrypted secrets**. The four original plaintext values were compared with local
-`.dev.vars` before encryption. Encrypted values cannot be read back or compared.
-In **Workers & Pages → livelove → Settings → Variables and Secrets → Production**,
-keep these settings. Copy any corrections privately from `.dev.vars`; do not post
-their values in chat or commit the file.
-
-| Name | Required value |
+| Binding | Required state |
 | --- | --- |
-| `FINDER_ACCESS_TEAM_DOMAIN` | Configured HTTPS Access team domain |
-| `FINDER_ACCESS_AUD` | **API** application's AUD, protecting `/api/property-finder/*` |
-| `FINDER_ADMIN_EMAILS` | Exactly `info@myokoworks.com` |
-| `FINDER_DATABASE_PROJECT_REF` | Dedicated Myoko Property Finder project reference |
-| `FINDER_DATABASE_URL` | Provisioned restricted reader URI from local `.dev.vars` |
+| `FINDER_AUTH_ENABLED` | `enabled` |
+| `FINDER_AUTH_SITE_ORIGIN` | `https://love-live-myoko.com` |
+| `FINDER_CUSTOMER_ACCESS` | **`disabled`** |
+| `FINDER_GOOGLE_LOGIN_ENABLED` | `disabled` until separately configured/tested |
+| `FINDER_SUPABASE_PUBLISHABLE_KEY` | Existing encrypted publishable key for the dedicated project |
+| `FINDER_AUTH_COOKIE_SECRET` | Existing encrypted signing secret |
+| `FINDER_DATABASE_PROJECT_REF` | Existing encrypted `fgdoqsepihlzfqlqymet` binding |
+| `FINDER_DATABASE_URL` | Existing encrypted restricted-reader connection |
+| `FINDER_HYPERDRIVE` | Existing resource binding, not a secret/vars entry |
 
-Keep these as encrypted runtime secrets rather than `vars` in Wrangler source.
-The Wrangler file controls ordinary variable bindings during deployment. Keep existing unrelated website
-bindings. Do not set `NODE_ENV=development` or use `NEXT_PUBLIC_*` for credentials.
-`FINDER_LOCAL_CA_FILE` is local-only and must not be copied as a hosted file path.
+`FINDER_LOCAL_CA_FILE` is local-only. Preserve Directus build bindings. Retained legacy secrets are rollback-only and not prerequisites for the current application; do not delete them without explicit approval. Do not copy any secret into browser variables, source or generated files.
 
-## 3. Required production database connection: Hyperdrive
+## Mandatory complete CMS build before every push
 
-The database certificate is signed by **Supabase Root 2021 CA**. The local launcher
-uses Wrangler's Hyperdrive emulator with `verify-full` and `sslrootcert` supplied
-privately via the environment. This does not exercise the hosted connector.
-Production uses the **FINDER_HYPERDRIVE** binding with its uploaded CA.
+1. Inventory all current published Directus properties/accommodations using the established configuration without changing CMS settings/data.
+2. Run `npm run build`: CMS image download, Next.js static production build and Finder export-security guard. Verify **25 public properties, 2 accommodations, 377 CMS images and 418 public assets**. Stop for missing content, failed downloads or unexpected reductions.
+3. Independently verify each CMS URL, titles/descriptions, featured/gallery images and existing public routes/assets. Confirm navigation and the four-column footer/account links. A framework page count alone does not prove completeness.
+4. Run `node --import tsx --test tests/*.test.ts`, `npx tsc --noEmit`, relevant ESLint and production Pages Functions compilation. Check generated files for inventory/credentials and Git changes for private files or unrelated work.
+5. Stage only intended source/docs/tests plus the **entire regenerated `out/`**, including old hashed-file deletions. Commit/push to `origin/main` only within the approved scope. Let the existing Pages integration deploy; stop on build/deployment failure.
 
-In **Cloudflare → Hyperdrive → Create configuration** (or inspect an existing
-appropriate configuration):
+## Immediate production acceptance
 
-1. Select **PostgreSQL**. Use only the restricted connection from `.dev.vars`,
-   never the crawler administrator. Keep its database/host/port/user unchanged.
-2. Use **Server certificates → Verify full (`verify-full`)** and the existing
-   **Supabase Root 2021 CA** PEM referenced by local `FINDER_LOCAL_CA_FILE`.
-3. **Disable query caching**. Do not use plaintext, `require` alone, `verify-ca`
-   alone or disable certificate/hostname verification.
-4. Save only once the origin connection validation succeeds. Record the resulting
-   Hyperdrive configuration ID; it is a resource identifier, not a password.
+Wait for the exact commit's Pages deployment to succeed. Confirm public pages, all CMS routes/content and representative images; compare deployed static chunks with the approved export. Login/registration remain public; registration requires trimmed Full Name and eight password characters, with exact guidance **Must be 8 characters or more.**
 
-If the CA is not yet in Cloudflare's certificate store, the documented one-time
-upload is:
+Without cookies, search serves a generic shell and the inventory API returns HTTP 401 JSON, no Access challenge or listings. Invalid bearer credentials and forged legacy headers/cookies must also fail closed. Private data responses must use no-store browser/CDN headers.
 
-```sh
-npx wrangler login
-npx wrangler cert upload certificate-authority --ca-cert "/actual/path/from/FINDER_LOCAL_CA_FILE" --name property-finder-supabase-ca
-```
+Use the existing real administrator for interactive acceptance: login → account shows Administrator/no subscription required → Finder listings → logout → denial → fresh login. Do not create accounts or paid fixtures without authorization. Unpaid customers must receive no listing data; Basic/Premium boundaries remain tested server-side while `FINDER_CUSTOMER_ACCESS=disabled` blocks all customer listings. No Stripe or paid activation is part of a maintenance deployment.
 
-This manages a CA certificate, **not a code deployment**. GitHub → Pages remains
-the deployment path. The certificate file is public CA material; never put a DB
-password/connection URI on the command line.
-
-The local `wrangler.jsonc` now declares this resource binding for the existing
-project, to be applied by the future Git-connected Pages deployment:
-
-| Field | Value |
-| --- | --- |
-| Binding name | `FINDER_HYPERDRIVE` |
-| Configuration name | `myoko-property-finder` |
-| Configuration ID | `d2e1e9cc5947483f8747b8e84ccaf57b` |
-
-This is a Hyperdrive resource binding, not a plaintext variable/secret. Do not add
-`FINDER_HYPERDRIVE` under Variables and Secrets. No remote Pages binding change
-has been made yet.
-
-**Reader credentials verified on 28 October 2026:** the existing Hyperdrive origin
-was updated from private `.dev.vars` with the owner's authorization. Its saved
-username is `property_finder_web_reader.<project-ref>`, matching the dedicated
-Supabase session pooler connection. The host/port/database, uploaded CA
-(`property-finder-supabase-ca`), `verify-full` and disabled caching were preserved.
-The same restricted credentials passed verified-TLS database checks: 20 eligible
-rows; internal-table access, writes, privileged role changes and RLS bypass denied.
-No credentials or listing contents were logged. The Pages Function uses
-Cloudflare's internal binding connection; Hyperdrive verifies the origin TLS chain
-and hostname. The API also checks the real database session is the dedicated reader
-before reading data. A genuine Access-authorized production request remains the
-end-to-end verification after the Git-connected deployment. The local Pages API
-has passed a genuine Access-authenticated HTTP check: 20 eligible properties,
-with missing/forged assertions denied. The old custom preview's macOS direct-TLS
-failure was resolved by using Wrangler's supported Hyperdrive emulator; no
-production authentication, SQL, permissions or TLS settings were weakened.
-
-## 4. Access applications — inspect, do not automatically change policies
-
-In **Zero Trust → Access controls → Applications**, verify the existing policies:
-
-- The private directory application covers apex `/property-finder/search*`,
-  including its trailing slash, `index.html` and RSC payload paths.
-- The API application covers apex `/api/property-finder/*`.
-- Both allow **only info@myokoworks.com**, with no broader Allow/Bypass policy.
-- The public `/property-finder/` landing page and homepage stay outside those paths.
-- Additional `www` entries can remain, but app sign-in links and the API's final
-  sign-in redirect now explicitly use **https://love-live-myoko.com**.
-
-Unauthenticated public checks already confirm Access redirects on both private
-routes. Their application audiences differ, and the API audience matches local
-`FINDER_ACCESS_AUD`. This is supported: the edge validates the search application's
-session; the API independently validates **only its own** application JWT and the
-admin allowlist. Do not put the search audience into the API setting or accept
-unrelated application audiences as a workaround. Full-page links into the private
-search route allow the normal Access browser challenge instead of an intercepted
-Next.js client-side transition.
-
-## 5. Deployment checks
-
-Report only:
-
-1. Existing Pages project name, current build command, root/output and branch.
-2. All five Production variables are present; admin email is exact; API AUD is used.
-3. Hyperdrive is validated with the restricted reader, existing CA, verify-full and
-   caching disabled; its **configuration ID** and binding name.
-4. Both existing Access applications allow only the required email.
-
-After the reader, production variables and local checks pass, commit the reviewed
-source/export and push normally to `main`. Let the existing
-Git-connected Pages workflow deploy it. Then verify the resulting Pages deployment,
-public pages, Access sign-in, genuine authorized API/listing actions and denial of
-unauthenticated access. No public paid launch or Stripe integration is included.
-
-References: [Pages Functions with Git](https://developers.cloudflare.com/pages/functions/get-started/),
-[Pages Hyperdrive bindings](https://developers.cloudflare.com/pages/functions/wrangler-configuration/#hyperdrive),
-[Hyperdrive verify-full with custom CA](https://developers.cloudflare.com/hyperdrive/configuration/tls-ssl-certificates-for-hyperdrive/).
+If a security regression appears, stop and follow the recorded rollback process; never bypass authorization, change private roles or broaden database grants to make tests pass.

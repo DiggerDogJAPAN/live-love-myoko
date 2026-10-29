@@ -1,5 +1,7 @@
 # Shinano Finder readiness — 28 October 2026
 
+> Historical report: counts, rollout state and Cloudflare Access references below describe that earlier operation. Current production uses Supabase Auth only; the owner has removed both Finder Access applications. Follow the [current deployment checklist](property-finder-deployment-checklist.md) and preserve these migration/release facts as evidence.
+
 ## Approved release preparation update
 
 Migration 003 is now installed and verified in production; see
