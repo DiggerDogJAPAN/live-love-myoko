@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { announceSignout, authMessage, authRequest, fetchAccount, refreshSession } from '@/lib/auth/client';
 import type { AccountDetails } from '@/lib/auth/types';
 import styles from './auth.module.css';
+import SavedPropertiesSection from '../property-finder/SavedPropertiesSection';
 export default function AccountDashboard() {
     const [account, setAccount] = useState<AccountDetails | null>(null), [loading, setLoading] = useState(true);
     const [message, setMessage] = useState(''), [name, setName] = useState(''), [busy, setBusy] = useState(false);
@@ -62,5 +63,6 @@ export default function AccountDashboard() {
                             : <p>Your membership is recorded, but member listing access has not been activated yet.</p>}
             </section>
         </div>
+        <SavedPropertiesSection key={account.user.id} account={account} />
     </>;
 }

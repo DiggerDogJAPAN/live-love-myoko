@@ -1,11 +1,13 @@
-/** Customer-facing display fields only. No crawler IDs, raw labels or credentials.
- * A future authenticated backend must project and authorize records before delivery.
+/** Customer-facing display fields only. Opaque stable listing IDs only; no private source facts or credentials.
+ * The authenticated backend projects and authorizes records before delivery.
  * Neither a browser flag nor this model is an entitlement/eligibility check.
  */
 import { locationMunicipality, normalizedNeighbourhood, reviewedLocation } from './locations';
 export const finderMunicipalities = ['Myoko', 'Shinano', 'Joetsu', 'Iizuna Town'] as const;
 
 export interface FinderProperty {
+    /** Stable opaque UUID, projected only for eligible live records. */
+    id?: string;
     title: string | null;
     municipality: string | null;
     /** Visitor-facing area; source neighbourhoods are retained separately. */

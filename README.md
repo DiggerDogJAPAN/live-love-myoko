@@ -74,6 +74,9 @@ Management page. Live redirect verification remains pending deployment.
   verified TLS and the CA without writing credentials to configuration or logs.
   Production uses the configured hosted Hyperdrive binding.
 - Run `npm run finder:check` for the focused synthetic API/security checks.
+- [Premium Saved Properties](docs/property-finder-saved-properties.md):
+  stable listing IDs, private bookmarks and Premium/admin authorization.
+  Migration 003 is applied and verified; customer access remains disabled.
 - [Authentication deployment guide](docs/property-finder-authentication-deployment.md):
   current runtime bindings, setup and local/live acceptance instructions.
   The reader was provisioned on 28 October 2026. The SQL in

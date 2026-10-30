@@ -29,10 +29,13 @@ export function accountDetails(account: Awaited<ReturnType<typeof verifiedAccoun
     const { user, snapshot, identity } = account;
     let active = false;
     try { authorizeMembership(identity, snapshot, 'listings:read'); active = true; } catch { /* Unpaid accounts can manage their account, never listings. */ }
+    let savedAccess = false;
+    try { authorizeMembership(identity, snapshot, 'saved-properties:use'); savedAccess = true; } catch { /* Premium/admin only. */ }
     const administrator = snapshot.role === 'administrator';
     return { user: { id: identity.userId, email: user.email!, name: typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name.slice(0, 80) : '', verified: true },
         sessionExpiresAt: identity.tokenExpiresAt,
         role: administrator ? 'administrator' : 'customer', membership: { tier: administrator ? null : snapshot.tier === 'basic' || snapshot.tier === 'premium' ? snapshot.tier : null,
             status: administrator ? 'not_required' : snapshot.status, paidThrough: administrator ? null : snapshot.paidThrough, active: !administrator && active },
+        savedPropertiesAccess: savedAccess && (administrator || env.FINDER_CUSTOMER_ACCESS === 'enabled'),
         finderAccess: active && (administrator || env.FINDER_CUSTOMER_ACCESS === 'enabled'), paidAccessEnabled: env.FINDER_CUSTOMER_ACCESS === 'enabled' };
 }

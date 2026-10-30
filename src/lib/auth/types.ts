@@ -4,5 +4,6 @@ export interface AccountDetails {
     role: 'customer' | 'administrator';
     membership: { tier: 'basic' | 'premium' | null; status: string; paidThrough: string | null; active: boolean };
     finderAccess: boolean;
+    savedPropertiesAccess?: boolean;
     paidAccessEnabled: boolean;
 }

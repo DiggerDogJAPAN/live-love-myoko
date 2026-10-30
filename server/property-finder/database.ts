@@ -107,6 +107,7 @@ export function databaseClientConfiguration(env: FinderDatabaseEnv): ClientConfi
 }
 
 export interface CustomerViewRow {
+    listing_id?: string;
     municipality: string | null;
     property_type: string | null;
     transaction_type: string | null;
@@ -186,6 +187,7 @@ export function customerProperty(row: CustomerViewRow): FinderProperty | null {
     const price = row.asking_price_jpy === null ? null : Number(row.asking_price_jpy);
     if (price !== null && (!Number.isSafeInteger(price) || price < 0)) throw new Error('Invalid asking price');
     const property: FinderProperty = {
+        ...(row.listing_id ? { id: row.listing_id } : {}),
         title: row.title,
         municipality: row.municipality?.trim() || null,
         area: neighbourhood,
@@ -228,7 +230,7 @@ export async function loadCustomerProperties(env: FinderDatabaseEnv): Promise<Fi
         await client.query('SET LOCAL ROLE crawler_customer_reader');
         await client.query("SET LOCAL statement_timeout = '5s'");
         const result = await client.query<CustomerViewRow>(`
-            SELECT title, asking_price_jpy, location_en, location_display, location_ja,
+            SELECT listing_id, title, asking_price_jpy, location_en, location_display, location_ja,
                 publication_status, availability_status, source_attribution, original_pdf_url, thumbnail_url, location_needs_review, region_en, region_ja,
                 municipality, property_type, transaction_type, purchase_conditions_ja
             FROM property_api.customer_properties

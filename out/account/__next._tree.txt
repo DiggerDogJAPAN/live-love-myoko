@@ -1,5 +1,5 @@
 :HL["/_next/static/chunks/12sq2q6jvicfb.css","style"]
-:HL["/_next/static/chunks/1f_b_xg-ngb8v.css","style"]
+:HL["/_next/static/chunks/07vuy_qgg3t3-.css","style"]
 2:[["children",{"s":"__PAGE__","h":160}]]
 1:[["children",{"s":"account","h":96,"c":"$Q2"}]]
-0:{"b":"1793284587776","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"1793361233154","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

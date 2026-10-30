@@ -2,13 +2,16 @@
 
 Supabase Auth is the sole deployed authentication provider. The owner removed both Finder Cloudflare Access applications after real administrator acceptance. Migrations 001/002 are already applied; preserve their checksums, private helpers, roles and RLS. **Customer listing access remains disabled.** Current setup is in the [deployment checklist](property-finder-deployment-checklist.md); historical transition/rollback is in the [cutover record](property-finder-supabase-cutover.md).
 
+The [Saved Properties implementation](property-finder-saved-properties.md) adds Premium/admin endpoints under `/api/property-finder/saved-properties`. Migration 003 is applied and verified; customer access remains disabled. The saved endpoints use the same Supabase authorization and private helper boundary, with target checks and current display reads under the restricted customer role.
+
 ## Current data routes and audit
 
 | Surface | Data/access boundary |
 | --- | --- |
 | `GET /api/property-finder/properties` (optional trailing slash/query) | The only Finder inventory endpoint. Common authorization runs before the property loader. Returns the bounded eligible snapshot; browser filters, sorting and six-card pagination operate on that authorized response. Pagination/query parameters do not bypass authorization or expand SQL eligibility. |
 | Legacy `GET /api/property-finder/login` | Removed; returns 404. Administrator login is `/login/` through Supabase. |
-| Detail, map, saved-property/search, refund and alternate data paths | Not implemented. Catch-all handler returns 404; unsupported methods return 405. There is no separate Finder detail endpoint; cards link directly to the original source. Future routes must choose a server-side permission through `authorizeFinderRequest`. The route-inventory test fails if another Functions handler is added without review. |
+| Saved properties | Protected GET IDs/list and bodyless PUT/DELETE by listing UUID; every operation requires `saved-properties:use`. See the feature guide for quotas, RLS and cursor pagination. |
+| Detail, map, saved searches, refund and alternate data paths | Not implemented. Catch-all handler returns 404; unsupported methods return 405. There is no separate Finder detail endpoint; cards link directly to the original source. Future routes must choose a server-side permission through `authorizeFinderRequest`. The route-inventory test fails if another Functions handler is added without review. |
 | `/property-finder/search/`, `index.html`, RSC `.txt`, `/_next/` JS | Static access shell and presentation logic only. Live inventory is fetched after authorization, never imported during export or persisted in browser storage. The development fixture route remains development-only. An automated export guard checks HTML, RSC, JSON and JS for inventory, private artifacts, credential references and embedded tokens. |
 | Browser-to-Supabase REST, GraphQL, RPC or SQL | No Supabase client/keys or database credentials exist in Finder client code. Supabase browser roles receive no paid-schema grants, even when authenticated. Membership does not grant a PostgreSQL reader role to a customer. |
 | Public Directus `/properties/`, `/property/[slug]/`, accommodation and image files | Deliberately public CMS content, separate from the paid Finder inventory. Existing publication, image and sold-property styling rules are preserved. |

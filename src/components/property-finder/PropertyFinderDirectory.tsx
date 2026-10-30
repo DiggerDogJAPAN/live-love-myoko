@@ -6,6 +6,7 @@ import { finderMunicipalities, municipalityLabel, type FinderProperty } from '@/
 import { hasListingDates, initialFilters, locationOptions, priceError, searchProperties, type FinderFilters } from '@/lib/property-finder/search';
 import PropertyFinderCard from './PropertyFinderCard';
 import styles from './finder.module.css';
+import { SavedPropertiesProvider, SavedPropertiesStatus } from './SavedPropertiesProvider';
 
 const PAGE_SIZE = 6;
 
@@ -29,7 +30,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
     const activeCount = [filters.keyword, filters.municipality, filters.area, filters.minPrice, filters.maxPrice, filters.propertyType].filter(Boolean).length;
 
     return (
-        <div className={styles.directory}>
+        <SavedPropertiesProvider enabled={mode === 'live'}><div className={styles.directory}>
             {mode === 'synthetic' ? <div className={styles.previewNotice} data-fixture-preview="SYNTHETIC_FINDER_FIXTURE_V1">
                 <div className="layout__container">
                     <strong>Local development preview · Synthetic properties</strong>
@@ -85,6 +86,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
                     {activeCount > 0 && <button className={styles.clearButton} type="button" onClick={reset}>Clear all filters</button>}
                 </section>
 
+                <SavedPropertiesStatus />
                 <div className={styles.resultsBar}>
                     <p role="status" aria-live="polite" aria-atomic="true"><strong>{results.length}</strong> {results.length === 1 ? 'property' : 'properties'}{activeCount > 0 ? ' match your search' : mode === 'synthetic' ? ' in the preview' : ' in the directory'}{results.length > 0 && <span> · Showing {Math.min(visibleCount, results.length)}</span>}</p>
                     <label htmlFor="finder-sort"><span>Sort by</span>
@@ -99,7 +101,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
                 {results.length > 0 ? (
                     <>
                         <div className={styles.resultsGrid}>
-                            {results.slice(0, visibleCount).map((property, index) => <PropertyFinderCard key={`${property.title}-${index}`} property={property} />)}
+                            {results.slice(0, visibleCount).map((property, index) => <PropertyFinderCard key={property.id || `${property.title}-${index}`} property={property} />)}
                         </div>
                         {visibleCount < results.length && <div className={styles.loadMore}><button type="button" className="button button--secondary" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>Load More Properties ({results.length - visibleCount} remaining)</button></div>}
                     </>
@@ -115,6 +117,6 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
                     <Link href="/properties">Looking for properties handled directly by Love Live Myoko? →</Link>
                 </div>
             </div>
-        </div>
+        </div></SavedPropertiesProvider>
     );
 }

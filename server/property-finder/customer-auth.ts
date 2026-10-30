@@ -2,6 +2,7 @@ import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import { FinderHttpError } from './errors';
 
 export interface CustomerAuthEnv {
+    FINDER_AUTH_SITE_ORIGIN?: string;
     /** Same dedicated Supabase project as the restricted property reader. */
     FINDER_DATABASE_PROJECT_REF?: string;
     /** Unset/disabled keeps the existing administrator-only release. */

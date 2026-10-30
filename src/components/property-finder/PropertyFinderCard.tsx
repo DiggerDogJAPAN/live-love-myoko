@@ -4,8 +4,10 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { enquiryMailto, formatPrice, originalListingUrl, propertyLocation, propertyTitle, visibleThumbnail, type FinderProperty } from '@/lib/property-finder/model';
 import styles from './finder.module.css';
+import savedStyles from './saved.module.css';
+import { SavePropertyButton } from './SavedPropertiesProvider';
 
-export default function PropertyFinderCard({ property }: { property: FinderProperty }) {
+export default function PropertyFinderCard({ property, savedList = false }: { property: FinderProperty; savedList?: boolean }) {
     const original = originalListingUrl(property);
     const title = propertyTitle(property);
     const location = propertyLocation(property);
@@ -16,6 +18,7 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
     return (
         <article className={styles.card}>
             <div className={styles.cardImage}>
+                {property.id && <div className={savedStyles.saveControl}><SavePropertyButton propertyId={property.id} title={title} /></div>}
                 {thumbnail ? (
                     <Image src={thumbnail.src} alt={thumbnail.alt} onError={() => setFailedSrc(thumbnail.src)} fill sizes="(max-width: 711px) 100vw, (max-width: 1055px) 50vw, 33vw" unoptimized />
                 ) : (
@@ -62,6 +65,7 @@ export default function PropertyFinderCard({ property }: { property: FinderPrope
                         <button className={`button ${styles.cardButton} ${styles.secondaryAction}`} type="button" disabled aria-label="Listing — original URL not available">Listing ↗</button>
                     )}
                 </div>
+                {savedList && property.id && <SavePropertyButton propertyId={property.id} title={title} removeLabel />}
             </div>
         </article>
     );

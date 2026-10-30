@@ -190,7 +190,7 @@ test('No unguarded details, pagination variants, Premium endpoints, alternate ve
     let reads = 0;
     const deps = { verifyIdentity: verifyCustomer, loadMembership: async () => membership(), load: async () => { reads++; return []; } };
     const jwt = await customerToken();
-    for (const suffix of ['/properties/id', '/details/1', '/properties.json', '/properties/page/2', '/saved-properties', '/maps', '/premium', '/refund', '/']) {
+    for (const suffix of ['/properties/id', '/details/1', '/properties.json', '/properties/page/2', '/saved-searches', '/maps', '/premium', '/refund', '/']) {
         assert.equal((await handleFinderRequest(request(jwt, suffix), env, deps)).status, 404);
     }
     for (const method of ['POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD']) assert.equal((await handleFinderRequest(new Request(request(jwt), { method }), env, deps)).status, 405);

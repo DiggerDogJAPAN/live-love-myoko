@@ -1,3 +1,4 @@
+import { handleSavedRequest, type SavedDependencies } from './saved-api';
 import { FinderHttpError } from './errors';
 import { loadCustomerProperties } from './database';
 import { finderMunicipalities, type FinderProperty } from '../../src/lib/property-finder/model';
@@ -18,7 +19,7 @@ const privateHeaders = {
     'Expires': '0',
 };
 
-interface Dependencies extends Partial<AuthorizationDependencies> {
+interface Dependencies extends Partial<AuthorizationDependencies>, SavedDependencies {
     load: (env: FinderEnv) => Promise<FinderProperty[]>;
 }
 
@@ -27,6 +28,7 @@ export async function handleFinderRequest(request: Request, env: FinderEnv, depe
 }): Promise<Response> {
     const reply = (status: number, data: object) => new Response(JSON.stringify(data), { status, headers: privateHeaders });
     const url = new URL(request.url);
+    if (url.pathname.replace(/\/$/, '') === '/api/property-finder/saved-properties' || url.pathname.startsWith('/api/property-finder/saved-properties/')) return handleSavedRequest(request, env, dependencies);
     if (request.method !== 'GET') return reply(405, { code: 'method_not_allowed' });
     if (url.pathname.replace(/\/$/, '') !== '/api/property-finder/properties') return reply(404, { code: 'not_found' });
     const origin = request.headers.get('Origin');
