@@ -26,6 +26,7 @@
 .coverage { padding: 4rem 0; background: var(--finder-dark); color: var(--color-surface); }
 .coverageInner { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
 .coverage .eyebrow, .coverage em { color: var(--color-mint); }
+.coverage a { color: var(--color-mint); text-decoration: underline; text-underline-offset: 3px; }
 .coverage p:not(.eyebrow) { color: var(--color-on-forest); max-width: 29rem; }
 .coverage ul { margin: 0; padding: 0; list-style: none; }
 .coverage li { font-family: var(--font-heading); font-size: 1.6rem; border-top: 1px solid var(--color-border-inverse); padding: 0.9rem 0; }

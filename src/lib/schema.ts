@@ -2,6 +2,56 @@ import { Accommodation, Property } from '@/lib/directus';
 
 const SITE_URL = 'https://love-live-myoko.com';
 
+export function generatePropertyFinderSchema(name: string, description: string) {
+  const url = `${SITE_URL}/property-finder/`;
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${url}#webpage`,
+        url,
+        name,
+        description,
+        inLanguage: 'en',
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+        publisher: { '@id': `${SITE_URL}/#organization` },
+        mainEntity: { '@id': `${url}#service` },
+        about: { '@type': 'Place', name: 'Myoko City, Niigata, Japan' },
+        breadcrumb: { '@id': `${url}#breadcrumb` },
+        primaryImageOfPage: {
+          '@type': 'ImageObject', url: `${SITE_URL}/images/akakura-onsen-hero.jpg`,
+          width: 1000, height: 563, caption: 'Mount Myoko and the snow-covered villages below',
+        },
+      },
+      {
+        '@type': 'Service',
+        '@id': `${url}#service`,
+        name: 'Love Live Myoko Property Finder',
+        url,
+        serviceType: 'Local property listing search',
+        description: 'An English-language property discovery service focused on Myoko City and nearby Joetsu, Shinano Town / Kurohime and Iizuna. Listings are aggregated from multiple local Japanese property sources and link to their original websites. Basic membership covers directory searches; Premium adds Saved Properties and Property Alerts. Paid subscriptions are coming soon, with administrator access available during testing.',
+        provider: { '@id': `${SITE_URL}/#organization` },
+        subjectOf: { '@id': `${url}#webpage` },
+        areaServed: [
+          { '@type': 'City', name: 'Myoko City, Niigata, Japan', description: 'Primary focus of Property Finder' },
+          { '@type': 'City', name: 'Joetsu, Niigata, Japan' },
+          { '@type': 'Place', name: 'Shinano Town / Kurohime, Nagano, Japan' },
+          { '@type': 'Place', name: 'Iizuna, Nagano, Japan' },
+        ],
+      },
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${url}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+          { '@type': 'ListItem', position: 2, name: 'Property Finder', item: url },
+        ],
+      },
+    ],
+  };
+}
+
 function cleanSchema<T>(obj: T): T {
   if (obj === null || obj === undefined) {
     return undefined as unknown as T;

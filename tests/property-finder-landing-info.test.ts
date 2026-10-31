@@ -10,11 +10,12 @@ before(async () => {
     Links = (await import('../src/components/property-finder/LandingActions')).LandingActionLinks;
     Page = (await import('../src/app/property-finder/page')).default;
 });
-test('Guests get membership and login buttons with a less prominent search link', () => {
+test('Guests get only the membership and login hero buttons', () => {
     const html = renderToStaticMarkup(createElement(Links));
     assert.match(html, /<a[^>]*class="button button--primary"[^>]*>View Membership Plans/);
     assert.match(html, /<a(?=[^>]*href="\/login\/?\?next=%2Fproperty-finder%2Fsearch%2F")(?=[^>]*class="button button--secondary")[^>]*>Log In/);
-    assert.match(html, /href="\/property-finder\/search\/?">Explore Properties/);
+    assert(!html.includes('Explore Properties'));
+    assert.equal((html.match(/<a\b/g) || []).length, 2);
     assert(!html.includes('Browse Properties'));
 });
 test('Authenticated navigation shows browse and account actions without granting permissions', () => {
@@ -24,8 +25,9 @@ test('Authenticated navigation shows browse and account actions without granting
 });
 test('Landing retains its content and image with a single clear subscription status and real plan details', () => {
     const html = renderToStaticMarkup(createElement(Page));
-    for (const text of ['Discover Property Across', 'More sources. One search.', 'Our own property listings remain open.', '/images/akakura-onsen-hero.jpg', 'Basic: ¥2,000/month', 'Premium: ¥4,000/month', 'Property Finder plus Saved Properties', 'Administrators retain access without a subscription.']) assert(html.includes(text));
-    assert.equal((html.match(/Subscriptions are not yet available/g) || []).length, 1);
+    const visible = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+    for (const text of ['Find Your Place in', 'More local listings. One search.', 'Explore properties listed directly with us.', '/images/akakura-onsen-hero.jpg', 'Basic: ¥2,000/month', 'Premium: ¥4,000/month', 'Saved Properties and Property Alerts', 'Existing administrator access remains available during testing.']) assert(visible.includes(text));
+    assert.equal((visible.match(/Subscriptions are coming soon/g) || []).length, 1);
     assert(!/In development|Paid membership coming soon|Saved Searches/.test(html));
     assert(!/<article[^>]+data-property|askingPriceJpy|originalListingUrl/.test(html));
 });
