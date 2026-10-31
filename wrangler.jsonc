@@ -11,28 +11,18 @@
         "FINDER_AUTH_ENABLED": "disabled",
         "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
         "FINDER_CUSTOMER_ACCESS": "disabled",
-        "FINDER_GOOGLE_LOGIN_ENABLED": "disabled"
+        "FINDER_GOOGLE_LOGIN_ENABLED": "disabled",
+        "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet"
     },
-    "hyperdrive": [
-        {
-            "binding": "FINDER_HYPERDRIVE",
-            "id": "d2e1e9cc5947483f8747b8e84ccaf57b"
-        }
-    ],
     "env": {
         "production": {
             "vars": {
                 "FINDER_AUTH_ENABLED": "enabled",
                 "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
                 "FINDER_CUSTOMER_ACCESS": "disabled",
-                "FINDER_GOOGLE_LOGIN_ENABLED": "disabled"
-            },
-            "hyperdrive": [
-                {
-                    "binding": "FINDER_HYPERDRIVE",
-                    "id": "d2e1e9cc5947483f8747b8e84ccaf57b"
-                }
-            ]
+                "FINDER_GOOGLE_LOGIN_ENABLED": "disabled",
+                "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet"
+            }
         }
     }
 }
