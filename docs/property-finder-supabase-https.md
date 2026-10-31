@@ -22,7 +22,7 @@ The restricted projection preserves restrictive source/portal RLS even when call
 
 Keep `finder_security`, `auth`, `crawler` and `property_api` outside exposed Data API schemas. Only the public RPC schema is required. There are no direct table endpoints for bookmarks, private roles or memberships. All writes derive ownership from the verified JWT, never browser-supplied IDs. Database logging records operation/SQLSTATE only; public errors never expose raw upstream details.
 
-The former connection-budget proposal is **withdrawn and not applied**. The website no longer uses the dedicated reader or Hyperdrive. Its connection limit, Hyperdrive pool configuration and crawler permissions are not changed. Legacy private SQL helpers/roles may remain installed for history, but no application code, dependency, secret requirement or binding uses them.
+The obsolete Hyperdrive resource was permanently deleted after the owner confirmed production administrator login, Finder search and Saved Properties. No database role or crawler permission was changed. Historical private SQL helpers/roles remain outside the application dependency; the retired connection-budget proposal was not applied.
 
 ## Production configuration
 
@@ -35,7 +35,7 @@ The former connection-budget proposal is **withdrawn and not applied**. The webs
 - `FINDER_GOOGLE_LOGIN_ENABLED=disabled`.
 - Existing encrypted `FINDER_SUPABASE_PUBLISHABLE_KEY` and `FINDER_AUTH_COOKIE_SECRET` — preserved without regeneration/printing. The publishable key is deliberately supplied to authenticated browser RPC requests and is not an authorization secret.
 
-Remove obsolete Pages `FINDER_DATABASE_URL`, `FINDER_DATABASE_PROJECT_REF` and `FINDER_HYPERDRIVE` bindings; they are not fallback paths. No service-role key, database password, CA file, `pg` package or local Hyperdrive emulator is required. Do not delete the live Hyperdrive resource before the replacement has been verified. An unused retained resource is not an application dependency.
+Production and preview contain no obsolete website database credentials or Hyperdrive bindings. No service-role key, database password, CA file, `pg` package or local emulator is required. Preserve the current Supabase configuration; do not recreate the removed resource as a fallback.
 
 For local Pages testing: use `.dev.vars.example`, the existing Supabase credentials in private `.dev.vars`, the appropriate local site origin, the complete static build and `npm run finder:dev`. No database credential is needed.
 
@@ -45,9 +45,9 @@ For local Pages testing: use `.dev.vars.example`, the existing Supabase credenti
 2. Run automated SQL/Auth/HTTPS/client/design tests, TypeScript, lint, dependency audit, complete production build, static-export checks and Functions compilation. Review for secrets/unrelated files.
 3. Apply 004 and its read-only verification, then 005 and its verification. Compare protected schemas, roles, crawler/Auth/member/bookmark data. A rolled-back database smoke test may verify the existing administrator's own SQL path without persisting bookmarks; it is not a browser login test.
 4. Regenerate the **entire** CMS website using `npm run build`, including all property/accommodation pages, current images, public assets, navigation and footer. Verify the current CMS inventory against `out/`; never publish a partial export. The tracked export is the GitHub Pages integration's `out/` output (`npm ci` remotely).
-5. Commit the complete reviewed application/static output, push GitHub main and wait for the existing Cloudflare Pages integration. No separate manual deployment. Preserve the live Hyperdrive resource. If deployment fails, stop.
+5. Commit the complete reviewed application/static output, push GitHub main and wait for the existing Cloudflare Pages integration. No separate manual deployment. If deployment fails, stop.
 6. Verify the deployed revision, public CMS/Auth pages, image assets, anonymous/forged session denial, deployed RPC grants/rollout gate and absence of Hyperdrive application bindings. Remove only the obsolete database bindings/configuration, preserving Auth secrets and unrelated settings.
-7. The owner performs the real browser login/search/save/remove checklist below. Retain the unused Hyperdrive resource until that acceptance is complete. No pool/role-limit change is needed.
+7. The owner has completed the real browser login/search/save/remove acceptance below, and the unbound Hyperdrive resource is deleted. Future application changes should retain the same acceptance checks; no database pool configuration is involved.
 
 ## Owner browser checklist
 

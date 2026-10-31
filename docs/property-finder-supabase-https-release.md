@@ -23,4 +23,14 @@ The full normal CMS build regenerated `out/`. Independent checks verified **25 p
 
 ## Deployment and owner acceptance
 
-This receipt accompanies the source/static commit sent through the existing GitHub `main` → Cloudflare Pages integration. The final task report records the resulting commit/deployment status and live automated checks. The unused Hyperdrive resource is retained until the owner completes the administrator browser checklist in the architecture guide; its application bindings and SQL credential requirements are removed. No separate manual deployment is used.
+This receipt accompanies the source/static commit sent through the existing GitHub `main` → Cloudflare Pages integration. The final task report records the resulting commit/deployment status and live automated checks. The owner subsequently confirmed the administrator browser checklist, authorizing permanent deletion of the unused Hyperdrive resource. Its application bindings and SQL credential requirements are removed. No separate manual deployment is used.
+
+## Final Hyperdrive cleanup — 31 October 2026
+
+The owner personally verified production administrator login, Finder search and Saved Properties, then authorized permanent resource deletion. A read-only account audit found no references to the target across Pages production/preview configurations, Worker scripts and Worker service environments. The live Pages revision was the successful Supabase-only release `2b4cafa8e916519be2ef3ddc26536b324578bc91`.
+
+Deleted only **`myoko-property-finder`**, ID **`d2e1e9cc5947483f8747b8e84ccaf57b`**. The delete API confirmed success and a subsequent GET returned **404**. No unrelated resource was deleted or modified. PostgreSQL roles, Supabase resources, crawler credentials and Auth configuration were untouched.
+
+Production and preview already contained no obsolete `FINDER_DATABASE_URL`, `FINDER_DATABASE_PROJECT_REF` or `FINDER_LOCAL_CA_FILE` values and no `FINDER_HYPERDRIVE` binding. These had been removed during the HTTPS deployment; no additional secret removal was necessary. Current Supabase project configuration and both encrypted Auth bindings were verified and preserved.
+
+Active deployment documents now describe only the HTTPS setup. Original migration/security incidents remain as history. Publishing this documentation cleanup uses the existing complete CMS rebuild and GitHub → Pages workflow, with no working application code changes.

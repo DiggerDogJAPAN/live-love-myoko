@@ -1,3 +1,5 @@
+> Current transport/configuration: [Supabase HTTPS architecture](property-finder-supabase-https.md). Original Phase 2 migration and validation sections below are retained as history.
+
 # Property Finder authentication — Phase 2
 
 Supabase Auth is deployed as the sole authentication provider. The owner has removed both Finder Cloudflare Access applications and verified real administrator login, Finder access and logout/fresh login. Production migrations 001/002 are already applied; do not replay them. See the [database receipt](property-finder-membership-migration-results.md), [current deployment guide](property-finder-authentication-deployment.md) and [short migration/rollback record](property-finder-supabase-cutover.md). Customer listing access remains disabled; no billing or paid fixtures are introduced by cleanup.
@@ -75,12 +77,12 @@ Do not put values in source code, tracked `out/`, client environment variables o
 | --- | --- |
 | `FINDER_AUTH_ENABLED` | `enabled` in production; disabled by default locally |
 | `FINDER_AUTH_SITE_ORIGIN` | `https://love-live-myoko.com`; exact canonical origin. Local HTTP localhost/127.0.0.1 is accepted for isolated Functions tests, but cookies always remain Secure. Other preview/staging hosts need an explicitly reviewed origin allowlist change. |
-| `FINDER_SUPABASE_PUBLISHABLE_KEY` | Modern `sb_publishable_…` key for the same project as `FINDER_DATABASE_PROJECT_REF`. Secret/service-role/legacy JWT keys are rejected. |
+| `FINDER_SUPABASE_PUBLISHABLE_KEY` | Modern `sb_publishable_…` key for the same project as `FINDER_SUPABASE_PROJECT_REF`. Secret/service-role/legacy JWT keys are rejected. |
 | `FINDER_AUTH_COOKIE_SECRET` | Independently generated cryptographically random signing secret (e.g. 32 random bytes encoded as base64url, at least 43 characters); keep private. Rotation invalidates pending verification/recovery flow cookies, not Supabase sessions. |
 | `FINDER_GOOGLE_LOGIN_ENABLED` | `enabled` only after Google OAuth is configured and tested; otherwise `disabled` |
 | `FINDER_CUSTOMER_ACCESS` | **Keep `disabled`** |
 
-Existing reader/Hyperdrive/TLS bindings remain unchanged; old Access secrets are retained only for the separately approved rollback window. Do not use the crawler writer or Supabase secret/service-role key.
+Current authentication and account authorization use Supabase HTTPS only. The obsolete database connection settings and Hyperdrive resource are removed. Preserve Supabase Auth settings and unrelated credentials; never use the crawler writer or a service-role key in the website.
 
 Supabase dashboard status and remaining acceptance actions:
 
