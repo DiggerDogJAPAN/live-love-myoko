@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { announceSignout, authMessage, authRequest, fetchAccount, refreshSession } from '@/lib/auth/client';
 import type { AccountDetails } from '@/lib/auth/types';
 import styles from './auth.module.css';
+import accountStyles from './account.module.css';
+import AuthLayout from './AuthLayout';
+import layoutStyles from './auth-layout.module.css';
 import SavedPropertiesSection from '../property-finder/SavedPropertiesSection';
 export default function AccountDashboard() {
     const [account, setAccount] = useState<AccountDetails | null>(null), [loading, setLoading] = useState(true);
@@ -44,25 +47,70 @@ export default function AccountDashboard() {
         catch (e) { notice = authMessage(e instanceof Error ? e.message : 'authentication_unavailable'); }
         finally { announceSignout(); setAccount(null); setName(''); setMessage(notice); setBusy(false); }
     };
-    if (loading) return <div className={styles.panel}><p role="status">Checking your account…</p></div>;
-    if (!account) return <div className={styles.panel}><p role="status">{message || 'Sign in to manage your account.'}</p><div className={styles.links}><Link href="/login">Sign in</Link><Link href="/register">Create account</Link><Link href="/membership">Membership options</Link></div></div>;
-    const administrator = account.role === 'administrator';
+    if (loading) return <><AccountHeader /><div className={styles.panel}><p role="status">Checking your account…</p></div></>;
+    if (!account) return <SignedOutAccount message={message} />;
     return <>
+        <AccountHeader onSignout={logout} busy={busy} />
         {message && <p className={styles.message} role="status">{message}</p>}
-        <div className={styles.dashboard}>
-            <section className={styles.panel} aria-labelledby="account-details"><h2 id="account-details">Your details</h2>
-                <dl className={styles.facts}><dt>Email</dt><dd>{account.user.email}</dd><dt>Email verified</dt><dd>{account.user.verified ? 'Yes' : 'No'}</dd><dt>Account role</dt><dd>{administrator ? 'Administrator' : 'Customer'}</dd></dl>
-                <form className={styles.form} onSubmit={updateProfile}><label htmlFor="account-name">Name<input id="account-name" autoComplete="name" maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label><button className="button button--secondary" disabled={busy}>Save name</button></form>
-                <div className={styles.links}><Link href="/forgot-password">Reset password</Link><button type="button" className="button button--secondary" onClick={logout} disabled={busy}>Sign out</button></div>
-            </section>
-            <section className={styles.panel} aria-labelledby="account-membership"><h2 id="account-membership">Your membership</h2>
-                <dl className={styles.facts}><dt>Plan</dt><dd>{administrator ? 'Not required' : account.membership.tier ? account.membership.tier === 'premium' ? 'Premium' : 'Basic' : 'No membership'}</dd><dt>Status</dt><dd>{administrator ? 'Administrator access' : account.membership.active ? 'Active' : 'Not active'}</dd>{account.membership.paidThrough && !administrator && <><dt>Paid through</dt><dd>{new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date(account.membership.paidThrough))}</dd></>}</dl>
-                {administrator ? <><p>Your administrator role does not require a paid subscription.</p><a className="button button--primary" href="/property-finder/search/">Open administrator Property Finder</a></>
-                    : !account.membership.active ? <><p>You are registered, but you do not have an active paid membership. Property Finder listings remain locked.</p><p>Subscription purchasing is not available yet. Creating an account does not start a subscription or charge you.</p><Link className="button button--secondary" href="/membership">View membership options</Link></>
-                        : account.finderAccess ? <><p>Your membership includes Property Finder access.</p><a className="button button--primary" href="/property-finder/search/">Open Property Finder</a></>
-                            : <p>Your membership is recorded, but member listing access has not been activated yet.</p>}
-            </section>
-        </div>
+        <AccountPanels account={account} name={name} busy={busy} onNameChange={setName} onSave={updateProfile} />
         <SavedPropertiesSection key={account.user.id} account={account} />
     </>;
+}
+
+export function AccountHeader({ onSignout, busy = false }: { onSignout?: () => void; busy?: boolean }) {
+    return <header className={accountStyles.header}>
+        <div className={accountStyles.heading}><p className={accountStyles.eyebrow}>LOVE LIVE MYOKO · PROPERTY FINDER</p><h1>Your account</h1></div>
+        <div className={accountStyles.headerActions}><p>Manage your details and view your membership status.</p>
+            {onSignout && <button type="button" className={`button button--secondary ${accountStyles.signout}`} onClick={onSignout} disabled={busy}>Sign out</button>}
+        </div>
+    </header>;
+}
+
+export function AccountPanels({ account, name, busy, onNameChange, onSave }: {
+    account: AccountDetails; name: string; busy: boolean; onNameChange: (name: string) => void; onSave: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+    const administrator = account.role === 'administrator';
+    return <div className={accountStyles.panels}>
+        <section className={accountStyles.panel} aria-labelledby="account-details">
+            <h2 id="account-details">Your details</h2>
+            <dl className={accountStyles.facts}>
+                <dt>Email</dt><dd>{account.user.email}</dd>
+                <dt>Email verified</dt><dd><span className={account.user.verified ? accountStyles.verified : undefined}>{account.user.verified ? 'Yes' : 'No'}</span></dd>
+                <dt>Account role</dt><dd>{administrator ? 'Administrator' : 'Customer'}</dd>
+            </dl>
+            <form className={accountStyles.nameForm} onSubmit={onSave} aria-busy={busy}>
+                <label htmlFor="account-name">Name</label>
+                <div className={accountStyles.nameControls}>
+                    <input id="account-name" name="name" autoComplete="name" maxLength={80} value={name} onChange={e => onNameChange(e.target.value)} disabled={busy} />
+                    <button type="submit" className="button button--secondary" disabled={busy}>Save name</button>
+                </div>
+            </form>
+            <Link className={accountStyles.reset} href="/forgot-password/">Reset password</Link>
+        </section>
+        <section className={`${accountStyles.panel} ${accountStyles.membership}`} aria-labelledby="account-membership">
+            <h2 id="account-membership">Your membership</h2>
+            <dl className={accountStyles.facts}>
+                <dt>Plan</dt><dd>{administrator ? 'Not required' : account.membership.tier ? account.membership.tier === 'premium' ? 'Premium' : 'Basic' : 'No membership'}</dd>
+                <dt>Status</dt><dd>{administrator ? 'Administrator access' : account.membership.active ? 'Active' : 'Not active'}</dd>
+                {account.membership.paidThrough && !administrator && <><dt>Paid through</dt><dd>{new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date(account.membership.paidThrough))}</dd></>}
+            </dl>
+            {administrator ? <><p>Your administrator role does not require a paid subscription.</p><Link className={`button ${accountStyles.finderButton}`} href="/property-finder/search/">Open administrator Property Finder</Link></>
+                : !account.membership.active ? <><p>You are registered, but you do not have an active paid membership. Property Finder listings remain locked.</p><p>Subscription purchasing is not available yet. Creating an account does not start a subscription or charge you.</p><Link className={`button ${accountStyles.finderButton}`} href="/membership/">View membership options</Link></>
+                    : account.finderAccess ? <><p>Your membership includes Property Finder access.</p><Link className={`button ${accountStyles.finderButton}`} href="/property-finder/search/">Open Property Finder</Link></>
+                        : <p>Your membership is recorded, but member listing access has not been activated yet.</p>}
+        </section>
+    </div>;
+}
+
+export function SignedOutAccount({ message = '' }: { message?: string }) {
+    return <AuthLayout embedded title="Welcome back" description="Sign in to manage your account, membership and saved properties.">
+        <div className={`${styles.panel} ${layoutStyles.card} ${layoutStyles.prompt}`}>
+            {message && <p className={styles.message} role="status">{message}</p>}
+            <Link className={`button button--primary ${layoutStyles.primaryAction}`} href="/login/">Sign in</Link>
+            <nav className={`${layoutStyles.registration} ${layoutStyles.secondaryLinks}`} aria-label="Account links">
+                <Link href="/register/">Create an account</Link>
+                <Link href="/membership/">View membership options</Link>
+            </nav>
+        </div>
+    </AuthLayout>;
 }

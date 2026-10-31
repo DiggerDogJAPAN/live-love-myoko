@@ -22,7 +22,7 @@
 .navigation a { display: flex; justify-content: space-between; gap: var(--space-sm); padding-block: .875rem; min-height: var(--control-height); border-bottom: 1px solid var(--color-border); color: var(--color-primary); font-size: .9375rem; text-decoration: none; }
 .navigation a:hover { color: var(--color-primary-hover); }
 .formColumn { min-width: 0; display: flex; flex-direction: column; gap: 1.25rem; }
-.formColumn .card { max-width: none; margin: 0; padding: 2.5rem; border-radius: var(--space-sm); }
+.formColumn .card { max-width: none; margin: 0; padding: 2.5rem; border-radius: var(--space-sm); display: flex; flex-direction: column; gap: var(--space-md); }
 .card .form { gap: var(--space-md); }
 .form label { font-weight: 500; }
 .form input { min-height: 3.25rem; padding: .75rem var(--space-sm); font-weight: 400; border-radius: calc(var(--radius-input) + .25rem); }
@@ -46,3 +46,12 @@
     .container { padding-inline: 1.25rem; }
     .formColumn .card { padding: var(--space-md); }
 }
+
+.embedded { width: 100%; }
+.embedded .container { padding-inline: 0; }
+.secondaryLinks { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-xs) var(--space-md); }
+.secondaryLinks a { display: inline-flex; align-items: center; min-height: var(--control-height); }
+.primaryAction { width: 100%; min-height: 3.25rem; font-size: 1rem; font-weight: 600; }
+.prompt { align-self: start; }
+
+.additionalAction { width: 100%; min-height: 3.25rem; }

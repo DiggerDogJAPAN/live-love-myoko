@@ -26,7 +26,7 @@ test('Auth forms have associated labels, correct password autofill, verification
         for (const label of html.matchAll(/<label[^>]*for="([^"]+)"/g)) assert(html.includes(`id="${label[1]}"`));
         assert(!/<(?:select|input)[^>]*(?:name|id)="(?:role|tier|membership)"/.test(html));
         assert(html.includes('disabled=""'), 'submit disabled before server configuration is known');
-        if (mode !== 'login') { assert(html.includes('href="/membership"')); assert(html.includes('href="/verify-email"')); }
+        if (mode !== 'login') assert.match(html, /href="\/login\/?"/);
     }
     assert(form('login').includes('autoComplete="current-password"'));
     for (const mode of ['register', 'reset'] as const) { assert(form(mode).includes('autoComplete="new-password"')); assert(form(mode).includes('minLength="8"')); assert(form(mode).includes('Confirm password')); }
