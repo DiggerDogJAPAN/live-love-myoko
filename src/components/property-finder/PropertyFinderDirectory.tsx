@@ -45,7 +45,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
             </div>}
             <div className="layout__container">
                 <header className={styles.directoryHeader}>
-                    <Link href="/property-finder" className={styles.backLink}>← About Property Finder</Link>
+                    <Link href="/account/" className={styles.backLink}>← Your Account</Link>
                     <p className={styles.eyebrow}>Love Live Myoko · Property Finder</p>
                     <h1>A place to begin.<em>A property to make yours.</em></h1>
                     <p>{mode === 'synthetic' ? 'Explore the directory preview by location, budget and property type.' : 'Explore eligible listings by location and budget. Where a field is not provided by the source, it is left blank.'}</p>
