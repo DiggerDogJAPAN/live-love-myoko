@@ -8,11 +8,12 @@ import { authMessage, authRequest, fetchAccount, refreshSession } from '../src/l
 import type { AuthMode } from '../src/components/auth/AuthForm';
 import { registrationFullName } from '../src/lib/auth/validation';
 
-let Form: ComponentType<{ mode: AuthMode }>, Pricing: ComponentType, Dashboard: ComponentType;
+let Form: ComponentType<{ mode: AuthMode }>, Pricing: ComponentType, Dashboard: ComponentType, Login: ComponentType;
 before(async () => {
     const require = createRequire(`${process.cwd()}/package.json`);
     require.extensions['.css'] = module => { module.exports = {}; };
     Form = (await import('../src/components/auth/AuthForm')).default;
+    Login = (await import('../src/app/login/page')).default;
     Pricing = (await import('../src/app/membership/page')).default;
     Dashboard = (await import('../src/components/auth/AccountDashboard')).default;
 });
@@ -25,7 +26,7 @@ test('Auth forms have associated labels, correct password autofill, verification
         for (const label of html.matchAll(/<label[^>]*for="([^"]+)"/g)) assert(html.includes(`id="${label[1]}"`));
         assert(!/<(?:select|input)[^>]*(?:name|id)="(?:role|tier|membership)"/.test(html));
         assert(html.includes('disabled=""'), 'submit disabled before server configuration is known');
-        assert(html.includes('href="/membership"')); assert(html.includes('href="/verify-email"'));
+        if (mode !== 'login') { assert(html.includes('href="/membership"')); assert(html.includes('href="/verify-email"')); }
     }
     assert(form('login').includes('autoComplete="current-password"'));
     for (const mode of ['register', 'reset'] as const) { assert(form(mode).includes('autoComplete="new-password"')); assert(form(mode).includes('minLength="8"')); assert(form(mode).includes('Confirm password')); }
@@ -35,8 +36,9 @@ test('Auth forms have associated labels, correct password autofill, verification
 
 test('Pricing communicates both real planned prices without granting access or presenting a payment/upgrade bypass', () => {
     const html = renderToStaticMarkup(createElement(Pricing));
-    for (const text of ['¥2,000', '¥4,000', 'Basic', 'Premium', 'Subscriptions are not available to purchase yet', 'does not provide access', 'up to three months', 'Planned: saved properties', 'Planned: interactive map']) assert(html.includes(text));
+    for (const text of ['¥2,000', '¥4,000', 'Basic', 'Premium', 'Subscriptions are not available to purchase yet', 'does not provide access', 'up to three months', 'Saved Properties', 'Interactive Map Viewing', 'intended Premium benefit']) assert(html.includes(text));
     assert(!/<form|checkout|fake-payment|role=administrator/.test(html));
+    assert(!/saved searches/i.test(html)); assert.equal((html.match(/PLANNED/g) || []).length, 1);
     assert(renderToStaticMarkup(createElement(Dashboard)).includes('Checking your account'));
     assert(!renderToStaticMarkup(createElement(Dashboard)).includes('customer@example.com'));
 });
@@ -96,4 +98,20 @@ test('Provider outages and origin errors give safe actionable messages without p
     assert.match(authMessage('authentication_unavailable'), /temporarily unavailable/i);
     assert.match(authMessage('same_origin_required'), /https:\/\/love-live-myoko\.com/);
     assert(!authMessage('PRIVATE provider details').includes('PRIVATE'));
+});
+
+
+test('Redesigned login retains the live form, recovery routes and public registration without exposing account data', () => {
+    const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(Login)));
+    for (const text of ['LOVE LIVE MYOKO · PROPERTY FINDER', '<h1>Sign in</h1>', 'Welcome back. Sign in to manage your Property Finder account.', 'New to Property Finder?', 'Administrator permissions are managed securely by our team.']) assert(html.includes(text));
+    for (const route of ['forgot-password', 'verify-email', 'membership', 'register']) assert(new RegExp(`href="/${route}/?"`).test(html));
+    assert.equal((html.match(/<form/g) || []).length, 1);
+    assert.equal((html.match(/Administrator permissions/g) || []).length, 1);
+    assert(html.includes('aria-label="Sign-in help"'));
+    assert(!/<main|<iframe|action="https:|name="(?:role|tier|redirect)"/.test(html));
+    const email = html.match(/<input id="auth-email"[^>]*>/)![0];
+    const password = html.match(/<input id="auth-password"[^>]*>/)![0];
+    assert(email.includes('type="email"') && email.includes('required=""') && email.includes('autoComplete="email"'));
+    assert(password.includes('type="password"') && password.includes('required=""') && password.includes('autoComplete="current-password"'));
+    assert(html.includes('disabled=""'), 'server configuration must load before enabling sign in');
 });
