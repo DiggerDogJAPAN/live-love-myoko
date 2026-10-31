@@ -36,6 +36,11 @@ export default function MembershipPage() {
                     <Link href="/account">Your account</Link>
                     <Link href="/property-finder">About Property Finder</Link>
                 </nav>
+                <nav className={styles.links} aria-label="Membership terms">
+                    <Link href="/terms-of-service">Terms of Service</Link>
+                    <Link href="/privacy-policy">Privacy Policy</Link>
+                    <Link href="/commercial-disclosure">Commercial Disclosure</Link>
+                </nav>
             </section>
         </div>
     </div>;

@@ -1,0 +1,5 @@
+:HL["/_next/static/chunks/12sq2q6jvicfb.css","style"]
+:HL["/_next/static/chunks/0kqulgsii0ave.css","style"]
+2:[["children",{"s":"__PAGE__","h":160}]]
+1:[["children",{"s":"terms-of-service","h":96,"c":"$Q2"}]]
+0:{"b":"1793450354673","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

@@ -8,6 +8,7 @@ const origin = 'https://love-live-myoko.com';
 const publicRoutes = [
     '/', '/about/', '/why-myoko/', '/buying-property-japan/', '/property-ownership-costs/',
     '/purchase-property/', '/management/', '/properties/', '/accommodation/', '/property-finder/', '/membership/',
+    '/terms-of-service/', '/privacy-policy/', '/commercial-disclosure/',
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

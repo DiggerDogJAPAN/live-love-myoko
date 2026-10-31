@@ -1,0 +1,56 @@
+.page {
+    padding-block: var(--section-spacing);
+    color: var(--color-text);
+}
+
+.content {
+    max-width: var(--prose-width);
+    margin-inline: auto;
+}
+
+.header {
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-divider);
+}
+
+.header h1 {
+    font-size: clamp(var(--text-2xl), 5vw, var(--text-3xl));
+}
+
+.subtitle {
+    color: var(--color-primary);
+    font-size: var(--text-md);
+}
+
+.content section {
+    margin-top: var(--space-xl);
+}
+
+.content section h2 {
+    margin-bottom: var(--space-md);
+    font-size: clamp(var(--text-lg), 3vw, var(--text-xl));
+}
+
+.content h2 span {
+    display: block;
+    margin-top: var(--space-xs);
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    line-height: var(--lh-body);
+}
+
+.content h3 {
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-xs);
+    color: var(--color-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+}
+
+.content a {
+    overflow-wrap: anywhere;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}

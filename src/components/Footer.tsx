@@ -50,6 +50,9 @@ export default function Footer() {
                         <nav className="footer__nav" aria-labelledby="footer-account">
                             <Link href="/membership" className="footer__link">Finder Memberships</Link>
                             <Link href="/account" className="footer__link">Your Account</Link>
+                            <Link href="/terms-of-service" className="footer__link">Terms of Service</Link>
+                            <Link href="/privacy-policy" className="footer__link">Privacy Policy</Link>
+                            <Link href="/commercial-disclosure" className="footer__link">Commercial Disclosure</Link>
                         </nav>
                     </div>
                 </div>
