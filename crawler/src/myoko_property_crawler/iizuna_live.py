@@ -5,7 +5,7 @@ from pathlib import Path
 import json,re,time
 from urllib.parse import urlsplit
 from urllib.robotparser import RobotFileParser
-from .adapters.iizuna_akiya_bank import SOURCE,MUNICIPAL_INDEX,RAKUEN_INDEX,listing_url,rakuen_page,parse_municipal_index,parse_rakuen_index,parse_detail,deduplicate_feeds
+from .adapters.iizuna_akiya_bank import SOURCE,MUNICIPAL_INDEX,RAKUEN_INDEX,listing_url,rakuen_page,parse_municipal_index,parse_rakuen_index,parse_detail,deduplicate_feeds,normalized_address
 from .adapters.base import CrawlBatch
 from .changes import State,reconcile
 from .live import HTMLClient,LiveResult
@@ -59,6 +59,45 @@ def acquire_rakuen(client,checked):
     return props,{'discovered':len(cards),'house_sale_records':len(houses),'land_excluded':sum(c.kind=='land' for c in cards),'rentals_excluded':sum(c.kind=='rent' for c in cards)}
 
 
+def separate_reused_municipal_urls(properties,state):
+    """Retire a demonstrably reused page, never merge two different houses.
+
+    Require conflicting numbered addresses, both changed areas and independent
+    Rakuen references. An existing alternate URL is necessary to retain the old
+    record without giving it the new house's link or violating URL uniqueness.
+    """
+    updated={p.identity:p for p in state.properties}
+    for prop in properties:
+        facts=prop.source_facts or {}
+        if facts.get('provider')!='municipal':continue
+        for old in state.properties:
+            if old.source_key!=SOURCE or old.identity==prop.identity or old.original_listing_url!=prop.original_listing_url:continue
+            before=(old.source_facts or {}).get('municipal_registration');after=facts.get('municipal_registration')
+            if not before or not after or before==after:continue
+            previous_urls=json.loads((old.source_facts or {}).get('provider_urls','{}'))
+            current_urls=json.loads(facts.get('provider_urls','{}'))
+            a,b=normalized_address(old.address),normalized_address(prop.address)
+            different=(a!=b and re.search(r'[0-9]',a) and re.search(r'[0-9]',b)
+                       and all(x is not None and y is not None and x!=y for x,y in
+                               ((old.land_area_sqm,prop.land_area_sqm),(old.building_area_sqm,prop.building_area_sqm))))
+            alternate=previous_urls.get('rakuen')
+            if not (different and previous_urls.get('municipal')==prop.original_listing_url
+                    and current_urls.get('municipal')==prop.original_listing_url
+                    and alternate and current_urls.get('rakuen') and current_urls['rakuen']!=alternate):
+                continue  # The ordinary identity guard below must still reject it.
+            listing_url(alternate,'rakuen')
+            old_facts=dict(old.source_facts or {})
+            retired=json.loads(old_facts.get('retired_provider_urls','[]'))
+            retired.append({'provider':'municipal','url':prop.original_listing_url,
+                            'previous_registration':before,'replacement_registration':after,
+                            'replacement_listing_id':prop.source_property_id,'observed_at':prop.last_checked_at.isoformat()})
+            old_facts.update(provider_urls=json.dumps({k:v for k,v in previous_urls.items() if k!='municipal'},sort_keys=True),
+                             retired_provider_urls=json.dumps(retired,sort_keys=True),municipal_missing_verification='pending')
+            updated[old.identity]=replace(old,original_listing_url=alternate,main_image_url=None,
+                                         image_permission='unknown',source_facts=old_facts)
+    return replace(state,properties=tuple(updated[p.identity] for p in state.properties))
+
+
 def stable_identities(properties,state):
     previous={p.source_property_id:p for p in state.properties if p.source_key==SOURCE}
     aliases={}
@@ -70,21 +109,23 @@ def stable_identities(properties,state):
         urls={prop.original_listing_url}|set(json.loads((prop.source_facts or {}).get('provider_urls','{}')).values())
         matches=set().union(*(aliases.get(u,set()) for u in urls))
         if prop.source_property_id in previous:matches.add(prop.source_property_id)
-        if len(matches)>1:raise ValueError('Previously split Iizuna identities require manual review')
+        if len(matches)>1:raise ValueError('Iizuna identity conflict: url='+prop.original_listing_url+' incoming_id='+prop.source_property_id+' matched_ids='+','.join(sorted(matches))+'; manual review required')
         if matches:
             old=previous[next(iter(matches))]
             before=(old.source_facts or {}).get('municipal_registration');after=(prop.source_facts or {}).get('municipal_registration')
-            if before and after and before!=after:raise ValueError('Municipal registration changed for an existing property')
+            if before and after and before!=after:raise ValueError('Iizuna identity conflict: listing_id='+old.source_property_id+' url='+prop.original_listing_url+' previous_registration='+before+' new_registration='+after+'; municipal registration changed without verified URL reuse')
             facts=dict(prop.source_facts or {})
+            if (old.source_facts or {}).get('retired_provider_urls'):
+                facts['retired_provider_urls']=old.source_facts['retired_provider_urls']
             old_urls=json.loads((old.source_facts or {}).get('provider_urls','{}'))
             current_urls=json.loads(facts.get('provider_urls','{}'))
             facts['provider_urls']=json.dumps({**old_urls,**current_urls},ensure_ascii=False,sort_keys=True)
             prop=replace(prop,source_property_id=old.source_property_id,source_facts=facts)
-            if 'municipal' in old_urls and (prop.source_facts or {}).get('provider')!='municipal':
+            if ('municipal' in old_urls or (old.source_facts or {}).get('municipal_missing_verification')=='pending') and (prop.source_facts or {}).get('provider')!='municipal':
                 # A stale secondary posting cannot reactivate a vanished primary listing.
                 from .models import ListingStatus,AvailabilityStatus
                 terminal=old.listing_status in {ListingStatus.SOLD,ListingStatus.WITHDRAWN}
-                prop=replace(prop,original_listing_url=old_urls['municipal'],
+                prop=replace(prop,original_listing_url=old_urls.get('municipal',old.original_listing_url),
                     listing_status=old.listing_status if terminal else ListingStatus.NOT_FOUND,
                     availability_status=old.availability_status if terminal else AvailabilityStatus.UNKNOWN,
                     source_status_ja=old.source_status_ja,
@@ -99,7 +140,9 @@ def crawl_iizuna(state,*,client=None):
     municipal=tuple(parse_detail(c,client.fetch(c.url),checked) for c in first.cards)
     secondary,summary=acquire_rakuen(client,checked)
     if parse_municipal_index(client.fetch(MUNICIPAL_INDEX))!=first:raise ValueError('Municipal index changed during acquisition')
-    merged,duplicates=deduplicate_feeds(municipal,secondary);merged=stable_identities(merged,state)
+    merged,duplicates=deduplicate_feeds(municipal,secondary)
+    state=separate_reused_municipal_urls(merged,state)
+    merged=stable_identities(merged,state)
     if len({p.source_property_id for p in merged})!=len(merged):raise ValueError('Duplicate combined Iizuna identity')
     previous={p.source_property_id for p in state.properties if p.source_key==SOURCE and p.listing_status.value=='active'}
     if previous and len(previous-{p.source_property_id for p in merged})/len(previous)>.25:raise ValueError('Iizuna inventory drop exceeds 25%; no updates applied')

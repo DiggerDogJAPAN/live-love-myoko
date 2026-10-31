@@ -5,7 +5,7 @@ from unittest import TestCase
 from unittest.mock import Mock,patch
 from myoko_property_crawler.adapters.iizuna_akiya_bank import (
  SOURCE,MUNICIPAL_INDEX,RAKUEN_INDEX,Card,parse_municipal_index,parse_rakuen_index,parse_detail,deduplicate_feeds,normalized_address)
-from myoko_property_crawler.iizuna_live import crawl_iizuna,IizunaClient,stable_identities
+from myoko_property_crawler.iizuna_live import crawl_iizuna,IizunaClient,stable_identities,separate_reused_municipal_urls
 from myoko_property_crawler.changes import State
 from myoko_property_crawler.customer import is_customer_eligible,customer_property
 from myoko_property_crawler.database import prepare_sync,SyncError
@@ -198,3 +198,38 @@ class IizunaTests(TestCase):
   self.assertIn("municipal_primary_card_v1",sql)
   workflow=Path('../.github/workflows/myoko-crawler.yml').read_text()
   self.assertIn('iizuna_akiya_bank',workflow);self.assertIn("cron: '17 21 * * *'",workflow)
+
+ def test_reused_municipal_page_keeps_different_houses_and_price_history_separate(self):
+  from decimal import Decimal
+  from myoko_property_crawler.changes import reconcile,PriceChange
+  from myoko_property_crawler.adapters.base import CrawlBatch
+  import json
+  base=self.crawl().reconciliation.state.properties[0]
+  url='https://www.town.iizuna.nagano.jp/ijuportal/live/sale/14583.html'
+  old=replace(base,source_property_id='reg-206',original_listing_url=url,address='長野県上水内郡飯綱町大字豊野1321',land_area_sqm=Decimal('353.01'),building_area_sqm=Decimal('106.04'),asking_price_jpy=5000000,construction_date='1984',source_facts={'provider':'municipal','municipal_registration':'206','provider_urls':json.dumps({'municipal':url,'rakuen':'https://rakuen-akiya.jp/bukken/457945/'})})
+  new=replace(old,source_property_id='reg-163',address='長野県上水内郡飯綱町大字高坂1300‐23',land_area_sqm=Decimal('798'),building_area_sqm=Decimal('71.1'),asking_price_jpy=12000000,construction_date='1980',last_checked_at=DAY_TWO,source_facts={'provider':'municipal','municipal_registration':'163','provider_urls':json.dumps({'municipal':url,'rakuen':'https://rakuen-akiya.jp/bukken/458986/'})})
+  event=PriceChange(SOURCE,'id:reg-206',url,6000000,5000000,DAY_ONE)
+  state=State((old,),(event,),{SOURCE:DAY_ONE})
+  prepared=separate_reused_municipal_urls((new,),state)
+  incoming=stable_identities((new,),prepared)
+  result=reconcile(prepared,CrawlBatch(SOURCE,DAY_TWO,incoming,True)).state
+  props={p.source_property_id:p for p in result.properties}
+  self.assertEqual(set(props),{'reg-206','reg-163'})
+  self.assertEqual(props['reg-206'].original_listing_url,'https://rakuen-akiya.jp/bukken/457945/')
+  self.assertEqual(props['reg-206'].listing_status.value,'not_found')
+  self.assertEqual(props['reg-206'].asking_price_jpy,5000000)
+  self.assertEqual(props['reg-206'].first_discovered_at,old.first_discovered_at)
+  self.assertIsNone(props['reg-206'].main_image_url)
+  self.assertEqual(props['reg-163'].original_listing_url,url)
+  self.assertEqual(props['reg-163'].asking_price_jpy,12000000)
+  self.assertEqual(result.price_changes,(event,))
+  self.assertEqual(len(json.loads(props['reg-206'].source_facts['retired_provider_urls'])),1)
+  again=separate_reused_municipal_urls((new,),result)
+  self.assertEqual(stable_identities((new,),again)[0].source_property_id,'reg-163')
+  stale=replace(old,original_listing_url='https://rakuen-akiya.jp/bukken/457945/',last_checked_at=DAY_TWO,source_facts={'provider':'rakuen','municipal_registration':'206','provider_urls':json.dumps({'rakuen':'https://rakuen-akiya.jp/bukken/457945/'})})
+  held=stable_identities((stale,),result)[0]
+  self.assertEqual(held.listing_status.value,'not_found');self.assertIn('retired_provider_urls',held.source_facts)
+  for unsafe in (replace(new,address=old.address),replace(new,land_area_sqm=None),replace(new,building_area_sqm=old.building_area_sqm)):
+   unchanged=separate_reused_municipal_urls((unsafe,),state)
+   with self.assertRaisesRegex(ValueError,r'listing_id=reg-206.*previous_registration=206 new_registration=163'):
+    stable_identities((unsafe,),unchanged)

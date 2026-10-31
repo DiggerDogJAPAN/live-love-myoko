@@ -154,11 +154,13 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
             by_identity.setdefault(event.identity_token, []).append(event)
         inserted = updated = price_events = status_events = 0
         property_ids = {}
-        for prop in properties:
+        # Release revised existing URLs before a new listing can claim one.
+        # The ownership guard and database unique constraint remain in force.
+        for prop in sorted(properties,key=lambda p:p.identity[1] not in existing):
             token = prop.identity[1]
             old = existing.get(token)
             if prop.original_listing_url in existing_urls and existing_urls[prop.original_listing_url] != token:
-                raise SyncError('A listing URL now has a different source ID; explicit identity review is required')
+                raise SyncError('Listing URL ownership conflict: source='+source_key+' url='+prop.original_listing_url+' existing_identity='+existing_urls[prop.original_listing_url]+' incoming_identity='+token)
             values = values_for_property(prop)
             if old:
                 if prop.last_checked_at < old['last_checked_at']:
@@ -206,6 +208,9 @@ def _apply(connection, properties, events, checked_at, snapshot, *, complete=Fal
                 property_id = connection.execute('INSERT INTO crawler.properties ('+columns+') VALUES ('+
                     placeholders+') RETURNING id', (*values.values(),seen)).fetchone()['id']
                 inserted += 1
+            if old and old['original_listing_url']!=prop.original_listing_url:
+                existing_urls.pop(old['original_listing_url'],None)
+            existing_urls[prop.original_listing_url]=token
             property_ids[token] = property_id
         # Import original local events once; never fabricate historical crawl IDs.
         for event in events:
