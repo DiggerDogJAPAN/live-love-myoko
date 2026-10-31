@@ -92,7 +92,7 @@ export default function PrivacyPolicyPage() {
                         <h3>Cloudflare</h3>
                         <p>Provides website hosting, content delivery, security and website performance analytics.</p>
                         <h3>Resend</h3>
-                        <p>Provides email delivery services for requested Property Alerts.</p>
+                        <p>Provides transactional email delivery services for requested Property Alerts.</p>
                         <h3>Stripe</h3>
                         <p>Stripe processes payments and related billing information for Basic and Premium Property Finder subscriptions, including recurring payments, renewals and subscription management. We share the account and billing information necessary to provide these services and receive relevant subscription and transaction records.</p>
                         <p>Stripe processes payment card information through its hosted payment infrastructure. Love Live Myoko does not store complete payment card details in its own database. Stripe also processes information for its own legal, security and payment-compliance purposes as described in <a href="https://stripe.com/privacy">Stripe&apos;s Privacy Policy</a>.</p>
@@ -102,6 +102,7 @@ export default function PrivacyPolicyPage() {
                         <p>Some property information, photographs and links originate from third-party property listing websites. Your browser may connect to those services when loading externally hosted images or visiting their websites.</p>
                         <h3>Email Service Providers</h3>
                         <p>We use email services to handle account-related messages, enquiries and other necessary communications.</p>
+                        <p>These services may process personal information needed to provide their functions. The information involved depends on the service and how you use it.</p>
                         <p>We do not sell your personal information to advertisers.</p>
                     </section>
 
@@ -118,20 +119,21 @@ export default function PrivacyPolicyPage() {
                         <h3>Account information</h3>
                         <p>Account information is generally retained while your account remains active and for an appropriate period afterwards where necessary.</p>
                         <h3>Saved properties and preferences</h3>
-                        <p>Saved properties and Property Alerts preferences are retained as necessary to provide the relevant services.</p>
+                        <p>Saved properties and Property Alerts preferences are retained as necessary to provide the relevant services. They are deleted when a verified account deletion request is completed, subject to applicable legal or other necessary retention exceptions.</p>
                         <h3>Email delivery information</h3>
-                        <p>Resolved Property Alerts delivery history, including recipient addresses and listing payloads, is normally removed after 90 days. Unresolved deliveries, open privacy requests and records subject to investigation or legal holds may be retained while necessary.</p>
+                        <p>Our retention policy provides for keeping resolved Property Alerts delivery history, including recipient addresses and listing details, for up to 90 days, subject to necessary operational, legal and security exceptions. Automatic cleanup is not currently enabled, so records may remain longer pending administrator review and removal. Unresolved deliveries, open privacy requests and records subject to investigation or legal holds may be retained while necessary.</p>
                         <p>Minimal records are retained as needed to prevent duplicate notifications and honour existing unsubscribe links. These records do not retain the historical email address or listing payload.</p>
                         <h3>Privacy requests</h3>
-                        <p>We keep minimal request records, such as request type, dates, status and necessary outcome notes, for up to three years after closure where needed for accountability, legal obligations or disputes. Explanatory details are removed on reviewed closure unless a retention hold applies.</p>
+                        <p>We keep minimal request records, such as request type, dates, status and necessary outcome notes, for up to three years after closure where needed for accountability, legal obligations or disputes. Explanatory details are removed on reviewed closure unless a retention hold applies. Expiry is subject to manual review.</p>
                         <h3>Enquiry correspondence</h3>
                         <p>Correspondence may be retained for customer service, transaction management and legitimate business recordkeeping.</p>
                         <h3>Payment and subscription records</h3>
                         <p>We retain relevant Stripe subscription and transaction records for subscription administration, accounting, tax, legal compliance and payment disputes where necessary.</p>
                         <p>Certain records may need to be retained even after an account is closed, where permitted or required by law.</p>
+                        <p>Required retention periods depend on the applicable Japanese tax, accounting and legal obligations.</p>
                         <h3>Technical and security records</h3>
-                        <p>Technical logs and security-related information may be retained for appropriate operational and security purposes.</p>
-                        <p>Information may also remain temporarily in backups or third-party systems under applicable retention arrangements. We aim not to keep personal information longer than necessary.</p>
+                        <p>We retain technical logs and security-related information only for as long as reasonably necessary for operational, security or applicable legal purposes. Provider-controlled records are also subject to the relevant provider&apos;s retention arrangements.</p>
+                        <p>Backup copies may temporarily contain information deleted from active systems until those copies expire under applicable backup retention arrangements. Information may also remain in third-party systems under their applicable retention arrangements. We aim not to keep personal information longer than necessary.</p>
                     </section>
 
                     <section aria-labelledby="information-security">

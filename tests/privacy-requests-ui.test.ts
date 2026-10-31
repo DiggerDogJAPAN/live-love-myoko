@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
 import { before, test } from 'node:test';
 import { createRequire } from 'node:module';
-import { createElement, type ComponentType } from 'react';
+import { createElement, type ComponentType, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { parseRequests, parseAdminRequests, type AdminPrivacyRequest } from '../src/lib/privacy/requests';
 
 let Requests: ComponentType<{ administrator: boolean }>, Case: ComponentType<{ row: AdminPrivacyRequest; onUpdated: () => Promise<void> }>;
+let Accordion: ComponentType<{ id: string; title: string; description: string; status?: 'pending' | 'in_progress'; children?: ReactNode }>;
 before(async () => {
     const require = createRequire(`${process.cwd()}/package.json`);
     require.extensions['.css'] = module => { module.exports = {}; };
-    Requests = (await import('../src/components/privacy/PrivacyRequests')).default;
+    const requestsModule = await import('../src/components/privacy/PrivacyRequests');
+    Requests = requestsModule.default;
+    Accordion = requestsModule.PrivacyAccordion;
     Case = (await import('../src/components/privacy/PrivacyRequestsAdmin')).AdminCase;
 });
 const own = { id: '00000000-0000-4000-8000-000000000001', type: 'deletion' as const, scope: 'account' as const,
@@ -21,6 +24,31 @@ test('Customer interface uses labelled controls and a native confirmation dialog
     assert(html.includes('<dialog')); assert(!html.includes('Privacy Requests — Administrator'));
     assert(!html.includes('Delete Verified Account')); assert(html.includes('disabled=""'));
     for (const label of html.matchAll(/<label[^>]*for="([^"]+)"/g)) assert(html.includes(`id="${label[1]}"`));
+});
+test('Privacy sections start independently collapsed with accessible heading buttons and mounted, hidden forms', () => {
+    const html = renderToStaticMarkup(createElement(Requests, { administrator: false }));
+    assert.equal([...html.matchAll(/aria-expanded="false"/g)].length, 2);
+    for (const id of ['privacy-requests', 'account-deletion']) {
+        assert(html.includes(`aria-controls="${id}-content"`));
+        assert(html.includes(`aria-labelledby="${id}-heading" aria-describedby="${id}-description"`));
+        assert(html.includes(`id="${id}-content" hidden=""`));
+        assert(html.includes(`id="${id}-heading"`));
+    }
+    assert.equal([...html.matchAll(/<svg[^>]*aria-hidden="true"/g)].length, 2);
+    assert(html.includes('id="privacy-type"')); assert(html.includes('<dialog'));
+});
+test('Collapsed headings expose pending/in-progress status descriptions without revealing private request details', () => {
+    for (const status of ['pending', 'in_progress'] as const) {
+        const html = renderToStaticMarkup(createElement(Accordion, { id: 'sample', title: 'Privacy requests', description: 'Manage your information.', status },
+            createElement('form', null, 'Private form content')));
+        const heading = html.slice(0, html.indexOf('</h2>'));
+        assert(heading.includes('aria-expanded="false"'));
+        assert(heading.includes('aria-describedby="sample-description sample-status"'));
+        assert(heading.includes('role="status"'));
+        assert(heading.includes(status === 'pending' ? 'Request pending' : 'In progress'));
+        assert(!heading.includes('Private form content'));
+        assert(html.includes('id="sample-content" hidden=""'));
+    }
 });
 test('Only the administrator view offers review/export/deletion controls, with exact-target confirmation and escaped details', () => {
     assert(renderToStaticMarkup(createElement(Requests, { administrator: true })).includes('Privacy Requests — Administrator'));

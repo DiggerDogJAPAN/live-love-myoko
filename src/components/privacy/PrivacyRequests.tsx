@@ -1,10 +1,33 @@
 'use client';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { supabaseRpc } from '@/lib/auth/supabase';
 import { parseRequests, privacyMessage, requestLabel, type PrivacyRequest, type RequestType } from '@/lib/privacy/requests';
 import PrivacyRequestsAdmin from './PrivacyRequestsAdmin';
 import styles from './privacy.module.css';
+
+export function PrivacyAccordion({ id, title, description, status, children }: {
+    id: string; title: string; description: string; status?: 'pending' | 'in_progress'; children?: ReactNode;
+}) {
+    const [expanded, setExpanded] = useState(false);
+    return <section className={styles.panel} aria-labelledby={`${id}-heading`}>
+        <h2 className={styles.accordionHeading}>
+            <button type="button" className={styles.accordionToggle} aria-expanded={expanded} aria-controls={`${id}-content`}
+                aria-labelledby={`${id}-heading`} aria-describedby={`${id}-description${status ? ` ${id}-status` : ''}`}
+                onClick={() => setExpanded(previous => !previous)}>
+                <span className={styles.accordionCopy}>
+                    <span className={styles.accordionTitleRow}>
+                        <span id={`${id}-heading`}>{title}</span>
+                        {status && <span id={`${id}-status`} className={styles.requestStatus} role="status">{status === 'pending' ? 'Request pending' : 'In progress'}</span>}
+                    </span>
+                    <span id={`${id}-description`} className={styles.accordionDescription}>{description}</span>
+                </span>
+                <svg className={styles.chevron} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+        </h2>
+        <div id={`${id}-content`} hidden={!expanded} className={styles.accordionContent}>{children}</div>
+    </section>;
+}
 
 export default function PrivacyRequests({ administrator }: { administrator: boolean }) {
     const [requests, setRequests] = useState<PrivacyRequest[]>([]), [loaded, setLoaded] = useState(false);
@@ -36,11 +59,15 @@ export default function PrivacyRequests({ administrator }: { administrator: bool
     };
     const activeDeletion = requests.some(r => r.type === 'deletion' && ['pending', 'in_progress'].includes(r.status));
     const accountRequest = requests.find(r => r.type === 'deletion' && r.scope === 'account');
+    const privacyStatus = requests.some(r => r.status === 'pending') ? 'pending'
+        : requests.some(r => r.status === 'in_progress') ? 'in_progress' : undefined;
+    const deletionStatus = requests.some(r => r.type === 'deletion' && r.status === 'pending') ? 'pending'
+        : requests.some(r => r.type === 'deletion' && r.status === 'in_progress') ? 'in_progress' : undefined;
     return <div className={styles.stack}>
         {message && <p className={styles.notice} role="status">{message}</p>}
         {error && <p className={styles.error} role="alert">{error}</p>}
-        <section className={styles.panel} aria-labelledby="privacy-requests-heading">
-            <h2 id="privacy-requests-heading">Privacy &amp; Data Requests</h2>
+        <PrivacyAccordion id="privacy-requests" title="Privacy & Data Requests"
+            description="Access, correct or ask about your personal information." status={privacyStatus}>
             <p>Request access to your personal information, correction, deletion of personal information, or details of how it is collected, used or shared.</p>
             <p>Our team reviews requests according to applicable law. We may need to verify your identity. Some information may need to be retained for legal, accounting, security or dispute-related reasons.</p>
             <form className={styles.form} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void submit(type, type === 'deletion' ? 'personal_data' : null, details); }}>
@@ -63,9 +90,9 @@ export default function PrivacyRequests({ administrator }: { administrator: bool
                 {r.completedAt && <p>Completed or closed: {new Date(r.completedAt).toLocaleDateString('en-GB')}</p>}
             </li>)}</ol>
             <p className={styles.small}>You can also contact <a href="mailto:info@love-live-myoko.com">info@love-live-myoko.com</a>. Read our <Link href="/privacy-policy">Privacy Policy</Link>.</p>
-        </section>
-        <section className={styles.panel} aria-labelledby="account-deletion-heading">
-            <h2 id="account-deletion-heading">Account Deletion</h2>
+        </PrivacyAccordion>
+        <PrivacyAccordion id="account-deletion" title="Account Deletion"
+            description="Request a review before closing your account." status={deletionStatus}>
             <p>Ask our team to close your account and delete personal information that is no longer required. Submitting a request does not immediately delete your account or cancel any subscription.</p>
             <p>We verify the request and review billing, records that must be retained and outstanding email deliveries before processing deletion. Some information may need to be retained where legally necessary.</p>
             {accountRequest && <p><strong>Current account deletion request:</strong> {accountRequest.status.replace('_', ' ')}</p>}
@@ -79,7 +106,7 @@ export default function PrivacyRequests({ administrator }: { administrator: bool
                         <button type="submit" className="button button--primary" disabled={busy}>Confirm Deletion Request</button></div>
                 </form>
             </dialog>
-        </section>
+        </PrivacyAccordion>
         {administrator && <PrivacyRequestsAdmin />}
     </div>;
 }
