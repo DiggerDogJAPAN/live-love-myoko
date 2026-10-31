@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import LandingActions from '@/components/property-finder/LandingActions';
 import styles from '@/components/property-finder/finder.module.css';
 
 export const metadata: Metadata = {
@@ -25,11 +26,7 @@ export default function PropertyFinderPage() {
                         <p className={styles.eyebrow}>Love Live Myoko · Property Finder</p>
                         <h1>Discover Property Across <em>Myoko and Beyond</em></h1>
                         <p>A clearer way to discover Japanese property. Multiple sources, an English-language interface, and local help when you’re ready for the next step.</p>
-                        <div className={styles.heroActions}>
-                            <a href="https://love-live-myoko.com/property-finder/search/" className="button button--primary">Explore Properties <span aria-hidden="true">↗</span></a>
-                            <a href="#membership" className={styles.textLink}>About membership ↓</a>
-                        </div>
-                        <span className={styles.launchNote}>In development · Paid membership coming soon</span>
+                        <LandingActions />
                     </div>
                 </div>
                 <div className={styles.heroImage}>
@@ -63,7 +60,7 @@ export default function PropertyFinderPage() {
 
             <section id="membership" className={styles.membership}>
                 <div className={`layout__container ${styles.membershipInner}`}>
-                    <div><p className={styles.eyebrow}>The next chapter</p><h2>A directory for members.<br /><em>Local knowledge for your next move.</em></h2><p>Property Finder will be a paid membership service. Membership details will be shared as the service develops.</p><p>During private testing, directory access is limited to authorized administrators. Paid membership access is not yet available.</p><a href="https://love-live-myoko.com/property-finder/search/" className="button button--primary">Explore Properties</a></div>
+                    <div><p className={styles.eyebrow}>The next chapter</p><h2>A directory for members.<br /><em>Local knowledge for your next move.</em></h2><p>Basic: ¥2,000/month — Property Finder access. Premium: ¥4,000/month — Property Finder plus Saved Properties.</p><p>Subscriptions are not yet available. Administrators retain access without a subscription.</p><Link href="/membership/" className="button button--primary">View Membership Plans</Link></div>
                     <aside className={styles.directProperties}><p className={styles.eyebrow}>Looking to buy now?</p><h3>Our own property listings remain open.</h3><p>Our Properties section features listings handled directly by Love Live Myoko. Property Finder is a separate directory of properties from other Japanese sources.</p><Link href="/properties" className={styles.textLink}>View Our Properties <span aria-hidden="true">↗</span></Link></aside>
                 </div>
             </section>

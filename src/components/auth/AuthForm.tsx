@@ -2,8 +2,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { authMessage, authRequest } from '@/lib/auth/client';
+import { authMessage, authRequest, fetchAccount } from '@/lib/auth/client';
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, registrationFullName } from '@/lib/auth/validation';
+import { loginDestination } from '@/lib/auth/login-destination';
 import styles from './auth.module.css';
 import loginStyles from '@/app/login/login.module.css';
 export type AuthMode = 'login' | 'register' | 'forgot' | 'reset' | 'verify';
@@ -39,7 +40,14 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
             const action = mode === 'forgot' ? 'recover' : mode === 'reset' ? 'password' : mode === 'verify' ? 'verify-email' : mode;
             const body = mode === 'login' ? { email, password } : mode === 'register' ? { email, password, name: fullName } : mode === 'reset' ? { password } : mode === 'verify' ? { email, token } : { email };
             await authRequest(action, body); setPassword(''); setConfirm(''); setToken('');
-            if (mode === 'login' || mode === 'verify') router.replace('/account/');
+            if (mode === 'login') {
+                let destination = loginDestination(window.location.search);
+                if (destination === '/property-finder/search/') {
+                    try { if (!(await fetchAccount()).finderAccess) destination = '/account/'; }
+                    catch { destination = '/account/'; }
+                }
+                router.replace(destination);
+            } else if (mode === 'verify') router.replace('/account/');
             else if (mode === 'reset') { setMessage('Your password has been updated. Sign in with your new password.'); }
             else setMessage('If this address can receive account emails, please check your inbox. Open the latest link in this browser within 15 minutes.');
         } catch (e) { setError(authMessage(e instanceof Error ? e.message : 'authentication_unavailable')); }
