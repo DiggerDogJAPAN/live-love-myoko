@@ -28,7 +28,7 @@ test('Membership reference layout retains real prices, precise introduction, reg
     for (const text of ['LOVE LIVE MYOKO · PROPERTY FINDER', 'A membership for your property search.',
         'Compare our upcoming monthly membership plans. Subscriptions are not available to purchase yet.', '¥2,000', '¥4,000',
         'Registration is free and does not provide access to Property Finder listings. No payment is taken and no subscription starts when you register.']) assert(html.includes(text));
-    assert.equal((html.match(/<h1\b/g) || []).length, 1); assert.equal((html.match(/<h2\b/g) || []).length, 2);
+    assert.equal((html.match(/<h1\b/g) || []).length, 1); assert.equal((html.match(/<h2\b/g) || []).length, 3);
     for (const [label, href] of [['Already registered? Sign in', '/login'], ['Your account', '/account'], ['About Property Finder', '/property-finder']]) {
         assert(html.includes(`href="${href}">${label}</a>`)); assert(existsSync(`src/app${href}/page.tsx`));
     }
@@ -38,7 +38,11 @@ test('Only interactive maps carry the PLANNED badge; saved properties are includ
     const html = renderToStaticMarkup(createElement(Page)), premium = section(html, 'premium');
     assert.equal((html.match(/PLANNED/g) || []).length, 1);
     const features = premium.match(/<li\b[^>]*>[\s\S]*?<\/li>/g)!;
-    assert.equal(features.length, 4);
+    assert.equal(features.length, 5);
+    const alerts = features.find(f => f.includes('Property Alerts'))!;
+    assert(alerts.includes('PREMIUM EXCLUSIVE'));
+    assert(alerts.includes('when new matching properties are discovered'));
+    assert(!section(html, 'basic').includes('Property Alerts'));
     assert(features.find(f => f.includes('Saved Properties'))!.includes('✓')); assert(!features.find(f => f.includes('Saved Properties'))!.includes('PLANNED'));
     assert(features.find(f => f.includes('Interactive Map Viewing'))!.includes('PLANNED'));
     const refund = features.find(f => f.includes('Eligible refund'))!;

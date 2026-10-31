@@ -7,14 +7,17 @@ import type { AccountDetails } from '@/lib/auth/types';
 import styles from '@/app/membership/membership.module.css';
 
 type Plan = 'basic' | 'premium';
-const plans: { id: Plan; name: string; price: string; features: { text: string; planned?: boolean }[] }[] = [
+const plans: { id: Plan; name: string; price: string; features: { text: string; planned?: boolean; description?: string; highlighted?: boolean }[] }[] = [
     { id: 'basic' as const, name: 'Basic', price: '¥2,000', features: [
-        { text: 'Access to all Property Finder listings' },
-        { text: 'Standard search, location and price filters' },
+        { text: 'Access to the Property Finder directory' },
+        { text: 'Search aggregated Japanese property listings' },
+        { text: 'Search filters and sorting' },
+        { text: 'Direct links to original Japanese property websites' },
     ] },
     { id: 'premium' as const, name: 'Premium', price: '¥4,000', features: [
         { text: 'Everything in Basic' },
-        { text: 'Saved Properties' },
+        { text: 'Saved Properties', description: 'Save favourite properties to your account.' },
+        { text: 'Property Alerts', description: 'Select preferred areas and receive one daily email when new matching properties are discovered.', highlighted: true },
         { text: 'Interactive Map Viewing', planned: true },
         { text: 'Eligible refund of up to three months of Premium membership fees following a qualifying property purchase through our agency' },
     ] },
@@ -42,9 +45,13 @@ export function MembershipPlanCards({ account = null, unavailable = false }: { a
                     <p className={styles.price}><span className={styles.amount}>{plan.price}</span><span className={styles.period}>/ month</span></p>
                 </div>
                 <ul className={styles.features} role="list">
-                    {plan.features.map(feature => <li key={feature.text}>
+                    {plan.features.map(feature => <li key={feature.text} className={feature.highlighted ? styles.highlightedFeature : undefined}>
                         <span className={feature.planned ? styles.plannedMarker : styles.check} aria-hidden="true">{feature.planned ? '○' : '✓'}</span>
-                        {feature.planned ? <span className={styles.plannedFeature}><span className={styles.plannedBadge}>PLANNED</span><span>{feature.text}</span></span> : <span>{feature.text}</span>}
+                        {feature.planned ? <span className={styles.plannedFeature}><span className={styles.plannedBadge}>PLANNED</span><span>{feature.text}</span></span> : <span>
+                            {feature.highlighted ? <><span className={styles.featureLabel}>PREMIUM EXCLUSIVE</span><strong>{feature.text}</strong></> : feature.text}
+                            {feature.description && <span className={styles.featureDescription}>{feature.description}</span>}
+                            {feature.highlighted && <Link className={styles.featureLink} href="#property-alerts">How Property Alerts work</Link>}
+                        </span>}
                     </li>)}
                 </ul>
                 <Link className={`button ${styles.cta} ${premium ? styles.whiteButton : styles.outlineButton}`} href={action.href}>{action.label}</Link>

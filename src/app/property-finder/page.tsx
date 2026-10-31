@@ -6,7 +6,7 @@ import styles from '@/components/property-finder/finder.module.css';
 
 export const metadata: Metadata = {
     title: 'Property Finder — Myoko & Beyond | Love Live Myoko',
-    description: 'Discover a new English-language property search for Myoko, Joetsu, Shinano Town/Kurohime and Iizuna. Japanese listing sources in one place. Membership coming soon.',
+    description: 'Explore Japanese property listings across Myoko, Joetsu, Shinano Town/Kurohime and Iizuna, with Saved Properties and Property Alerts for Premium. Membership coming soon.',
     alternates: { canonical: 'https://love-live-myoko.com/property-finder/' },
 };
 
@@ -60,7 +60,15 @@ export default function PropertyFinderPage() {
 
             <section id="membership" className={styles.membership}>
                 <div className={`layout__container ${styles.membershipInner}`}>
-                    <div><p className={styles.eyebrow}>The next chapter</p><h2>A directory for members.<br /><em>Local knowledge for your next move.</em></h2><p>Basic: ¥2,000/month — Property Finder access. Premium: ¥4,000/month — Property Finder plus Saved Properties.</p><p>Subscriptions are not yet available. Administrators retain access without a subscription.</p><Link href="/membership/" className="button button--primary">View Membership Plans</Link></div>
+                    <div>
+                        <p className={styles.eyebrow}>The next chapter</p>
+                        <h2>A directory for members.<br /><em>Local knowledge for your next move.</em></h2>
+                        <p>Basic: ¥2,000/month — Property Finder access, search filters, sorting and direct links to original Japanese listings. Premium: ¥4,000/month — Property Finder plus Saved Properties and Property Alerts.</p>
+                        <h3>Property Alerts, exclusively with Premium.</h3>
+                        <p>Select preferred areas across Myoko, Joetsu, Shinano Town / Kurohime and Iizuna. Receive one daily email only when new matching properties are discovered, with direct links to the original Japanese property websites. Manage your preferences or disable notifications from your account page.</p>
+                        <p>Subscriptions are not yet available. Administrators retain access without a subscription.</p>
+                        <Link href="/membership/" className="button button--primary">View Membership Plans</Link>
+                    </div>
                     <aside className={styles.directProperties}><p className={styles.eyebrow}>Looking to buy now?</p><h3>Our own property listings remain open.</h3><p>Our Properties section features listings handled directly by Love Live Myoko. Property Finder is a separate directory of properties from other Japanese sources.</p><Link href="/properties" className={styles.textLink}>View Our Properties <span aria-hidden="true">↗</span></Link></aside>
                 </div>
             </section>

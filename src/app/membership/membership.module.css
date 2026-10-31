@@ -79,6 +79,25 @@
 .check { color: var(--membership-accent); }
 .premium .check { color: var(--color-surface); }
 .premium .features, .premium .features li { border-color: #ffffff38; }
+.features .highlightedFeature {
+    margin-block: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--color-primary-soft);
+    color: var(--color-text);
+    border: 1px solid var(--color-primary-border);
+    border-radius: var(--radius-card);
+}
+.premium .highlightedFeature .check { color: var(--color-primary); }
+.featureLabel { display: block; margin-bottom: var(--space-2xs); color: var(--color-primary); font: 600 var(--text-label)/1.5 var(--font-body); letter-spacing: .1em; }
+.featureDescription { display: block; margin-top: var(--space-2xs); font-size: .9375rem; line-height: 1.6; }
+.featureLink { display: inline-block; margin-top: var(--space-xs); color: var(--color-primary); font-size: .9375rem; text-underline-offset: 3px; }
+.featureLink:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+.alertDetails { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-lg) var(--space-2xl); scroll-margin-top: var(--space-lg); }
+.alertDetails h2 { margin: 0 0 var(--space-sm); font: 400 clamp(1.875rem, 4vw, 2.5rem)/1.2 var(--font-heading); text-wrap: balance; }
+.alertDetails p:not(.eyebrow) { margin: 0; color: var(--color-text-muted); line-height: 1.65; }
+.alertSteps { display: flex; flex-direction: column; gap: var(--space-sm); margin: 0; padding-left: var(--space-md); line-height: 1.65; }
+.alertSteps li { padding-left: var(--space-xs); }
+.alertSteps li::marker { color: var(--color-primary); font-weight: 600; }
 .plannedFeature { display: flex; flex-direction: column; gap: .375rem; align-items: flex-start; }
 .plannedBadge {
     padding: .1875rem .5625rem;
@@ -122,7 +141,7 @@
 }
 @media (max-width: 760px) {
     .container { gap: 3rem; }
-    .intro, .plans { grid-template-columns: minmax(0, 1fr); }
+    .intro, .plans, .alertDetails { grid-template-columns: minmax(0, 1fr); }
     .intro { gap: var(--space-lg); }
     .description { max-width: none; }
     .plan { padding: 2rem; }

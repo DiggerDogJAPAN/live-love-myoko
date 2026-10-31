@@ -15,6 +15,7 @@ export default function PropertyFinderFeature() {
                     <h2>Find Your Next Property in Myoko</h2>
                     <p>Discover properties collected from Japanese real estate sources in one searchable, English-language directory.</p>
                     <p>Property Finder is being built for Myoko, Joetsu, Shinano Town/Kurohime and Iizuna, with additional sources being added. Paid membership is coming soon.</p>
+                    <p>Premium membership includes Saved Properties and exclusive Property Alerts: choose your preferred areas and receive an email only when new matching properties are discovered.</p>
                     <Link href="/property-finder" className="button button--primary">Discover Property Finder <span aria-hidden="true">↗</span></Link>
                 </div>
             </div>
