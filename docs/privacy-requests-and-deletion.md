@@ -1,0 +1,114 @@
+# Privacy requests, exports and account deletion
+
+Prepared 31 October 2026. **The owner approved production migration, commit, push and deployment on 31 October 2026. Automatic cleanup must remain disabled; no cleanup credentials or bulk/destructive production verification is authorised.** Individual case processing must follow the verified administrator procedure below. Read [data-retention-policy.md](data-retention-policy.md).
+
+## Architecture and installation boundary
+
+Finder migration [`007_finder_privacy_requests_and_retention.sql`](../sql/proposals/007_finder_privacy_requests_and_retention.sql) follows Finder 006. It is separate from crawler migration 007. It adds five private, forced-RLS tables and narrowly scoped RPCs. Customers use the existing cookie-authenticated `/api/auth/supabase-access` flow and transient Supabase bearer; no new authentication system, browser-stored credential or server service key is introduced. Existing live-session/account checks apply even to unpaid registered customers. Administrator RPCs independently require the existing private administrator role, not client UI state or user metadata.
+
+The new tables are `requests`, `events`, `settings`, `holds` and `alert_unsubscribe_receipts` under `finder_privacy`. Clients, crawlers and the cleanup login cannot read/write them directly. Customer RPCs return only own request fields and the customer-visible response. Administrator notes, verification flags and holds are not customer fields. Privacy RPC responses set private/no-store headers.
+
+The migration changes the delivery reference on `alert_notified` to nullable `ON DELETE SET NULL` and extends the existing service-only unsubscribe RPC to recognise minimal unexpired delivery proofs. These two compatibility changes preserve notification suppression and existing 180-day signed unsubscribe links when history is deleted at 90 days. Claim/dispatch/eligibility/email generation and their grants are not changed. No existing account, membership, crawler listing or delivery is deleted during installation.
+
+Before a separately approved installation: confirm a fresh restorable backup and compare production catalog/privileges to the reviewed schema. The migration requires existing `postgres` Auth delete/update rights; it does not grant new Auth privileges or alter Auth RLS/ownership. Apply once as the existing operator and run [`007_finder_privacy_requests_and_retention.verify.sql`](../sql/proposals/007_finder_privacy_requests_and_retention.verify.sql). It stops on an existing privacy schema/role rather than overwriting a partial installation.
+
+## Customer workflow
+
+1. Sign in and open the existing account page. **Privacy & Data Requests** offers access, correction, personal-information deletion and information-about-use requests, with optional explanation limited to 2,000 characters. No files, sensitive-document fields or marketing consent are added.
+2. For whole-account closure, choose **Request Account Deletion** and confirm in the native dialog. This submits a case, not an immediate deletion and not a subscription cancellation.
+3. The request records the authenticated user, type/scope, dates and initial `pending` status. Retries with the same nonce are idempotent. A database unique index and per-user lock prevent duplicate active deletion cases across both scopes. Online submissions are limited to five per day/ten active cases; the existing email channel remains available for legal requests or clarification.
+4. Confirmation is shown and the user can refresh status. The list includes active cases and recent history (up to 100). The statuses are `pending`, `in_progress`, `completed`, `rejected`; rejection explanations are customer-visible.
+5. A customer who cannot authenticate, is suspended or no longer has an account may contact the existing mailbox. The administrator must handle applicable rights through the manual route; authentication/rate limits are not a denial of legal rights.
+
+## Administrator review
+
+The existing account dashboard shows **Privacy Requests — Administrator** only for the existing administrator account role. This is a small section, not a separate admin application. The database enforces permission even if a customer manually calls the RPC or modifies UI state.
+
+- Filter/paginate the queue. Check the case reference, date, account UUID, scope, explanation, current status and completion date. Assign a responsible administrator through the existing team process.
+- Internal response target: **30 calendar days**, subject to applicable law. At intake identify any earlier/different deadline and track it in the existing restricted case/operations process. Do not treat 30 days as a universal legal allowance. If NZ law applies, the regulator describes a generally 20-working-day response period and extension rules: [OPC guidance](https://www.privacy.org.nz/your-rights/ask-for-your-information/). EU/UK one-month rules and APPI handling requirements require their own assessment; the prior audit's territorial conclusions remain conditional.
+- Verify identity proportionately using the authenticated request and verified contact/account information, with additional checks when warranted. Do not routinely demand passport copies. Record only a short description of the verification method/outcome, not identity documents.
+- Set `in_progress`, enter factual administrator action notes and a customer-visible response where needed. Save the identity-verification checkbox. For deletion, also review billing/external records and legally necessary retention and save that checkbox.
+- Place the retention-hold checkbox when investigation/obligation requires keeping this account's delivery history. An open case already protects that history. Explicitly review/release holds; closing a held case does not silently release it.
+- Ordinary access/correction/information/personal-data-deletion cases can be completed after verified handling and action notes. A rejection requires a customer-visible reason. Whole-account deletion cases can only become completed through the deletion procedure, never merely by changing the status dropdown.
+- Closing a case removes its original explanatory text unless held. Keep outcome notes minimal. Closed outcomes cannot be reopened by changing status; record a new request where needed. Updates use the last observed modification timestamp and reject stale edits.
+
+There are no request-notification emails in this implementation. Review the queue as part of daily administration and respond through the approved business communication process. This avoids introducing another email subsystem or sharing privacy case details with Resend.
+
+## Individual data export
+
+1. Verify the requester and set an access/deletion case to `in_progress`; save the review. Identity verification must be within seven days. To renew an expired review, clear/save the flag, then perform and save the new verification.
+2. Choose **Download Individual JSON Export** and confirm the handling warning. The database derives the target from the selected case, never from a client-supplied owner ID. It requires a current administrator session and verified in-progress case.
+3. The JSON contains the target's safe Auth profile fields and role; membership row; saves/usage counters; alert preferences; retained delivery history; notification/unsubscribe markers; customer-visible privacy cases; their action/date events without staff identifiers; and hold presence/date. It excludes passwords, credential/recovery tokens, sessions, arbitrary Auth metadata, other customers, private administrator notes and hold reasons. An export event records only actor/case/action/date. Review whether internal notes/hold explanations or other omitted provider records must be supplied or redacted under applicable law; exclusion from this automatic preparation is not a blanket legal exemption.
+4. Download uses a temporary browser-local object URL, not a public file endpoint or static asset. Store the file on protected administrator storage **outside Git, Directus uploads, `public/`, `out/` and shared build artifacts**. No export is automatically emailed or released to the customer.
+5. Review content and lawful redactions/exemptions, then release through a verified secure channel. Supplement relevant mailbox/provider/business records separately where needed; the application JSON is not an assertion that every provider copy or off-site record has been searched. Delete unnecessary working copies after delivery/closure.
+
+## Whole-account deletion procedure
+
+1. Confirm the selected request is an **account** deletion case, not merely deletion of particular personal information. Review the account UUID and request reference against the verified requester. Fulfil/resolve any other open privacy requests first; the database blocks deletion while another case remains active, rather than silently closing unfulfilled rights requests. Self/admin-account deletion is prohibited here to protect administrative access; use separate owner review for such cases.
+2. Review relevant records and preserve only those actually required by law, investigation, billing or disputes in an appropriately restricted system before marking retention reviewed. Record the minimal target UUID/deletion date and required restoration action in the protected recovery instructions so an older backup cannot silently restore access. Keep that identifier only as long as relevant backups/legal duties require; verify the provider lifecycle first. These recovery instructions are an operator procedure, not an automatic database backup-purge feature. No generic payment-retention period or unconditional erasure is assumed. Any case hold/operator hold blocks deletion.
+3. Resolve billing. The current application has no Stripe integration; the helper also blocks active/remaining membership access. **Before Stripe starts, the integration must set `finder_privacy.settings.billing_mode='external_check_required'`.** This disables deletion until a separately reviewed server-side billing resolver is implemented. Do not clear that guard or alter entitlement dates just to bypass it. An external subscription must be cancelled/resolved with provider evidence; deleting Supabase data never establishes that.
+4. Resolve pending/uncertain deliveries. A pending job with an active lease or an attempted/uncertain send blocks deletion. Do not discard ambiguous provider outcomes. Preferences are locked in the same order used by the delivery worker; an unattempted/unleased pending job can disappear with the account because no send has begun. This cannot recall an email already delivered externally.
+5. Review Supabase Storage/SCIM dependencies. Any owned Storage object or linked SCIM record blocks this procedure for explicit handling. No Storage bucket/object or public image is deleted by it.
+6. Save `in_progress`, recent identity and retention reviews, and action notes. Both reviews must be within seven days. Type **`DELETE <exact account UUID> FOR <exact request UUID>`**, then choose **Delete Verified Account** and confirm the final prompt. Changing the account UUID cannot redirect deletion: the database derives the target from the locked case and checks the exact confirmation string.
+7. One database transaction minimises that customer's case records and deletes the exact `auth.users` row. Existing FK cascades remove their memberships, account role, saves/usage counters, preferences, delivery history, notification markers, unsubscribe proofs and managed Auth session dependencies. Current helpers check live account/session existence, so the remaining lifetime of a previously issued JWT does not grant access to Finder/privacy RPCs.
+8. The minimal case preserves reference/type/dates/outcome and processing event, while customer UUID/nonce and case free text are cleared. Repeating the completed operation returns its completion state and deletes nothing else. An unexpected FK/permission/database failure rolls back the entire transaction, including minimisation. Inspect and resolve the dependency; do not bypass constraints or manually half-delete records.
+
+[Supabase documents direct Auth deletion and the JWT/session caveat](https://supabase.com/docs/guides/auth/managing-user-data#deleting-users). Managed Auth logs, provider mail, backups and other external copies remain governed by their own supported processes and retention; no unsupported purge is attempted here.
+
+## Corrections and partial personal-data deletion
+
+Review the actual scope with the requester. Name corrections can use the existing account profile control. For verified changes requiring operator action (such as an email correction), use supported Supabase account-management/verification procedures; do not change roles, membership entitlements or billing as a substitute. For partial deletion, identify the exact dataset and use existing own-property/preference controls or a separately approved, target-specific operator transaction. Preserve necessary notification suppression/receipts; do not run the whole-account deletion RPC for a `personal_data` case. Record what was done, any retained subset/reason and the response before completion. Human handling is intentional; this task does not create a universal arbitrary-data-delete endpoint.
+
+## Holds outside customer cases
+
+The operator can maintain `finder_privacy.holds` from the existing restricted SQL administration environment. A parameterised operation must first obtain `pg_advisory_xact_lock(hashtextextended(user_uuid::text,0))` in the same transaction, then insert/update the exact target hold and timestamp. Use a short reason and review date. Release under the same lock only after the obligation is resolved. Do not put these owner-level database capabilities or credentials in browser code. Request-specific holds can be managed through the administrator UI.
+
+## Scheduled retention provisioning — separate approval required
+
+1. Approve/apply migration 007 and run its read-only verification. Review holds and the [retention policy](data-retention-policy.md) before any production cleanup.
+2. Securely provision a password for the new `finder_privacy_retention_worker` login; the migration creates it without a password. Retain its restricted grants. Do not use `postgres`, a crawler login or the Supabase service key for the scheduled job.
+3. Add repository secrets `FINDER_PRIVACY_RETENTION_DATABASE_URL` and `FINDER_PRIVACY_DB_CA_CERT` through the approved secret-management workflow. Use a verified Supabase database certificate; no credentials belong in source, terminal output or issue text. The connection uses direct `db.<project>.supabase.co` or the session pooler with the dedicated login/project suffix and database `postgres`.
+4. Only after approval, set repository variable `FINDER_PRIVACY_RETENTION_ENABLED=true`. The daily workflow (approximately 04:32 JST) and manual dispatch both require it. This task does not configure these production settings.
+5. The runner validates project/login/current role, enforces verified TLS and invokes only `public.finder_privacy_cleanup()` in bounded transactions. It reuses the crawler's existing pinned psycopg extra. Logs contain only committed batch/final aggregate row counts and generic failures, so completed batches remain accounted for if a later call fails; database exceptions, URLs, payloads and addresses are never printed.
+6. To pause automation, disable the repository variable; pending/uncertain/held records remain untouched. Review counts/failures and spot-check the approved invariants, not a public dump of removed rows. No account/case purge or external-provider deletion is scheduled.
+
+## Verification and release
+
+Use the isolated PostgreSQL fixtures and local UI/parser/worker tests; never seed production customers or run production deletion to prove the feature. Tests cover RLS/grants, live identity, duplicates/nonces, state changes, own-only exports, typed deletion, rollback, holds/billing/dependencies and alert-retention compatibility. Existing auth, membership and alert regression checks must pass.
+
+The Privacy Policy process/retention passages were approved with the local implementation. Freeze all three legal-page source files during rollout, including approved Stripe wording. Run the complete CMS-enabled build and independently verify all published CMS routes/titles/descriptions/featured-gallery images and existing assets in `out/`. Production migration and website publication are approved for this rollout; workflow credentials/activation and destructive production testing remain excluded. No administrator MFA or Stripe integration is included.
+
+## Local change manifest and verification record
+
+Files prepared for this implementation:
+
+| Area | Files |
+| --- | --- |
+| Customer and administrator interface | `src/components/privacy/PrivacyRequests.tsx`, `src/components/privacy/PrivacyRequestsAdmin.tsx`, `src/components/privacy/privacy.module.css`, `src/lib/privacy/requests.ts` |
+| Existing interface integration | `src/components/auth/AccountDashboard.tsx`, `src/lib/auth/supabase.ts` |
+| Privacy Policy process/retention passages | `src/app/privacy-policy/page.tsx` |
+| Proposed database migration and read-only verification | `sql/proposals/007_finder_privacy_requests_and_retention.sql`, `sql/proposals/007_finder_privacy_requests_and_retention.verify.sql` |
+| Disabled retention automation | `scripts/privacy-retention.py`, `.github/workflows/privacy-retention.yml` |
+| Isolated fixtures and security/regression tests | `tests/fixtures/privacy-database.ts`, `tests/privacy-requests-migration.test.ts`, `tests/privacy-requests-ui.test.ts`, `tests/test_privacy_retention.py` |
+| Operator documentation | `docs/data-retention-policy.md`, `docs/privacy-requests-and-deletion.md` |
+| Complete generated website | Regenerated tracked `out/` using the existing CMS download/build workflow |
+
+Local verification completed on 31 October 2026:
+
+- 89 TypeScript tests passed across the new privacy checks and existing authentication, membership, saved-property, HTTPS and Property Alerts regression suites. A final rerun after strengthening the migration verification passed all 14 privacy-specific tests. Four Python worker tests passed. These use isolated fixtures and do not create/delete production customers or send real emails.
+- Targeted ESLint, TypeScript checking and the complete `npm run build` passed. The existing export security check passed for 281 text artifacts.
+- An independent inventory and comparison against the previous production export verified all 25 published CMS properties and two accommodations, their titles, summaries/descriptions and featured/gallery references; all 377 CMS image files were downloaded and matched the previous/exported image bytes. All 418 existing public asset hashes and all 51 HTML routes were preserved. Page titles, metadata and canonical URLs were unchanged.
+- Visible exported text changed only on `/privacy-policy/`. Its eight approved Stripe/billing paragraphs remain exact; the Terms of Service and Commercial Disclosure source files remain unchanged.
+
+At completion of the local phase, no production migration, commit, push or deployment had occurred. The subsequent approved rollout is recorded below. Visual review remains with the owner. Provider retention, secure export handoff, restoration/re-deletion instructions and any legal/accounting holds require responsible-administrator confirmation. Existing audit/legal draft documents remain outside this release.
+
+## Approved production installation — 31 October 2026
+
+- Authenticated Supabase MCP confirmed project `fgdoqsepihlzfqlqymet`. The unchanged Finder 006 unsubscribe signature/body, notification FK, existing Auth permissions and private-table ownership/forced RLS matched the proposed migration guards. The owner-confirmed completed/restorable backup of 30 October was the available backup evidence; the MCP connection does not expose the backup dashboard or establish its expiry schedule.
+- Applied `finder_007_privacy_requests_and_retention`, recorded as migration version `20261031140336`. Ran the exact read-only verification script successfully: all five private tables, seven public privacy RPCs, grants/RLS/owners, worker restrictions and alert compatibility checks passed.
+- Aggregate row fingerprints for all 16 pre-existing Auth/Finder/crawler tables were identical before/after installation and after verification. This includes the existing account and all 690 crawler properties. No existing account, membership, preference, delivery or public listing was altered by installation.
+- Production RPC checks used three synthetic Auth/session identities in one rolled-back transaction, with calls under the real `authenticated` database role and current identity/session checks. Customer submission, nonce retry, duplicate deletion prevention, own-only tracking, customer-visible completion, administrator review, scoped JSON preparation and wrong-confirmation rejection passed. A customer could not use administrator/export RPCs or update private statuses. No real customer export was printed, downloaded or stored. The transaction left no test accounts, requests or processing events. No correct-confirmation account deletion or cleanup RPC was executed against production.
+- The original 89 TypeScript regressions and four Python worker tests passed again, together with targeted lint, type checking and Pages Functions compilation. A fresh complete `npm run build` downloaded all 377 CMS images. Independent inventory/export checks preserved all 51 HTML routes, 25 properties, two accommodations and 418 existing public assets, including CMS descriptions/image references and unchanged metadata. All three approved legal-page source hashes were unchanged during rollout.
+- GitHub repository variable `FINDER_PRIVACY_RETENTION_ENABLED` was absent; both cleanup-specific repository secrets were absent. The new database role had no password. Leave these states unchanged. The workflow remains gated off, the 90-day history policy remains approved, and case expiry remains manual.
+- Publish the complete prepared export through the existing `main` → Cloudflare Pages `livelove` integration (`npm ci`, output `out`). Record the exact commit and final deployment status in the rollout completion report; do not replace this with a partial/manual upload.
+- No browser connection was available for a real signed-in UI/login walkthrough. Production database verification above is distinct from browser end-to-end acceptance. After publication, the owner should sign in, check the account sections and administrator queue, and optionally make a clearly labelled information request. Do not use a real deletion or email send as an installation test.

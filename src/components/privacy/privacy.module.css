@@ -1,0 +1,22 @@
+.stack { display: flex; flex-direction: column; gap: var(--space-lg); }
+.panel { padding: clamp(var(--space-md), 4vw, var(--space-xl)); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-card); min-width: 0; }
+.panel h2 { font-size: var(--text-xl); }
+.panel :is(h3, h4) { font-size: var(--text-md); }
+.panel a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.form { display: flex; flex-direction: column; gap: var(--space-sm); margin-block: var(--space-md); }
+.form label { display: flex; flex-direction: column; gap: var(--space-xs); }
+.form :is(input, textarea, select), .filter { min-width: 0; width: 100%; padding: var(--space-sm); min-height: var(--control-height); border: 1px solid var(--color-border); border-radius: var(--radius-input); font: inherit; color: var(--color-text); background: var(--color-surface); }
+.form textarea { resize: vertical; }
+.form .check { flex-direction: row; align-items: start; }
+.check input { width: var(--space-md); min-height: var(--space-md); flex: 0 0 var(--space-md); }
+.small { font-size: var(--text-xs); color: var(--color-text-muted); }
+.notice, .error { padding: var(--space-md); border-radius: var(--radius-input); overflow-wrap: anywhere; }
+.notice { background: var(--color-primary-soft); }
+.error { background: var(--color-warning-background); color: var(--color-warning-text); border: 1px solid var(--color-warning-border); }
+.requests { list-style: none; padding: 0; margin-block: var(--space-md); }
+.requests > li, .case { border-top: 1px solid var(--color-divider); padding-block: var(--space-md); overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-block: var(--space-sm); }
+.dialog { max-width: min(36rem, calc(100% - 2 * var(--page-gutter))); padding: var(--space-lg); border: 1px solid var(--color-border); border-radius: var(--radius-card); color: var(--color-text); background: var(--color-surface); }
+.dialog::backdrop { background: var(--color-overlay); }
+.case summary { cursor: pointer; padding-block: var(--space-sm); min-height: var(--control-height); }
+.confirmation { overflow-wrap: anywhere; font-size: var(--text-xs); }

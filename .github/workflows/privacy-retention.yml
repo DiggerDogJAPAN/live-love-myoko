@@ -1,0 +1,44 @@
+name: Privacy retention cleanup
+on:
+  schedule:
+    - cron: '32 19 * * *' # Approximately 04:32 JST; GitHub can delay scheduled runs.
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: finder-privacy-retention
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    # Remains inactive until migration, dedicated credentials and retention approval are complete.
+    if: ${{ vars.FINDER_PRIVACY_RETENTION_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install existing database dependency
+        run: python -m pip install './crawler[database]'
+      - name: Configure verified database certificate
+        env:
+          FINDER_PRIVACY_DB_CA_CERT: ${{ secrets.FINDER_PRIVACY_DB_CA_CERT }}
+        run: |
+          umask 077
+          python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          value = os.environ.get('FINDER_PRIVACY_DB_CA_CERT')
+          if not value:
+              raise SystemExit('Missing retention database certificate')
+          path = Path(os.environ['RUNNER_TEMP']) / 'finder-privacy-db-ca.crt'
+          path.write_text(value)
+          path.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              output.write('FINDER_PRIVACY_DB_SSLROOTCERT=' + str(path) + '\n')
+          PYTHON
+      - name: Clean expired application delivery history
+        env:
+          FINDER_PRIVACY_RETENTION_DATABASE_URL: ${{ secrets.FINDER_PRIVACY_RETENTION_DATABASE_URL }}
+        run: python scripts/privacy-retention.py

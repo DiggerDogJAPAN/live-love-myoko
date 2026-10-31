@@ -9,6 +9,7 @@ import AuthLayout from './AuthLayout';
 import layoutStyles from './auth-layout.module.css';
 import PropertyAlerts from '../property-alerts/PropertyAlerts';
 import SavedPropertiesSection from '../property-finder/SavedPropertiesSection';
+import PrivacyRequests from '../privacy/PrivacyRequests';
 export default function AccountDashboard() {
     const [account, setAccount] = useState<AccountDetails | null>(null), [loading, setLoading] = useState(true);
     const [message, setMessage] = useState(''), [name, setName] = useState(''), [busy, setBusy] = useState(false);
@@ -56,6 +57,7 @@ export default function AccountDashboard() {
         <AccountPanels account={account} name={name} busy={busy} onNameChange={setName} onSave={updateProfile} />
         <SavedPropertiesSection key={account.user.id} account={account} />
         <PropertyAlerts key={`alerts-${account.user.id}`} account={account} />
+        <PrivacyRequests key={`privacy-${account.user.id}`} administrator={account.role === 'administrator'} />
     </>;
 }
 

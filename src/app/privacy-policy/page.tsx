@@ -120,7 +120,10 @@ export default function PrivacyPolicyPage() {
                         <h3>Saved properties and preferences</h3>
                         <p>Saved properties and Property Alerts preferences are retained as necessary to provide the relevant services.</p>
                         <h3>Email delivery information</h3>
-                        <p>Information relating to Property Alerts delivery may be retained for operational reliability, troubleshooting, preventing duplicate notifications and handling enquiries.</p>
+                        <p>Resolved Property Alerts delivery history, including recipient addresses and listing payloads, is normally removed after 90 days. Unresolved deliveries, open privacy requests and records subject to investigation or legal holds may be retained while necessary.</p>
+                        <p>Minimal records are retained as needed to prevent duplicate notifications and honour existing unsubscribe links. These records do not retain the historical email address or listing payload.</p>
+                        <h3>Privacy requests</h3>
+                        <p>We keep minimal request records, such as request type, dates, status and necessary outcome notes, for up to three years after closure where needed for accountability, legal obligations or disputes. Explanatory details are removed on reviewed closure unless a retention hold applies.</p>
                         <h3>Enquiry correspondence</h3>
                         <p>Correspondence may be retained for customer service, transaction management and legitimate business recordkeeping.</p>
                         <h3>Payment and subscription records</h3>
@@ -157,13 +160,14 @@ export default function PrivacyPolicyPage() {
                             <li>Unsubscribe from optional communications.</li>
                             <li>Request a copy of certain personal information.</li>
                         </ul>
-                        <p>Please contact us to make a privacy request. We may need to verify your identity before processing a request.</p>
+                        <p>You can submit access, correction, deletion or information requests in the Privacy &amp; Data Requests section of <Link href="/account">your account</Link> and view their status there. You can also contact us using the details below, including if you cannot sign in or do not have an account. We may need to verify your identity before processing a request.</p>
                         <p>Some requests may be subject to applicable legal exceptions, security requirements or mandatory record-retention obligations. We will respond to privacy requests in accordance with applicable law.</p>
                     </section>
 
                     <section aria-labelledby="account-deletion">
                         <h2 id="account-deletion">10. Account Deletion</h2>
-                        <p>To request closure of your Love Live Myoko account or a copy of your personal information, please contact us using the contact details below.</p>
+                        <p>To request closure of your Love Live Myoko account, use Request Account Deletion in <Link href="/account">your account</Link> and confirm the request, or contact us using the details below. Submitting a request does not immediately delete your account.</p>
+                        <p>An administrator reviews the request, verifies identity, checks relevant billing and retention obligations, and handles the associated records before completing deletion. We may need to resolve outstanding deliveries or other records first. A minimal case record may remain after processing.</p>
                         <p>We may need to verify your identity and confirm the status of any active services or subscriptions.</p>
                         <p>Where applicable, we will close your account and delete or anonymise personal information that is no longer required. Certain information may be retained where necessary for legal compliance, accounting, disputes, security or other lawful purposes.</p>
                         <p>Account deletion does not automatically cancel an active subscription unless the account deletion process expressly confirms that the subscription has also been cancelled. You can manage and cancel your subscription through your account, as described in our <Link href="/terms-of-service">Terms of Service</Link>.</p>
