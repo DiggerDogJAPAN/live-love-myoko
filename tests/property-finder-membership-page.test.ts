@@ -40,11 +40,16 @@ test('Only interactive maps carry the PLANNED badge; saved properties are includ
     const features = premium.match(/<li\b[^>]*>[\s\S]*?<\/li>/g)!;
     assert.equal(features.length, 5);
     const alerts = features.find(f => f.includes('Property Alerts'))!;
-    assert(alerts.includes('PREMIUM EXCLUSIVE'));
+    assert(!alerts.includes('PREMIUM EXCLUSIVE'));
+    assert(alerts.includes('✓'));
+    assert(alerts.includes('href="#property-alerts"'));
     assert(alerts.includes('when new matching properties are discovered'));
     assert(!section(html, 'basic').includes('Property Alerts'));
     assert(features.find(f => f.includes('Saved Properties'))!.includes('✓')); assert(!features.find(f => f.includes('Saved Properties'))!.includes('PLANNED'));
     assert(features.find(f => f.includes('Interactive Map Viewing'))!.includes('PLANNED'));
+    assert(features[4].includes('Interactive Map Viewing'));
+    assert(features[4].includes('○'));
+    assert(!features[4].includes('✓'));
     const refund = features.find(f => f.includes('Eligible refund'))!;
     assert(!refund.includes('PLANNED')); assert(refund.includes('up to three months of Premium membership fees following a qualifying property purchase through our agency'));
     assert(html.includes('intended Premium benefit, not an active online refund service'));
