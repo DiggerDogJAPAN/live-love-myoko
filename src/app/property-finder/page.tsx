@@ -37,7 +37,7 @@ export default function PropertyFinderPage() {
                 <div className="layout__container">
                     <div className={styles.heroCopy}>
                         <p className={styles.eyebrow}>Love Live Myoko · Property Finder</p>
-                        <h1>Find Your Place in <em>Myoko and Beyond</em></h1>
+                        <h1><span>Find Your Place</span>{' '}<em>in Myoko and Beyond</em></h1>
                         <p>Discover properties for sale across Myoko and the surrounding areas, all in one convenient search. Explore listings from multiple local Japanese property sources through an easy-to-use English interface, with local support when you need it.</p>
                         <LandingActions />
                     </div>
