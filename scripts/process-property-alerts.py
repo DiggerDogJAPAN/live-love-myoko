@@ -21,7 +21,12 @@ def main():
         request = urllib.request.Request(
             "https://love-live-myoko.com/api/property-alerts/process",
             data=b"{}", method="POST",
-            headers={"Authorization": "Bearer " + secret, "Content-Type": "application/json"},
+            headers={
+                "Authorization": "Bearer " + secret,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "LoveLiveMyokoPropertyAlerts/1.0 (+https://love-live-myoko.com)",
+            },
         )
         try:
             with opener.open(request, timeout=90) as response:
