@@ -63,3 +63,20 @@ jobs:
           MYOKO_USER_AGENT: 'MyokoPropertyCrawler/1.0 (+https://love-live-myoko.com; info@myokoworks.com)'
           MYOKO_TRANSLATION_PROVIDER: disabled
         run: python -m myoko_property_crawler.daily --source "${{ matrix.source }}"
+
+  property-alerts:
+    name: Send daily Premium property alerts
+    needs: crawl
+    # Never send on a partial/failed matrix or a one-source manual crawl.
+    if: ${{ needs.crawl.result == 'success' && vars.FINDER_PROPERTY_ALERTS_ENABLED == 'true' && (github.event_name == 'schedule' || inputs.source == 'all') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Process protected daily notification queue
+        env:
+          FINDER_ALERTS_CRON_SECRET: ${{ secrets.FINDER_ALERTS_CRON_SECRET }}
+        run: python scripts/process-property-alerts.py

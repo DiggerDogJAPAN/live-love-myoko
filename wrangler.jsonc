@@ -12,7 +12,8 @@
         "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
         "FINDER_CUSTOMER_ACCESS": "disabled",
         "FINDER_GOOGLE_LOGIN_ENABLED": "disabled",
-        "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet"
+        "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet",
+        "FINDER_ALERTS_FROM": "Love Live Myoko <noreply@love-live-myoko.com>"
     },
     "env": {
         "production": {
@@ -21,7 +22,8 @@
                 "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
                 "FINDER_CUSTOMER_ACCESS": "disabled",
                 "FINDER_GOOGLE_LOGIN_ENABLED": "disabled",
-                "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet"
+                "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet",
+                "FINDER_ALERTS_FROM": "Love Live Myoko <noreply@love-live-myoko.com>"
             }
         }
     }

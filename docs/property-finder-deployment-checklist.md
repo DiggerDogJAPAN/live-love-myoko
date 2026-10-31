@@ -6,7 +6,7 @@ Supabase Auth and authenticated Supabase HTTPS RPCs provide the complete Finder 
 
 - Repository `DiggerDogJAPAN/live-love-myoko`, branch `main`, Pages project `livelove`.
 - GitHub → Pages automatic deployment: repository root, command `npm ci`, output `out`. This publishes the **tracked complete static export**; it does not fetch CMS content or rebuild Next.js remotely.
-- Only `/api/auth/*` uses Pages Functions. Preserve `nodejs_compat`, static export and `out/_routes.json`. Finder and Saved Properties use the narrow authenticated Supabase RPCs.
+- `/api/auth/*` and the protected `/api/property-alerts/*` email endpoints use Pages Functions. Preserve `nodejs_compat`, static export and `out/_routes.json`. Finder and Saved Properties use the narrow authenticated Supabase RPCs.
 - Migrations 001–005 are applied. Preserve their checksums, private roles/memberships, forced RLS and source eligibility. Do not replay them or alter crawler permissions.
 
 ## Production bindings — preserve values
@@ -21,7 +21,7 @@ Supabase Auth and authenticated Supabase HTTPS RPCs provide the complete Finder 
 | `FINDER_SUPABASE_PUBLISHABLE_KEY` | Existing encrypted publishable key for the dedicated project |
 | `FINDER_AUTH_COOKIE_SECRET` | Existing encrypted signing secret |
 
-No website database URL/password, SQL driver, database CA file or Hyperdrive binding is needed in production or preview. Preserve the existing Directus build configuration and all unrelated credentials. No service-role or crawler/admin writer credentials belong in website configuration.
+No website database URL/password, SQL driver, database CA file or Hyperdrive binding is needed in production or preview. Preserve the existing Directus build configuration and all unrelated credentials. Crawler/admin database-writer credentials must never enter website configuration. Property Alerts separately requires an encrypted server-only Supabase API secret for narrow delivery RPCs; it never enters frontend code. See the [alerts setup](property-finder-property-alerts.md).
 
 ## Mandatory complete CMS build before every push
 
@@ -38,3 +38,5 @@ Wait for the exact commit's Pages deployment to succeed. Verify public CMS pages
 Anonymous/forged credentials must be denied; authenticated unpaid customers cannot retrieve protected listings. PostgreSQL enforces live sessions, private administrator roles, paid membership boundaries and per-user bookmark ownership. Private schemas remain unexposed, and only narrowly scoped public RPCs are callable by `authenticated`.
 
 Keep customer access disabled in the private database rollout setting as well as deployment configuration until separately approved Stripe work is complete. Administrators need no paid membership. Do not create test accounts or subscriptions without authorization. The owner has already completed the real administrator login/search/save/remove acceptance for the HTTPS cutover; do not repeat it for routine documentation cleanup.
+
+Property Alerts migration 006 and provider setup are separately owner-applied. This release defaults sending off (the `FINDER_ALERTS_ENABLED` operational secret is absent, and the GitHub workflow variable is unset). Missing tables/credentials fail closed. Complete the [Property Alerts setup](property-finder-property-alerts.md) before activation.

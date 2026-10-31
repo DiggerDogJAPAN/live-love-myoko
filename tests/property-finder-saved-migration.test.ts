@@ -400,3 +400,109 @@ test('The direct directory fails closed rather than silently truncating at 500 a
     try {await assert.rejects(db.exec(httpsMigration),/already or partially applied/);}
     finally {await db.exec('ROLLBACK; SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE');}
 });
+
+const alertsMigration = readFileSync('sql/proposals/006_finder_property_alerts.sql', 'utf8');
+async function alertWorker(name: string, args: unknown[] = []) { return rpc(name, args, {}, 'service_role'); }
+async function shiftAlertDays() {
+    // Move oldest first so fixture date shifts preserve the immediate unique indexes.
+    const rows=(await db.query<{id:string}>("SELECT id FROM finder_security.alert_deliveries WHERE user_id=$1 AND NOT is_test ORDER BY japan_day",[admin])).rows;
+    for(const row of rows) await db.query("UPDATE finder_security.alert_deliveries SET japan_day=japan_day-1,accepted_day=accepted_day-1 WHERE id=$1",[row.id]);
+}
+test('Alerts migration preserves existing data, grants and eligibility while creating only private forced-RLS storage', async () => {
+    // Extend the existing platform fixture to model columns already on hosted Auth/crawler.
+    await db.exec(`ALTER TABLE auth.users ADD COLUMN email text; UPDATE auth.users SET email='synthetic-'||id||'@example.invalid';
+        ALTER TABLE crawler.properties ADD COLUMN first_discovered_at timestamptz NOT NULL DEFAULT now()-interval '1 day';`);
+    const before = (await db.query("SELECT md5(string_agg(to_jsonb(p)::text,',' ORDER BY id)) AS hash FROM crawler.properties p")).rows;
+    const roles = (await db.query('SELECT * FROM pg_auth_members ORDER BY roleid,member,grantor')).rows;
+    await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+    try { await db.exec(alertsMigration); await db.exec(readFileSync('sql/proposals/006_finder_property_alerts.verify.sql', 'utf8')); }
+    catch (error) { await db.exec('ROLLBACK'); throw error; }
+    finally { await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+    assert.deepEqual((await db.query("SELECT md5(string_agg(to_jsonb(p)::text,',' ORDER BY id)) AS hash FROM crawler.properties p")).rows, before);
+    assert.deepEqual((await db.query('SELECT * FROM pg_auth_members ORDER BY roleid,member,grantor')).rows, roles);
+    for (const role of ['anon','authenticated','service_role','crawler_writer']) {
+        await db.exec(`SET SESSION AUTHORIZATION ${role}; RESET ROLE`);
+        try { await assert.rejects(db.exec('SELECT * FROM finder_security.alert_preferences')); }
+        finally { await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+    }
+});
+test('Alert preferences require a real live Premium/admin identity, persist own choices and never accept another owner', async () => {
+    assert.deepEqual(await rpc('finder_alert_preferences'), { enabled: false, areas: [], deliveryNeedsReview: false });
+    await assert.rejects(rpc('finder_set_alert_preferences', [true, []]), /invalid_alert_preferences/);
+    await assert.rejects(rpc('finder_set_alert_preferences', [true, ['invented']]), /invalid_alert_preferences/);
+    assert.deepEqual((await rpc('finder_set_alert_preferences', [true, ['myoko','joetsu']])).areas, ['joetsu','myoko']);
+    assert.equal((await rpc('finder_alert_preferences')).enabled, true);
+    const since=(await db.query<{since:string}>("SELECT area_since->>'myoko' AS since FROM finder_security.alert_preferences WHERE user_id=$1",[admin])).rows[0].since;
+    await rpc('finder_set_alert_preferences',[true,['myoko']]);
+    await rpc('finder_set_alert_preferences',[true,['myoko','joetsu']]);
+    assert.equal((await db.query<{since:string}>("SELECT area_since->>'myoko' AS since FROM finder_security.alert_preferences WHERE user_id=$1",[admin])).rows[0].since,since,'changing another area never drops continuously selected pending discoveries');
+    for (const user of [unpaid, basic, premium]) await assert.rejects(rpc('finder_alert_preferences', [], claimsFor(user)), /alerts_access_denied/);
+    await assert.rejects(rpc('finder_alert_claim'), /permission denied/);
+    await assert.rejects(rpc('finder_alert_preferences', [], {}, 'anon'), /permission denied/);
+    await assert.rejects(rpc('finder_alert_preferences', [other]), /does not exist/);
+    await db.exec('UPDATE finder_security.saved_api_settings SET customer_access_enabled=true'); // local fixture only
+    try {
+        await assert.rejects(rpc('finder_alert_preferences', [], claimsFor(basic)), /alerts_access_denied/);
+        assert.equal((await rpc('finder_set_alert_preferences', [true, ['shinano','iizuna']], claimsFor(premium))).enabled, true);
+        await db.exec(`UPDATE finder_security.memberships SET payment_status='unpaid' WHERE user_id='${premium}'`);
+        await assert.rejects(rpc('finder_alert_preferences', [], claimsFor(premium)), /alerts_access_denied/);
+        assert.equal((await db.query<{ok:boolean}>('SELECT finder_security.alert_eligible($1,false) AS ok',[premium])).rows[0].ok, false);
+    } finally { await db.exec(`UPDATE finder_security.saved_api_settings SET customer_access_enabled=false; UPDATE finder_security.memberships SET payment_status='paid' WHERE user_id='${premium}'`); }
+});
+const alertListing = uuid(30001), laterAlert = uuid(30002);
+async function newAlert(id: string, municipality='Myoko') {
+    // PGlite's clock is millisecond-granular; establish a definite fixture opt-in before new events.
+    await db.exec("UPDATE finder_security.alert_preferences SET enabled_since=LEAST(enabled_since,clock_timestamp()-interval '1 second'),area_since=(SELECT jsonb_object_agg(v,to_jsonb(clock_timestamp()-interval '1 second')) FROM unnest(areas) v) WHERE enabled");
+    await db.query(`INSERT INTO crawler.properties(id,source_key,listing_status,availability_status,municipality,area_en,property_type,transaction_type,original_listing_url,first_discovered_at)
+        VALUES($1,'myoko_akiya_bank','active','active',$2,'Taguchi','house','sale',$3,clock_timestamp())`, [id, municipality, 'https://www.city.myoko.niigata.jp/property/'+id+'.pdf']);
+}
+test('Daily grouping excludes existing/other-area/unsafe/source-restricted rows and leases retry the same frozen payload', async () => {
+    assert.equal(await alertWorker('finder_alert_claim'), null, 'initial activation never emails the old inventory');
+    await newAlert(alertListing); await newAlert(uuid(30003), 'Shinano Town');
+    await newAlert(uuid(30004)); await db.query('UPDATE crawler.properties SET portal_duplicate_review_pending=true WHERE id=$1',[uuid(30004)]);
+    const job = await alertWorker('finder_alert_claim'); assert(job);
+    const props = job.properties as { listing_id: string }[]; assert.deepEqual(props.map(p=>p.listing_id), [alertListing]);
+    assert.equal(await alertWorker('finder_alert_claim'), null, 'a concurrent workflow cannot obtain an active lease');
+    await newAlert(laterAlert);
+    await db.query("UPDATE finder_security.alert_deliveries SET lease_until=now()-interval '1 second' WHERE id=$1",[job.id]);
+    const retry = await alertWorker('finder_alert_claim'); assert.equal(retry.id,job.id); assert.deepEqual(retry.properties,job.properties);
+    assert.notEqual(retry.lease,job.lease); assert.equal(await alertWorker('finder_alert_dispatch',[job.id,job.lease]),false);
+    assert.equal(await alertWorker('finder_alert_dispatch',[retry.id,retry.lease]),true);
+    assert.equal(await alertWorker('finder_alert_complete',[retry.id,retry.lease,'provider-accepted-id',[alertListing]]),true);
+    assert.equal(await alertWorker('finder_alert_complete',[retry.id,retry.lease,'provider-accepted-id',[alertListing]]),true);
+    assert.equal(await alertWorker('finder_alert_claim'),null,'later discoveries wait for the next Japan calendar day');
+    assert.deepEqual((await db.query('SELECT listing_id FROM finder_security.alert_notified WHERE user_id=$1',[admin])).rows,[{listing_id:alertListing}]);
+    // Advance only fixture delivery dates: no production clock or records change.
+    await shiftAlertDays();
+    const nextDay=await alertWorker('finder_alert_claim'); assert(nextDay);
+    assert.deepEqual((nextDay.properties as {listing_id:string}[]).map(p=>p.listing_id),[laterAlert]);
+    assert.equal(await alertWorker('finder_alert_dispatch',[nextDay.id,nextDay.lease]),true);
+    await alertWorker('finder_alert_complete',[nextDay.id,nextDay.lease,'provider-next-day',[laterAlert]]);
+    await db.query('UPDATE crawler.properties SET asking_price_jpy=9900000,last_checked_at=clock_timestamp() WHERE id=$1',[alertListing]);
+    await shiftAlertDays();
+    assert.equal(await alertWorker('finder_alert_claim'),null,'recrawls and price changes do not become new listing alerts');
+});
+test('Opt-out and role revocation are rechecked before delivery; no empty email or arbitrary test recipient is possible', async () => {
+    const testJob = await alertWorker('finder_alert_claim',[admin]); assert.equal(testJob.isTest,true);
+    assert.equal((testJob.properties as unknown[]).length>0,true);
+    assert.equal(testJob.userId,admin); assert.equal(testJob.recipient, 'synthetic-'+admin+'@example.invalid');
+    await assert.rejects(alertWorker('finder_alert_claim',[basic]), /alerts_access_denied/);
+    await db.query('UPDATE finder_security.account_roles SET is_active=false WHERE user_id=$1',[admin]);
+    assert.equal(await alertWorker('finder_alert_dispatch',[testJob.id,testJob.lease]),false);
+    await db.query('UPDATE finder_security.account_roles SET is_active=true WHERE user_id=$1',[admin]);
+    const count=(await db.query('SELECT count(*) FROM finder_security.alert_notified')).rows;
+    assert.equal(await alertWorker('finder_alert_unsubscribe',[testJob.id,other]),false);
+    assert.equal(await alertWorker('finder_alert_unsubscribe',[testJob.id,admin]),true);
+    assert.equal((await rpc('finder_alert_preferences')).enabled,false);
+    assert.deepEqual((await db.query('SELECT count(*) FROM finder_security.alert_notified')).rows,count);
+});
+test('An ambiguous outcome beyond the provider idempotency window requires review rather than duplicate sends', async () => {
+    await rpc('finder_set_alert_preferences',[true,['myoko']]); await newAlert(uuid(30005));
+    await shiftAlertDays();
+    const job=await alertWorker('finder_alert_claim'); assert(job);
+    assert.equal(await alertWorker('finder_alert_dispatch',[job.id,job.lease]),true);
+    await db.query("UPDATE finder_security.alert_deliveries SET first_attempt_at=now()-interval '24 hours',lease_until=now()-interval '1 second' WHERE id=$1",[job.id]);
+    assert.equal(await alertWorker('finder_alert_claim'),null);
+    assert.equal((await rpc('finder_alert_preferences')).deliveryNeedsReview,true);
+    await newAlert(uuid(30006)); assert.equal(await alertWorker('finder_alert_claim'),null,'uncertain delivery blocks a fresh potentially duplicate batch');
+});

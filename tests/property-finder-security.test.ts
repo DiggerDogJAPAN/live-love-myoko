@@ -119,8 +119,8 @@ test('Static export guard rejects inventory, RSC leaks, API artifacts, developme
     } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
-test('Only Auth Functions remain; production code has no SQL client, database credential or Hyperdrive binding', () => {
-    assert.deepEqual(readdirSync('functions', { recursive: true }).filter(n => typeof n === 'string' && n.endsWith('.ts')), ['api/auth/[[path]].ts']);
+test('Only Auth and protected alert Functions remain; production code has no SQL client or Hyperdrive binding', () => {
+    assert.deepEqual(readdirSync('functions', { recursive: true }).filter(n => typeof n === 'string' && n.endsWith('.ts')), ['api/auth/[[path]].ts', 'api/property-alerts/[[path]].ts']);
     const config = readFileSync('wrangler.jsonc','utf8'); assert(!/hyperdrive|FINDER_DATABASE_URL/i.test(config));
     for (const directory of ['server','src']) for (const name of readdirSync(directory,{recursive:true})) {
         if (typeof name !== 'string' || !/\.tsx?$/.test(name)) continue;

@@ -12,7 +12,7 @@ export function finderArtifactProblem(name, contents) {
     const text = contents.replace(/\\+"/g, '"').replaceAll('&quot;', '"');
     if (/(?:["']originalListingUrl["']|\boriginalListingUrl)\s*:\s*["']https?:\/\//i.test(text)
         || /(?:["']askingPriceJpy["']|\baskingPriceJpy)\s*:\s*\d/.test(text)) return 'embedded Finder inventory';
-    if (/postgres(?:ql)?:\/\/|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|Synthetic Akakura|property_finder_web_reader|crawler_writer|FINDER_DATABASE_URL|DIRECTUS_STATIC_TOKEN|FINDER_AUTH_COOKIE_SECRET|sb_secret_/.test(text)) return 'server credential reference or development fixture';
+    if (/postgres(?:ql)?:\/\/|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|Synthetic Akakura|property_finder_web_reader|crawler_writer|FINDER_DATABASE_URL|DIRECTUS_STATIC_TOKEN|FINDER_AUTH_COOKIE_SECRET|FINDER_ALERTS_SUPABASE_SECRET_KEY|FINDER_ALERTS_CRON_SECRET|RESEND_API_KEY|sb_secret_/.test(text)) return 'server credential reference or development fixture';
     return null;
 }
 

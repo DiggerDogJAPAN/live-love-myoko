@@ -2,12 +2,12 @@ import { authRequest, refreshSession } from './client';
 
 const SUPABASE_ORIGIN = 'https://fgdoqsepihlzfqlqymet.supabase.co';
 const safeErrors = new Set(['saved_access_denied', 'saved_rate_limited', 'saved_limit_reached', 'saved_listing_unavailable',
-    'customer_access_disabled', 'invalid_saved_request', 'invalid_listing_id', 'account_unavailable', 'active_membership_required', 'authentication_required', 'directory_unavailable']);
+    'customer_access_disabled', 'invalid_saved_request', 'invalid_listing_id', 'account_unavailable', 'active_membership_required', 'authentication_required', 'directory_unavailable', 'alerts_access_denied', 'invalid_alert_preferences', 'alerts_unavailable']);
 
 /** Reuse the cookie session for each operation; never persist/cache a bearer or
  * refresh token in browser storage. All listing data travels directly over HTTPS
  * to narrow Supabase RPCs, which derive ownership and permission from the JWT. */
-export type SupabaseRpcName = 'finder_saved_ids' | 'finder_saved_page' | 'finder_save_property' | 'finder_remove_saved_property' | 'finder_properties';
+export type SupabaseRpcName = 'finder_saved_ids' | 'finder_saved_page' | 'finder_save_property' | 'finder_remove_saved_property' | 'finder_properties' | 'finder_alert_preferences' | 'finder_set_alert_preferences';
 export async function supabaseRpc(name: SupabaseRpcName, body: object = {}, signal?: AbortSignal): Promise<Record<string, unknown>> {
     const run = async () => {
         const access = await authRequest('supabase-access', {});
