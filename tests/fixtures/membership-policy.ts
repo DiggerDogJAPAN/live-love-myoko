@@ -1,5 +1,6 @@
-import { FinderHttpError } from './errors';
-import type { CustomerIdentity } from './customer-auth';
+// Historical 001/002 policy contract fixture; not shipped in the application.
+import { FinderHttpError } from '../../server/property-finder/errors';
+import type { CustomerIdentity } from '../../server/property-finder/customer-auth';
 
 export type MembershipTier = 'basic' | 'premium';
 export type FinderPermission = 'listings:read' | 'search:use' | 'saved-properties:use' | 'saved-searches:use' | 'maps:read' | 'refund:request-review';

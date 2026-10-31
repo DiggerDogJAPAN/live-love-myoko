@@ -1,5 +1,6 @@
 import { FinderHttpError } from '../property-finder/errors';
 import { ProviderError } from './provider';
+import { AccountRpcFailure } from './account-rpc';
 
 const safeCodes = new Set(['authentication_not_configured', 'same_origin_required', 'invalid_email', 'invalid_name', 'invalid_password', 'password_too_long', 'weak_password',
     'invalid_request', 'json_required', 'request_too_large', 'email_confirmation_not_configured', 'authentication_required',
@@ -12,7 +13,7 @@ const safeCodes = new Set(['authentication_not_configured', 'same_origin_require
 export function reportAuthFailure(requestId: string, action: string, stage: string, error: unknown): void {
     console.warn(JSON.stringify({ event: 'finder_auth_failure', requestId, action, stage,
         code: error instanceof FinderHttpError && safeCodes.has(error.code) ? error.code : 'authentication_unavailable',
-        ...(error instanceof ProviderError ? { providerStatus: error.providerStatus, providerCode: error.providerCode,
+        ...(error instanceof AccountRpcFailure ? { upstreamStatus: error.upstreamStatus, databaseCode: error.databaseCode, failure: 'account_rpc' } : error instanceof ProviderError ? { providerStatus: error.providerStatus, providerCode: error.providerCode,
             providerRequestId: error.providerRequestId, failure: error.failure }
             : { failure: error instanceof FinderHttpError ? 'request_rejected' : 'runtime' }),
     }));

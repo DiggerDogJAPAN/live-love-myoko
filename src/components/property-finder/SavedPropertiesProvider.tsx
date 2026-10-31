@@ -1,9 +1,8 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { fetchAccount } from '@/lib/auth/client';
 import type { AccountDetails } from '@/lib/auth/types';
-import { optimisticSave, savedError, savedIds, savedRequest } from '@/lib/property-finder/saved-client';
+import { optimisticSave, savedError, savedIds, setSavedProperty } from '@/lib/property-finder/saved-client';
 import { LISTING_ID } from '@/lib/property-finder/saved';
 import styles from './saved.module.css';
 
@@ -23,19 +22,21 @@ export function SavedPropertiesProvider({ children, account, enabled = true }: {
         if (!enabled || locks.current.size) return;
         const current = ++generation.current;
         try {
-            const details = account || await fetchAccount();
-            if (current !== generation.current) return;
-            if (owner.current !== details.user.id) {
-                owner.current = details.user.id; values.current.clear(); setIds(new Set()); setReady(false);
+            if (account && !account.savedPropertiesAccess) {
+                values.current.clear(); setIds(new Set()); setAvailable(false); setReady(true); setError(''); return;
             }
-            const access = details.savedPropertiesAccess === true;
-            setAvailable(access);
-            const result = access ? await savedIds() : [];
+            const result = await savedIds();
             if (current !== generation.current || locks.current.size) return;
-            values.current = new Set(result); setIds(new Set(result)); setReady(true); setError('');
+            if (account && account.user.id !== result.userId) throw new Error('saved_access_denied');
+            if (owner.current !== result.userId) values.current.clear();
+            owner.current = result.userId;
+            values.current = new Set(result.ids); setIds(new Set(result.ids)); setAvailable(true); setReady(true); setError('');
         } catch (e) {
             if (current !== generation.current) return;
-            values.current.clear(); setIds(new Set()); setReady(false); setError(savedError(e instanceof Error ? e.message : 'saved_properties_unavailable'));
+            values.current.clear(); setIds(new Set()); setAvailable(false);
+            const code = e instanceof Error ? e.message : 'saved_properties_unavailable';
+            const denied = ['saved_access_denied', 'customer_access_disabled', 'active_membership_required', 'membership_upgrade_required'].includes(code);
+            setReady(denied); setError(denied ? '' : savedError(code));
         }
     }, [account, enabled]);
     useEffect(() => {
@@ -62,7 +63,7 @@ export function SavedPropertiesProvider({ children, account, enabled = true }: {
         };
         let succeeded = false;
         try {
-            await optimisticSave(previous, update, () => savedRequest('/' + id, previous ? 'DELETE' : 'PUT'), () => current === generation.current);
+            await optimisticSave(previous, update, () => setSavedProperty(id, !previous), () => current === generation.current);
             succeeded = true;
         } catch (e) {
             if (current !== generation.current) return;

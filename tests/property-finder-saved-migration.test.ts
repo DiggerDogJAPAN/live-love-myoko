@@ -2,9 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { before, after, test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
-import type { Client } from 'pg';
-import { savedPropertyOperation } from '../server/property-finder/saved-database';
-import type { CustomerGrant } from '../server/property-finder/membership';
 
 let db: PGlite;
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -123,47 +120,12 @@ test('Database helpers enforce Premium/admin and deny unpaid, Basic, expired/rev
     await assert.rejects(ids(), denied); await db.query('UPDATE auth.sessions SET not_after=NULL WHERE id=$1', [session(admin)]);
 });
 
-test('Current saved dashboard prices use the eligible view; removed/unpublished/private rows become safe removable tombstones', async () => {
-    await save(admin, listing2);
-    await db.query("INSERT INTO crawler.properties(id,source_key,listing_status,availability_status) VALUES($1,'myoko_akiya_bank','active','active')", [uuid(104)]);
-    await save(admin, uuid(104));
-    await db.query('UPDATE crawler.properties SET asking_price_jpy=2200000 WHERE id=$1', [listing]);
-    const adapter = { connect: async () => undefined, end: async () => undefined, query: async (query: string, args?: unknown[]) => db.query(query, args) } as unknown as Client;
-    const grant: CustomerGrant = { kind: 'customer', role: 'administrator', userId: admin, sessionId: session(admin), tier: null, validUntil: Date.now() + 3600000 };
-    const result = await asReader(() => savedPropertyOperation({}, grant, { operation: 'list' }, adapter));
-    assert('items' in result); assert.equal(result.items.find(item => item.propertyId === listing)?.property?.askingPriceJpy, 2200000);
-    await db.query("UPDATE crawler.properties SET availability_status='contracted' WHERE id=$1", [listing]);
-    await db.query('DELETE FROM crawler.properties WHERE id=$1', [listing2]);
-    await db.query("UPDATE crawler.properties SET listing_status='unpublished' WHERE id=$1", [uuid(104)]);
-    const hidden = await asReader(() => savedPropertyOperation({}, grant, { operation: 'list' }, adapter));
-    assert('items' in hidden); assert.equal(hidden.items.length, 3); assert(hidden.items.every(item => item.property === null));
-    await assert.rejects(save(admin, listing), /saved_listing_unavailable/); await assert.rejects(save(admin, privateListing), /saved_listing_unavailable/);
-    for (const id of [listing, listing2, uuid(104)]) await asReader(() => db.query('SELECT finder_security.remove_saved_property($1::uuid,$2::uuid,$3::uuid)', [admin, session(admin), id]));
-    assert.equal((await ids()).length, 0);
-});
-
 test('Shared database account rate limits persist across requests, with safe idempotent removals', async () => {
     await db.query('DELETE FROM finder_security.saved_property_limits WHERE user_id=$1', [other]);
     for (let n = 0; n < 30; n++) await asReader(() => db.query('SELECT finder_security.remove_saved_property($1::uuid,$2::uuid,$3::uuid)', [other, session(other), listing]));
     await assert.rejects(asReader(() => db.query('SELECT finder_security.remove_saved_property($1::uuid,$2::uuid,$3::uuid)', [other, session(other), listing])), /saved_rate_limited/);
     await db.query("UPDATE finder_security.saved_property_limits SET window_start=now()-interval '2 minutes' WHERE user_id=$1", [other]);
     assert.deepEqual(await ids(other), []);
-});
-
-test('Keyset pagination handles same-millisecond saves and a removed cursor without duplicates or stale snapshots', async () => {
-    await db.query('DELETE FROM finder_security.saved_properties WHERE user_id=$1', [admin]);
-    await db.query('DELETE FROM finder_security.saved_property_limits WHERE user_id=$1', [admin]);
-    for (let n = 200; n < 245; n++) await db.query("INSERT INTO finder_security.saved_properties(user_id,property_id,saved_at) VALUES($1,$2,'2026-10-29T00:00:00.000Z')", [admin, uuid(n)]);
-    const adapter = { connect: async () => undefined, end: async () => undefined, query: async (query: string, args?: unknown[]) => db.query(query, args) } as unknown as Client;
-    const grant: CustomerGrant = { kind: 'customer', role: 'administrator', userId: admin, sessionId: session(admin), tier: null, validUntil: Date.now() + 3600000 };
-    const received: string[] = []; let cursor: string | undefined;
-    do {
-        const result = await asReader(() => savedPropertyOperation({}, grant, { operation: 'list', cursor }, adapter)); assert('items' in result);
-        assert(result.items.length <= 20); assert(result.items.every(item => item.property === null)); received.push(...result.items.map(item => item.propertyId));
-        cursor = result.nextCursor || undefined;
-        if (cursor && received.length === 20) await db.query('DELETE FROM finder_security.saved_properties WHERE user_id=$1 AND property_id=$2', [admin, result.items.at(-1)!.propertyId]);
-    } while (cursor);
-    assert.equal(received.length, 45); assert.equal(new Set(received).size, 45);
 });
 
 test('Bookmark quota is bounded and a valid duplicate save remains idempotent at the limit', async () => {
@@ -176,18 +138,6 @@ test('Bookmark quota is bounded and a valid duplicate save remains idempotent at
     await assert.rejects(save(other, uuid(777)), /saved_limit_reached/);
 });
 
-test('Saved operations explicitly scope private writes while preserving the existing reader read-only default', async () => {
-    await db.query('DELETE FROM finder_security.saved_property_limits WHERE user_id=$1', [admin]);
-    const adapter = { connect: async () => undefined, end: async () => undefined, query: async (query: string, args?: unknown[]) => db.query(query, args) } as unknown as Client;
-    const grant: CustomerGrant = { kind: 'customer', role: 'administrator', userId: admin, sessionId: session(admin), tier: null, validUntil: Date.now() + 3600000 };
-    await db.exec('SET default_transaction_read_only=on');
-    try {
-        await asReader(() => savedPropertyOperation({}, grant, { operation: 'remove', propertyId: listing }, adapter));
-        const setting = await db.query<{ default_transaction_read_only: string }>('SHOW default_transaction_read_only');
-        assert.equal(setting.rows[0].default_transaction_read_only, 'on');
-    } finally { await db.exec('SET default_transaction_read_only=off'); }
-});
-
 test('Replaying the proposal fails transactionally without overwriting existing saved records', async () => {
     const before = (await db.query('SELECT user_id,property_id,saved_at FROM finder_security.saved_properties ORDER BY user_id,property_id')).rows;
     await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
@@ -197,15 +147,256 @@ test('Replaying the proposal fails transactionally without overwriting existing 
 });
 
 
-test('Saved mutations honor restrictive customer RLS even though the helper owner can see a broader view', async () => {
-    const hidden = uuid(888);
-    await db.query("INSERT INTO crawler.properties(id,source_key,listing_status,availability_status,portal_duplicate_review_pending) VALUES($1,'myoko_akiya_bank','active','active',true)", [hidden]);
-    assert.equal((await db.query('SELECT listing_id FROM property_api.customer_properties WHERE listing_id=$1', [hidden])).rows.length, 1, 'fixture owner bypasses restrictive RLS');
-    const adapter = { connect: async () => undefined, end: async () => undefined, query: async (query: string, args?: unknown[]) => db.query(query, args) } as unknown as Client;
-    const grant: CustomerGrant = { kind: 'customer', role: 'administrator', userId: admin, sessionId: session(admin), tier: null, validUntil: Date.now() + 3600000 };
-    await assert.rejects(asReader(() => savedPropertyOperation({}, grant, { operation: 'save', propertyId: hidden }, adapter)), e => (e as { code?: string }).code === 'saved_listing_unavailable');
-    assert.equal((await db.query('SELECT * FROM finder_security.saved_properties WHERE user_id=$1 AND property_id=$2', [admin, hidden])).rows.length, 0);
-    const allowed = uuid(777);
-    await asReader(() => savedPropertyOperation({}, grant, { operation: 'save', propertyId: allowed }, adapter));
-    assert.equal((await db.query('SELECT * FROM finder_security.saved_properties WHERE user_id=$1 AND property_id=$2', [admin, allowed])).rows.length, 1);
+// Direct HTTPS migration: PostgREST verifies signatures, then sets these claims.
+// These local fixtures never issue production tokens or seed real accounts.
+const rpcMigration = readFileSync('sql/proposals/004_finder_saved_properties_rpc.sql', 'utf8');
+const claimsFor = (user = admin, patch: Record<string, unknown> = {}) => ({ sub: user, session_id: session(user),
+    role: 'authenticated', aud: 'authenticated', iss: 'https://fgdoqsepihlzfqlqymet.supabase.co/auth/v1', is_anonymous: false,
+    iat: Math.floor(Date.now() / 1000) - 10, exp: Math.floor(Date.now() / 1000) + 3600, ...patch });
+async function rpc(name: string, args: unknown[] = [], claims: Record<string, unknown> = claimsFor(), role = 'authenticated') {
+    await db.exec(`SET SESSION AUTHORIZATION ${role}; RESET ROLE`);
+    try {
+        await db.query("SELECT set_config('request.jwt.claims',$1,false)", [JSON.stringify(claims)]);
+        return (await db.query<{ data: Record<string, unknown> }>(`SELECT public.${name}(${args.map((_, i) => '$' + (i + 1)).join(',')}) AS data`, args)).rows[0].data;
+    } finally { await db.exec('RESET ROLE; SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+}
+async function resetRpcLimits() { await db.exec('DELETE FROM finder_security.saved_property_limits'); }
+
+test('Migration 004 exposes only narrow authenticated RPCs, preserves existing bookmarks and restores temporary ownership grants', async () => {
+    await db.exec(`GRANT USAGE,CREATE ON SCHEMA public TO postgres;
+        GRANT crawler_customer_reader TO postgres WITH ADMIN TRUE, INHERIT FALSE, SET FALSE;
+        CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT COALESCE(NULLIF(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
+        CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT (auth.jwt()->>'sub')::uuid $$;
+        DELETE FROM finder_security.saved_property_limits;
+        UPDATE auth.sessions SET not_after=NULL;
+        UPDATE finder_security.account_roles SET is_active=true;
+        UPDATE crawler.properties SET availability_status='active' WHERE id='${listing}';
+        INSERT INTO crawler.properties(id,source_key,asking_price_jpy,area_en,municipality,listing_status,availability_status,property_type,transaction_type,original_listing_url)
+        VALUES('${listing2}','myoko_akiya_bank',1500000,'Taguchi','Myoko','active','active','house','sale','https://example.invalid/property/${listing2}') ON CONFLICT(id) DO UPDATE SET availability_status='active';
+        INSERT INTO crawler.properties(id,source_key,listing_status,availability_status,portal_duplicate_review_pending)
+        VALUES('${uuid(888)}','myoko_akiya_bank','active','active',true) ON CONFLICT(id) DO UPDATE SET portal_duplicate_review_pending=true;`);
+    const savedBefore = (await db.query('SELECT * FROM finder_security.saved_properties ORDER BY user_id,property_id')).rows;
+    const rolesBefore = (await db.query('SELECT roleid,member,grantor,admin_option,inherit_option,set_option FROM pg_auth_members ORDER BY roleid,member,grantor')).rows;
+    await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+    try { await db.exec(rpcMigration); } catch (error) { await db.exec('ROLLBACK'); throw error; } finally { await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+    assert.deepEqual((await db.query('SELECT * FROM finder_security.saved_properties ORDER BY user_id,property_id')).rows, savedBefore);
+    assert.deepEqual((await db.query('SELECT roleid,member,grantor,admin_option,inherit_option,set_option FROM pg_auth_members ORDER BY roleid,member,grantor')).rows, rolesBefore);
+    for (const [name, signature] of [['finder_saved_ids', ''], ['finder_saved_page', 'text'], ['finder_save_property', 'uuid'], ['finder_remove_saved_property', 'uuid']]) {
+        for (const role of ['anon', 'service_role', 'property_finder_web_reader', 'crawler_customer_reader']) {
+            assert.equal((await db.query<{ permitted: boolean }>('SELECT has_function_privilege($1,$2,\'EXECUTE\') AS permitted', [role, `public.${name}(${signature})`])).rows[0].permitted, false);
+        }
+        assert.equal((await db.query<{ permitted: boolean }>("SELECT has_function_privilege('authenticated',$1,'EXECUTE') AS permitted", [`public.${name}(${signature})`])).rows[0].permitted, true);
+    }
+    for (const table of ['saved_properties', 'saved_property_limits', 'account_roles', 'memberships', 'saved_api_settings']) {
+        assert.equal((await db.query<{ permitted: boolean }>("SELECT has_table_privilege('authenticated',$1,'SELECT,INSERT,UPDATE,DELETE') AS permitted", ['finder_security.' + table])).rows[0].permitted, false);
+    }
+    assert.equal((await db.query<{ permitted: boolean }>("SELECT has_function_privilege('authenticated','finder_security.saved_api_identity(boolean)','EXECUTE') AS permitted")).rows[0].permitted, false);
+    assert.equal((await db.query<{ permitted: boolean }>("SELECT has_schema_privilege('crawler_customer_reader','finder_security','CREATE') AS permitted")).rows[0].permitted, false);
+    assert.deepEqual((await db.query('SELECT relrowsecurity,relforcerowsecurity FROM pg_class WHERE oid=\'finder_security.saved_api_settings\'::regclass')).rows, [{ relrowsecurity: true, relforcerowsecurity: true }]);
+    await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+    try { await db.exec(readFileSync('sql/proposals/004_finder_saved_properties_rpc.verify.sql', 'utf8')); }
+    catch (error) { await db.exec('ROLLBACK'); throw error; }
+    finally { await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+    await db.exec('DELETE FROM finder_security.saved_properties; DELETE FROM finder_security.saved_property_limits');
+});
+
+test('Direct administrator save/IDs/page/remove survives fresh claims, is idempotent and uses current safe property data', async () => {
+    const before = (await db.query('SELECT count(*)::int AS n FROM finder_security.memberships')).rows;
+    assert.deepEqual(await rpc('finder_save_property', [listing]), { propertyId: listing, saved: true });
+    await rpc('finder_save_property', [listing]);
+    const result = await rpc('finder_saved_ids', [], claimsFor());
+    assert.deepEqual(result, { userId: admin, ids: [listing], total: 1 });
+    const page = await rpc('finder_saved_page', [null]);
+    const item = (page.items as { propertyId: string; property: { listing_id: string; location_en: string } }[])[0];
+    assert.equal(item.propertyId, listing); assert.equal(item.property.listing_id, listing); assert.equal(item.property.location_en, 'Taguchi');
+    assert.equal(page.nextCursor, null);
+    await db.query('UPDATE crawler.properties SET asking_price_jpy=2200000 WHERE id=$1', [listing]);
+    const current = await rpc('finder_saved_page', [null]);
+    assert.equal((current.items as { property: { asking_price_jpy: number } }[])[0].property.asking_price_jpy, 2200000);
+    assert.deepEqual(await rpc('finder_remove_saved_property', [listing]), { propertyId: listing, saved: false });
+    assert.equal((await rpc('finder_saved_ids')).total, 0);
+    assert.deepEqual((await db.query('SELECT count(*)::int AS n FROM finder_security.memberships')).rows, before);
+});
+
+test('Direct RPCs deny anonymous, Basic, unpaid, forged metadata and disabled customer rollout; Premium requires live paid entitlement', async () => {
+    await resetRpcLimits();
+    await assert.rejects(rpc('finder_saved_ids', [], claimsFor(), 'anon'), /permission denied/);
+    for (const user of [basic, unpaid]) await assert.rejects(rpc('finder_save_property', [listing], claimsFor(user, { user_metadata: { role: 'administrator' }, app_metadata: { role: 'administrator' } })), /saved_access_denied/);
+    await assert.rejects(rpc('finder_save_property', [listing], claimsFor(premium)), /customer_access_disabled/);
+    await db.exec('UPDATE finder_security.saved_api_settings SET customer_access_enabled=true'); // local fixture only
+    try {
+        await rpc('finder_save_property', [listing], claimsFor(premium));
+        for (const patch of ["payment_status='unpaid'", "status='expired'", "paid_through=now()-interval '1 hour'", "revoked_at=now()", 'account_active=false']) {
+            await db.exec('UPDATE finder_security.memberships SET ' + patch + ` WHERE user_id='${premium}'`);
+            await assert.rejects(rpc('finder_saved_ids', [], claimsFor(premium)), /saved_access_denied/);
+            await db.exec("UPDATE finder_security.memberships SET account_active=true,payment_status='paid',status='active',paid_through=now()+interval '1 day',revoked_at=NULL WHERE user_id='" + premium + "'");
+        }
+        await assert.rejects(rpc('finder_saved_ids', [], claimsFor(basic)), /saved_access_denied/);
+    } finally { await db.exec('UPDATE finder_security.saved_api_settings SET customer_access_enabled=false'); }
+});
+
+test('Direct JWT identity cannot select another owner or bypass deleted/expired sessions, verification, bans and private administrator revocation', async () => {
+    await resetRpcLimits();
+    await rpc('finder_save_property', [listing]);
+    await rpc('finder_save_property', [listing2], claimsFor(other));
+    const otherIds = await rpc('finder_saved_ids', [], claimsFor(other));
+    assert.deepEqual(otherIds.ids, [listing2]);
+    await rpc('finder_remove_saved_property', [listing], claimsFor(other));
+    assert.deepEqual((await rpc('finder_saved_ids')).ids, [listing]);
+    for (const patch of [{ session_id: session(other) }, { session_id: null }, { session_id: 'invalid' }, { sub: 'invalid' },
+        { is_anonymous: true }, { is_anonymous: null }, { exp: 1 }, { role: 'service_role' }, { iss: 'https://attacker.invalid' }]) {
+        await assert.rejects(rpc('finder_saved_ids', [], claimsFor(admin, patch)), /saved_access_denied/);
+    }
+    await db.exec(`UPDATE auth.sessions SET not_after=now()-interval '1 second' WHERE id='${session(admin)}'`);
+    await assert.rejects(rpc('finder_saved_ids'), /saved_access_denied/);
+    await db.exec(`UPDATE auth.sessions SET not_after=NULL WHERE id='${session(admin)}'`);
+    for (const patch of ["banned_until=now()+interval '1 day'", 'email_confirmed_at=NULL', 'deleted_at=now()']) {
+        await db.exec('UPDATE auth.users SET ' + patch + ` WHERE id='${admin}'`);
+        await assert.rejects(rpc('finder_saved_ids'), /saved_access_denied/);
+        await db.exec(`UPDATE auth.users SET banned_until=NULL,email_confirmed_at=now(),deleted_at=NULL WHERE id='${admin}'`);
+    }
+    await db.exec(`UPDATE finder_security.account_roles SET is_active=false WHERE user_id='${admin}'`);
+    await assert.rejects(rpc('finder_saved_ids'), /saved_access_denied/);
+    await db.exec(`UPDATE finder_security.account_roles SET is_active=true WHERE user_id='${admin}'`);
+    await assert.rejects(rpc('finder_saved_ids', [other]), /does not exist/);
+    await assert.rejects(rpc('finder_save_property', ['not-a-uuid']), /invalid input syntax/);
+});
+
+test('Direct saved projection preserves restrictive portal/customer RLS and produces removable unavailable placeholders', async () => {
+    await resetRpcLimits();
+    await assert.rejects(rpc('finder_save_property', [privateListing]), /saved_listing_unavailable/);
+    await assert.rejects(rpc('finder_save_property', [uuid(888)]), /saved_listing_unavailable/);
+    await db.exec(`UPDATE crawler.properties SET availability_status='contracted' WHERE id='${listing}'`);
+    const page = await rpc('finder_saved_page', [null]);
+    assert.equal((page.items as { property: unknown }[])[0].property, null);
+    await assert.rejects(rpc('finder_save_property', [listing]), /saved_listing_unavailable/);
+    await rpc('finder_remove_saved_property', [listing]);
+    assert.equal((await rpc('finder_saved_ids')).total, 0);
+    await db.exec(`UPDATE crawler.properties SET availability_status='active' WHERE id='${listing}'`);
+});
+
+test('Direct keyset pagination remains 20 per page, handles removed cursors and rejects malformed cursor payloads', async () => {
+    await resetRpcLimits();
+    for (let n = 500; n < 545; n++) await db.query("INSERT INTO finder_security.saved_properties(user_id,property_id,saved_at) VALUES($1,$2,'2026-10-30T00:00:00.000Z')", [admin, uuid(n)]);
+    let cursor: string | null = null; const received: string[] = [];
+    do {
+        const page = await rpc('finder_saved_page', [cursor]);
+        const items = page.items as { propertyId: string; property: unknown }[];
+        assert(items.length <= 20); assert(items.every(item => item.property === null)); received.push(...items.map(item => item.propertyId));
+        cursor = page.nextCursor as string | null;
+        if (cursor && received.length === 20) await rpc('finder_remove_saved_property', [items.at(-1)!.propertyId]);
+    } while (cursor);
+    assert.equal(received.length, 45); assert.equal(new Set(received).size, 45);
+    for (const invalid of ['private-owner|bad', '2026-99-99T00:00:00.000Z|' + listing, 'x'.repeat(100)]) await assert.rejects(rpc('finder_saved_page', [invalid]), /invalid_saved_request/);
+    await db.query('DELETE FROM finder_security.saved_properties WHERE user_id=$1', [admin]);
+});
+
+test('Direct RPC preserves 500-save quota and rate limits without accepting owner or tier parameters', async () => {
+    await resetRpcLimits();
+    for (let n = 6000; n < 6499; n++) await db.query('INSERT INTO finder_security.saved_properties(user_id,property_id) VALUES($1,$2)', [admin, uuid(n)]);
+    await rpc('finder_save_property', [listing]); await rpc('finder_save_property', [listing]);
+    assert.equal((await rpc('finder_saved_ids')).total, 500);
+    await assert.rejects(rpc('finder_save_property', [listing2]), /saved_limit_reached/);
+    await db.query('UPDATE finder_security.saved_property_limits SET writes=30 WHERE user_id=$1', [admin]);
+    await assert.rejects(rpc('finder_remove_saved_property', [listing]), /saved_rate_limited/);
+    await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+    try { await assert.rejects(db.exec(rpcMigration), /already or partially applied/); }
+    finally { await db.exec('ROLLBACK; SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+});
+
+
+test('Direct RPC unexpected SQL failures expose only the safe generic code and retain forced RLS', async () => {
+    await resetRpcLimits();
+    await db.exec('REVOKE SELECT ON property_api.customer_properties FROM crawler_customer_reader');
+    try { await assert.rejects(rpc('finder_save_property', [listing]), error => (error as Error).message === 'saved_properties_unavailable'); }
+    finally { await db.exec('GRANT SELECT ON property_api.customer_properties TO crawler_customer_reader'); }
+    assert.equal((await db.query<{ forced: boolean }>("SELECT relforcerowsecurity AS forced FROM pg_class WHERE oid='finder_security.saved_properties'::regclass")).rows[0].forced, true);
+});
+
+const httpsMigration = readFileSync('sql/proposals/005_finder_supabase_https.sql','utf8');
+test('Migration 005 preserves 004 bookmarks, private roles, crawler/Auth data and all existing RLS while adding only authenticated HTTPS interfaces', async () => {
+    await resetRpcLimits();
+    const roleBefore = (await db.query('SELECT roleid,member,grantor,admin_option,inherit_option,set_option FROM pg_auth_members ORDER BY roleid,member,grantor')).rows;
+    const protectedBefore = (await db.query("SELECT md5(string_agg(to_jsonb(p)::text,',' ORDER BY id)) AS hash FROM crawler.properties p")).rows;
+    const bookmarks = (await db.query('SELECT * FROM finder_security.saved_properties ORDER BY user_id,property_id')).rows;
+    await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+    try { await db.exec(httpsMigration); } catch(error) { await db.exec('ROLLBACK'); throw error; }
+    finally { await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+    assert.deepEqual((await db.query('SELECT roleid,member,grantor,admin_option,inherit_option,set_option FROM pg_auth_members ORDER BY roleid,member,grantor')).rows,roleBefore);
+    await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+    try {await db.exec(readFileSync('sql/proposals/005_finder_supabase_https.verify.sql','utf8'));}
+    catch(error){await db.exec('ROLLBACK');throw error;}
+    finally{await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE');}
+    assert.deepEqual((await db.query("SELECT md5(string_agg(to_jsonb(p)::text,',' ORDER BY id)) AS hash FROM crawler.properties p")).rows,protectedBefore);
+    assert.deepEqual((await db.query('SELECT * FROM finder_security.saved_properties ORDER BY user_id,property_id')).rows,bookmarks);
+    for(const name of ['finder_account','finder_properties']) {
+        for(const role of ['anon','service_role','crawler_writer','crawler_customer_reader','property_finder_web_reader','authenticator']) {
+            assert.equal((await db.query<{ok:boolean}>("SELECT has_function_privilege($1,$2,'EXECUTE') AS ok",[role,`public.${name}()`])).rows[0].ok,false);
+        }
+        assert.equal((await db.query<{ok:boolean}>("SELECT has_function_privilege('authenticated',$1,'EXECUTE') AS ok",[`public.${name}()`])).rows[0].ok,true);
+    }
+    await db.exec('DELETE FROM finder_security.saved_properties; DELETE FROM finder_security.saved_property_limits');
+});
+test('Supabase-only administrator account, complete Finder snapshot and Saved Properties work without a membership or website-reader connection', async () => {
+    const account = await rpc('finder_account');
+    assert.equal(account.role,'administrator'); assert.equal(account.finderAccess,true); assert.equal(account.savedPropertiesAccess,true); assert.equal(account.paidAccessEnabled,false);
+    const directory = await rpc('finder_properties');
+    const rows = directory.rows as {listing_id:string}[]; assert.equal(directory.count,rows.length); assert(rows.some(r=>r.listing_id===listing));
+    assert(!rows.some(r=>r.listing_id===privateListing || r.listing_id===uuid(888)),'restricted portal/source rows stay excluded');
+    await rpc('finder_save_property',[listing]);
+    assert.deepEqual((await rpc('finder_saved_ids')).ids,[listing]);
+    assert.equal((await rpc('finder_saved_page',[null])).total,1);
+    await rpc('finder_remove_saved_property',[listing]); assert.equal((await rpc('finder_saved_ids')).total,0);
+});
+test('PostgreSQL denies unpaid, Basic and Premium listing access while customer rollout is disabled, without disabling account management', async () => {
+    for(const user of [unpaid,basic,premium]) {
+        const account = await rpc('finder_account',[],claimsFor(user,{user_metadata:{role:'administrator'},app_metadata:{role:'administrator'}}));
+        assert.equal(account.role,'customer'); assert.equal(account.finderAccess,false); assert.equal(account.savedPropertiesAccess,false);
+        await assert.rejects(rpc('finder_properties',[],claimsFor(user)),/active_membership_required/);
+        await assert.rejects(rpc('finder_saved_ids',[],claimsFor(user)),/saved_access_denied/);
+    }
+});
+test('PostgreSQL separates Basic search from Premium saves and rechecks subscription cancellation, nonpayment, expiry and revocation', async () => {
+    await resetRpcLimits();
+    await db.exec('UPDATE finder_security.saved_api_settings SET customer_access_enabled=true'); // local fixtures only
+    try {
+        assert.equal((await rpc('finder_account',[],claimsFor(basic))).finderAccess,true);
+        await rpc('finder_properties',[],claimsFor(basic));
+        assert.equal((await rpc('finder_account',[],claimsFor(basic))).savedPropertiesAccess,false);
+        await assert.rejects(rpc('finder_saved_ids',[],claimsFor(basic)),/saved_access_denied/);
+        await rpc('finder_save_property',[listing],claimsFor(premium));
+        for(const patch of ["payment_status='unpaid'","status='canceled'","paid_through=now()-interval '1 hour'","revoked_at=now()",'account_active=false']) {
+            await db.exec('UPDATE finder_security.memberships SET '+patch+` WHERE user_id='${premium}'`);
+            assert.equal((await rpc('finder_account',[],claimsFor(premium))).finderAccess,false);
+            await assert.rejects(rpc('finder_properties',[],claimsFor(premium)),/active_membership_required/);
+            await assert.rejects(rpc('finder_saved_ids',[],claimsFor(premium)),/saved_access_denied/);
+            await db.exec(`UPDATE finder_security.memberships SET payment_status='paid',status='active',paid_through=now()+interval '1 day',revoked_at=NULL,account_active=true WHERE user_id='${premium}'`);
+        }
+    } finally {await db.exec('UPDATE finder_security.saved_api_settings SET customer_access_enabled=false');}
+});
+test('All HTTPS interfaces reject revoked/expired sessions, banned/deleted/unverified users and forged identity claims', async () => {
+    for(const patch of [{session_id:session(other)},{sub:'invalid'},{role:'service_role'},{is_anonymous:true},{exp:1}]) {
+        for(const name of ['finder_account','finder_properties']) await assert.rejects(rpc(name,[],claimsFor(admin,patch)),/authentication_required|account_unavailable/);
+    }
+    for(const mutation of [`UPDATE auth.sessions SET not_after=now()-interval '1 second' WHERE id='${session(admin)}'`,
+        `UPDATE auth.users SET banned_until=now()+interval '1 day' WHERE id='${admin}'`,
+        `UPDATE auth.users SET email_confirmed_at=NULL WHERE id='${admin}'`,
+        `UPDATE finder_security.account_roles SET is_active=false WHERE user_id='${admin}'`]) {
+        await db.exec(mutation);
+        for(const name of ['finder_account','finder_properties']) await assert.rejects(rpc(name),/account_unavailable/);
+        await assert.rejects(rpc('finder_saved_ids'),/saved_access_denied/);
+        await db.exec(`UPDATE auth.sessions SET not_after=NULL WHERE id='${session(admin)}'; UPDATE auth.users SET banned_until=NULL,email_confirmed_at=now() WHERE id='${admin}'; UPDATE finder_security.account_roles SET is_active=true WHERE user_id='${admin}'`);
+    }
+    await assert.rejects(rpc('finder_account',[other]),/does not exist/);
+    await assert.rejects(rpc('finder_properties',[other]),/does not exist/);
+});
+test('The direct directory fails closed rather than silently truncating at 500 and does not expose private source facts', async () => {
+    const before = await rpc('finder_properties');
+    assert(!JSON.stringify(before).includes('source_facts')); assert(!JSON.stringify(before).includes('last_checked_at'));
+    for(let n=10000;n<10501;n++) await db.query("INSERT INTO crawler.properties(id,source_key,listing_status,availability_status) VALUES($1,'myoko_akiya_bank','active','active')",[uuid(n)]);
+    try { await assert.rejects(rpc('finder_properties'),/directory_unavailable/); }
+    finally { await db.exec("DELETE FROM crawler.properties WHERE id>='"+uuid(10000)+"' AND id<='"+uuid(10500)+"'"); }
+    await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+    try {await assert.rejects(db.exec(httpsMigration),/already or partially applied/);}
+    finally {await db.exec('ROLLBACK; SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE');}
 });

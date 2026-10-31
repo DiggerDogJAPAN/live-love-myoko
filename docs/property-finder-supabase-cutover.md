@@ -1,3 +1,5 @@
+> The current release replaces all SQL/Hyperdrive application transport. Follow the [complete Supabase HTTPS architecture and release procedure](property-finder-supabase-https.md). Database-connection requirements below are historical and no longer apply to this release.
+
 # Property Finder — completed Supabase authentication cutover
 
 Supabase Auth is the sole application authentication provider. The owner confirms both Finder Cloudflare Access applications were deleted and production administrator login, account role, aggregated listings, logout and fresh login work without an Access challenge. Application release `1c5320a5ce82d57e52b05e486d70a4fb86321c94` introduced the Supabase-only boundary. Subsequent cleanup does not change roles, memberships, RLS or provider settings.

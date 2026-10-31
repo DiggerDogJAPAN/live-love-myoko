@@ -1,3 +1,5 @@
+> The current release replaces all SQL/Hyperdrive application transport. Follow the [complete Supabase HTTPS architecture and release procedure](property-finder-supabase-https.md). Database-connection requirements below are historical and no longer apply to this release.
+
 # Property Finder membership security — Phase 1
 
 Supabase Auth is the sole deployed authentication provider. The owner removed both Finder Cloudflare Access applications after real administrator acceptance. Migrations 001/002 are already applied; preserve their checksums, private helpers, roles and RLS. **Customer listing access remains disabled.** Current setup is in the [deployment checklist](property-finder-deployment-checklist.md); historical transition/rollback is in the [cutover record](property-finder-supabase-cutover.md).

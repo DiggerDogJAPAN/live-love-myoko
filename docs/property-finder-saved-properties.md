@@ -1,5 +1,7 @@
 # Premium Saved Properties
 
+> A direct Supabase replacement is now prepared locally, **not applied or deployed**. See [current migration 004 and cutover design](property-finder-saved-properties-direct-supabase.md). The API/transport description below records the currently deployed migration-003 implementation and its history; its Cloudflare Saved Properties handlers are retired in the pending local replacement.
+
 Production migration 003 has been applied and verified after the owner's recovery confirmation; see the [migration receipt](property-finder-saved-properties-migration-results.md). This application release is approved for the existing GitHub → Pages workflow. No memberships, administrator assignments or test customers are created. Customer listing access remains `FINDER_CUSTOMER_ACCESS=disabled`; existing administrators need no subscription. Stripe remains outside this release.
 
 ## Identity, data and authorization

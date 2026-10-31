@@ -1,15 +1,5 @@
-import { Client, type ClientConfig } from 'pg';
-import { checkServerIdentity, type ConnectionOptions } from 'node:tls';
-import { originalListingUrl, propertyTitle, type FinderProperty } from '../../src/lib/property-finder/model';
+import { originalListingUrl, propertyTitle, type FinderProperty } from './model';
 
-export interface FinderDatabaseEnv {
-    FINDER_DATABASE_URL?: string;
-    FINDER_DATABASE_PROJECT_REF?: string;
-    /** Cloudflare-managed private connection. Origin must use the reader + verify-full CA. */
-    FINDER_HYPERDRIVE?: { connectionString: string };
-}
-
-const READER_LOGIN = 'property_finder_web_reader';
 // The restricted view projects iizuna_akiya_bank through these public attributions.
 const sourceAttributions = {
     iizuna_akiya_bank: ['Iizuna Town Akiya Bank', 'Rakuen Shinshu Akiya Bank (Iizuna)'],
@@ -53,57 +43,6 @@ function permittedPortalThumbnail(src: string, sourceName: string, title: string
         }
         return { src, alt: title || `${sourceName} property photograph`, permission: 'permitted' };
     } catch { return null; }
-}
-
-/** Parse explicitly so URI sslmode parameters cannot overwrite verified TLS options. */
-export function databaseConfiguration(env: FinderDatabaseEnv): ClientConfig {
-    if (!env.FINDER_DATABASE_URL || !/^[a-z0-9]{20}$/.test(env.FINDER_DATABASE_PROJECT_REF || '')) throw new Error('Database not configured');
-    const uri = new URL(env.FINDER_DATABASE_URL);
-    const ref = env.FINDER_DATABASE_PROJECT_REF;
-    const user = decodeURIComponent(uri.username);
-    const direct = uri.hostname === `db.${ref}.supabase.co` && user === READER_LOGIN;
-    const pooler = /^[a-z0-9-]+\.pooler\.supabase\.com$/.test(uri.hostname) && user === `${READER_LOGIN}.${ref}`;
-    if (!['postgres:', 'postgresql:'].includes(uri.protocol) || (!direct && !pooler) || !uri.password || uri.hash || uri.pathname !== '/postgres' || (uri.port && uri.port !== '5432')) {
-        throw new Error('Dedicated reader connection required');
-    }
-    for (const [key, value] of uri.searchParams) {
-        if (key !== 'sslmode' || value !== 'verify-full') throw new Error('Unsupported connection option');
-    }
-    const tls: ConnectionOptions & { expectedServerHostname: string } = {
-        rejectUnauthorized: true,
-        servername: uri.hostname,
-        // pg-cloudflare passes this to Workers' TLS socket upgrade. Node uses servername.
-        expectedServerHostname: uri.hostname,
-        checkServerIdentity,
-        minVersion: 'TLSv1.2',
-    };
-    return {
-        host: uri.hostname, port: 5432, database: 'postgres', user,
-        password: decodeURIComponent(uri.password),
-        ssl: tls,
-        connectionTimeoutMillis: 8000,
-        query_timeout: 8000,
-        application_name: 'love-live-myoko-property-finder',
-    };
-}
-
-/** Hyperdrive owns the origin TLS handshake; its origin must be configured with
- * the Supabase CA and verify-full. The binding connection is Cloudflare-internal.
- * Without a binding, direct verified TLS remains available for trusted local workerd.
- */
-export function databaseClientConfiguration(env: FinderDatabaseEnv): ClientConfig {
-    const direct = databaseConfiguration(env); // Always validate the dedicated origin identity.
-    if (!env.FINDER_HYPERDRIVE) return direct;
-    const binding = env.FINDER_HYPERDRIVE.connectionString;
-    if (!binding || !['postgres:', 'postgresql:'].includes(new URL(binding).protocol)) {
-        throw new Error('Invalid Hyperdrive binding');
-    }
-    return {
-        connectionString: binding,
-        connectionTimeoutMillis: direct.connectionTimeoutMillis,
-        query_timeout: direct.query_timeout,
-        application_name: direct.application_name,
-    };
 }
 
 export interface CustomerViewRow {
@@ -213,36 +152,3 @@ export function customerProperty(row: CustomerViewRow): FinderProperty | null {
     return property;
 }
 
-export async function loadCustomerProperties(env: FinderDatabaseEnv): Promise<FinderProperty[]> {
-    const client = new Client(databaseClientConfiguration(env));
-    let transaction = false;
-    try {
-        await client.connect();
-        await client.query('BEGIN READ ONLY');
-        transaction = true;
-        const { rows } = await client.query<{ safe: boolean }>(`
-            SELECT session_user = 'property_finder_web_reader'
-                AND NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole AND NOT rolcreatedb AND NOT rolreplication
-                AND NOT pg_has_role(session_user, 'crawler_writer', 'MEMBER') AS safe
-            FROM pg_roles WHERE rolname = session_user
-        `);
-        if (rows.length !== 1 || rows[0].safe !== true) throw new Error('Unsafe database login');
-        await client.query('SET LOCAL ROLE crawler_customer_reader');
-        await client.query("SET LOCAL statement_timeout = '5s'");
-        const result = await client.query<CustomerViewRow>(`
-            SELECT listing_id, title, asking_price_jpy, location_en, location_display, location_ja,
-                publication_status, availability_status, source_attribution, original_pdf_url, thumbnail_url, location_needs_review, region_en, region_ja,
-                municipality, property_type, transaction_type, purchase_conditions_ja
-            FROM property_api.customer_properties
-            WHERE publication_status = 'active' AND availability_status = 'active'
-            ORDER BY asking_price_jpy ASC NULLS LAST, original_pdf_url ASC
-            LIMIT 501
-        `);
-        // Bounded snapshot for the existing client-side filters. Never silently truncate.
-        if (result.rows.length > 500) throw new Error('Directory needs server pagination');
-        return result.rows.map(customerProperty).filter((property): property is FinderProperty => property !== null);
-    } finally {
-        if (transaction) await client.query('ROLLBACK').catch(() => undefined);
-        await client.end().catch(() => undefined);
-    }
-}

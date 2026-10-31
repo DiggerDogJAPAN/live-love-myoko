@@ -62,17 +62,15 @@ Management page. Live redirect verification remains pending deployment.
 - Landing page: `/property-finder/`.
 - `npm run dev` serves the labelled synthetic directory at
   `/property-finder/search/` until live access is configured.
-- Production exports an access-checking shell with no inventory. The same-origin
-  Cloudflare Pages API verifies Supabase JWTs, live sessions and private database
-  roles/memberships before using the restricted PostgreSQL reader/customer view.
-- The dedicated reader is provisioned and its connection is stored in private
-  `.dev.vars`. Real listings require a verified active Supabase administrator;
-  paid customer access remains disabled until billing is implemented and tested.
-  The crawler's administrator credentials are never used by the website.
-- This database requires its existing Supabase CA. Use `npm run finder:dev:trusted`
-  after a build: the launcher configures Wrangler's local Hyperdrive emulator with
-  verified TLS and the CA without writing credentials to configuration or logs.
-  Production uses the configured hosted Hyperdrive binding.
+- Production exports an access-checking shell with no inventory. Finder and Saved
+  Properties call authenticated Supabase HTTPS RPCs directly. PostgreSQL checks
+  live sessions, private administrator roles and paid membership permissions.
+- Account login keeps the existing secure cookie session. Auth Functions use
+  Supabase HTTPS only; no application SQL connection, database password or
+  Hyperdrive binding is required. Customer listing access remains disabled.
+- Use `npm run finder:dev` after the complete CMS build, with the private Supabase
+  configuration in `.dev.vars` and its local site origin set appropriately.
+- See the [complete Supabase HTTPS cutover](docs/property-finder-supabase-https.md).
 - Run `npm run finder:check` for the focused synthetic API/security checks.
 - [Premium Saved Properties](docs/property-finder-saved-properties.md):
   stable listing IDs, private bookmarks and Premium/admin authorization.

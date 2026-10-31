@@ -1,7 +1,7 @@
 import { FinderHttpError } from '../property-finder/errors';
 import { verifySupabaseIdentity } from '../property-finder/customer-auth';
 import { AUTH_HEADERS, authConfiguration, readAuthBody, requireSameOrigin, type AuthEnv } from './config';
-import { AUTH_COOKIES, authCookie, clearAuthCookies, createPkce, readFlow, setAuthCookie, signFlow, type AuthFlow } from './cookies';
+import { AUTH_COOKIES, authCookie, clearAuthCookies, cookieCredentialRequest, createPkce, readFlow, setAuthCookie, signFlow, type AuthFlow } from './cookies';
 import { ProviderError, providerRequest, providerSession, type ProviderSession } from './provider';
 import { accountDetails, verifiedAccount, type AuthDependencies } from './account';
 import { reportAuthFailure } from './diagnostics';
@@ -33,7 +33,7 @@ export async function handleAuthRequest(request: Request, env: AuthEnv, dependen
     const reply = (status: number, body: object) => new Response(JSON.stringify(body), { status, headers });
     const action = new URL(request.url).pathname.replace(/\/$/, '').replace(/^\/api\/auth\//, '');
     const getActions = ['config', 'session', 'callback'];
-    const postActions = ['register', 'login', 'logout', 'refresh', 'recover', 'resend', 'verify-email', 'google', 'password', 'profile'];
+    const postActions = ['register', 'login', 'logout', 'refresh', 'recover', 'resend', 'verify-email', 'google', 'password', 'profile', 'supabase-access'];
     if (![...getActions, ...postActions].includes(action)) return reply(404, { code: 'not_found' });
     if (request.method !== (getActions.includes(action) ? 'GET' : 'POST')) return reply(405, { code: 'method_not_allowed' });
     const requestId = crypto.randomUUID();
@@ -86,9 +86,21 @@ export async function handleAuthRequest(request: Request, env: AuthEnv, dependen
             setAuthCookie(headers, AUTH_COOKIES.flow, '', 0);
             return new Response(null, { status: 303, headers });
         }
-        if (action === 'session') return reply(200, accountDetails(await verifiedAccount(request, env, dependencies), env));
+        if (action === 'session') return reply(200, accountDetails(await verifiedAccount(request, env, dependencies, value => { stage = value; })));
         stage = 'request_validation';
         const body = await readAuthBody(request);
+        if (action === 'supabase-access') {
+            fields(body, []);
+            // Reuse the existing cookie session. No refresh token, secret key,
+            // membership flags or database connection crosses this boundary.
+            // Supabase validates the JWT again; each RPC checks the live session,
+            // private roles and entitlements inside its own database transaction.
+            stage = 'saved_access_identity';
+            const credential = cookieCredentialRequest(request);
+            await (dependencies.verify || verifySupabaseIdentity)(credential, env);
+            return reply(200, { accessToken: credential.headers.get('Authorization')!.slice(7),
+                supabaseOrigin: `https://${env.FINDER_SUPABASE_PROJECT_REF}.supabase.co`, publishableKey: config.publishableKey });
+        }
         if (action === 'logout') {
             fields(body, []);
             let access = authCookie(request, AUTH_COOKIES.access);
@@ -117,13 +129,13 @@ export async function handleAuthRequest(request: Request, env: AuthEnv, dependen
         if (action === 'profile') {
             fields(body, ['name']);
             if (typeof body.name !== 'string' || body.name.trim().length > 80) throw new FinderHttpError(400, 'invalid_request');
-            const account = await verifiedAccount(request, env, dependencies);
+            const account = await verifiedAccount(request, env, dependencies, value => { stage = value; });
             await provider('/user', { data: { full_name: body.name.trim() } }, account.access, 'PUT');
             return reply(200, { ok: true });
         }
         if (action === 'password') {
             fields(body, ['password']); const value = password(body.password);
-            const account = await verifiedAccount(request, env, dependencies);
+            const account = await verifiedAccount(request, env, dependencies, value => { stage = value; });
             const recovery = await readFlow(authCookie(request, AUTH_COOKIES.recovery), config.secret, 'recovery');
             if (recovery.userId !== account.identity.userId || recovery.sessionId !== account.identity.sessionId) throw new FinderHttpError(403, 'password_recovery_required');
             await provider('/user', { password: value }, account.access, 'PUT');

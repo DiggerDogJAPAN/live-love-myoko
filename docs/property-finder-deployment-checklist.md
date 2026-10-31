@@ -1,3 +1,5 @@
+> The current release replaces all SQL/Hyperdrive application transport. Follow the [complete Supabase HTTPS architecture and release procedure](property-finder-supabase-https.md). Database-connection requirements below are historical and no longer apply to this release.
+
 # Property Finder — current production deployment checklist
 
 Supabase Auth is the sole authentication provider. The owner removed both Finder Cloudflare Access applications after testing Supabase administrator login and Finder access. No Access application, allowlist or redirect is a deployment prerequisite. Keep the short [migration/rollback record](property-finder-supabase-cutover.md) and [legacy-secret review](property-finder-access-removal.md).

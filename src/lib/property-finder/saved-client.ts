@@ -1,28 +1,31 @@
-import { refreshSession } from '../auth/client';
+import { supabaseRpc } from '../auth/supabase';
+import { customerProperty, type CustomerViewRow } from './property-data';
 import { LISTING_ID, type SavedPage } from './saved';
 
-export async function savedRequest(path = '', method: 'GET' | 'PUT' | 'DELETE' = 'GET'): Promise<Record<string, unknown>> {
-    const run = () => fetch('/api/property-finder/saved-properties' + path, {
-        method, credentials: 'same-origin', cache: 'no-store', redirect: 'error', headers: { Accept: 'application/json' },
-    });
-    let response = await run();
-    if (response.status === 401) { await refreshSession(); response = await run(); }
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(typeof data.code === 'string' ? data.code : 'saved_properties_unavailable');
-    return data;
+export async function setSavedProperty(propertyId: string, saved: boolean): Promise<void> {
+    if (!LISTING_ID.test(propertyId)) throw new Error('invalid_listing_id');
+    const data = await supabaseRpc(saved ? 'finder_save_property' : 'finder_remove_saved_property', { p_property: propertyId });
+    if (data.propertyId !== propertyId || data.saved !== saved) throw new Error('saved_properties_unavailable');
 }
-export async function savedIds(): Promise<string[]> {
-    const data = await savedRequest('/ids');
-    if (!Array.isArray(data.ids) || data.ids.length > 500 || data.ids.some(id => typeof id !== 'string' || !LISTING_ID.test(id))) throw new Error('saved_properties_unavailable');
-    return data.ids;
+export async function savedIds(): Promise<{ ids: string[]; userId: string }> {
+    const data = await supabaseRpc('finder_saved_ids');
+    if (typeof data.userId !== 'string' || !LISTING_ID.test(data.userId)
+        || !Array.isArray(data.ids) || data.ids.length > 500 || data.total !== data.ids.length
+        || new Set(data.ids).size !== data.ids.length || data.ids.some(id => typeof id !== 'string' || !LISTING_ID.test(id))) throw new Error('saved_properties_unavailable');
+    return { ids: data.ids, userId: data.userId };
 }
 export async function savedPage(cursor: string | null): Promise<SavedPage> {
-    const data = await savedRequest(cursor ? '?cursor=' + encodeURIComponent(cursor) : '');
-    if (!Array.isArray(data.items) || data.items.length > 20 || typeof data.total !== 'number' || data.total < 0 || data.total > 500
-        || !(data.nextCursor === null || typeof data.nextCursor === 'string')
-        || data.items.some(item => !item || !LISTING_ID.test(item.propertyId) || typeof item.savedAt !== 'string'
-            || !(item.property === null || (item.property?.id === item.propertyId && typeof item.property?.sourceName === 'string')))) throw new Error('saved_properties_unavailable');
-    return data as unknown as SavedPage;
+    const data = await supabaseRpc('finder_saved_page', { p_cursor: cursor });
+    if (!Array.isArray(data.items) || data.items.length > 20 || typeof data.total !== 'number' || !Number.isInteger(data.total) || data.total < 0 || data.total > 500
+        || !(data.nextCursor === null || (typeof data.nextCursor === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\|[0-9a-f-]{36}$/i.test(data.nextCursor)))
+        || data.items.some(item => !item || !LISTING_ID.test(item.propertyId) || typeof item.savedAt !== 'string' || !Number.isFinite(Date.parse(item.savedAt)))) throw new Error('saved_properties_unavailable');
+    try {
+        return { total: data.total, nextCursor: data.nextCursor as string | null, items: data.items.map(item => {
+            if (item.property === null) return item;
+            if (!item.property || item.property.listing_id !== item.propertyId || typeof item.property.source_attribution !== 'string') throw Error();
+            return { ...item, property: customerProperty(item.property as CustomerViewRow) };
+        }) };
+    } catch { throw new Error('saved_properties_unavailable'); }
 }
 export function savedError(code: string): string {
     const messages: Record<string, string> = {

@@ -9,7 +9,7 @@ test('The real Workers runtime accepts provider requests and never follows provi
     const bundle = await build({ stdin: { resolveDir: process.cwd(), contents: `
         import { providerRequest } from './server/auth/provider';
         export default { async fetch(request) {
-            const env = { FINDER_AUTH_ENABLED: 'enabled', FINDER_DATABASE_PROJECT_REF: 'abcdefghijklmnopqrst',
+            const env = { FINDER_AUTH_ENABLED: 'enabled', FINDER_SUPABASE_PROJECT_REF: 'abcdefghijklmnopqrst',
                 FINDER_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_local_worker_test_only',
                 FINDER_AUTH_COOKIE_SECRET: 'local-worker-test-only-signing-secret-never-production-0123456789' };
             try {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { FinderProperty } from '@/lib/property-finder/model';
-import { authRequest, refreshSession } from '@/lib/auth/client';
+import { fetchFinderProperties } from '@/lib/property-finder/client';
 import PropertyFinderDirectory from './PropertyFinderDirectory';
 import styles from './finder.module.css';
 
@@ -21,34 +21,13 @@ export default function PropertyFinderAccess() {
         const load = async () => {
             const requestNumber = ++sequence;
             try {
-                const options: RequestInit = {
-                    credentials: 'same-origin', cache: 'no-store', redirect: 'manual',
-                    headers: { Accept: 'application/json' }, signal: controller.signal,
-                };
-                let response = await fetch('/api/property-finder/properties', options);
-                if (response.status === 401 && response.headers.get('Content-Type')?.includes('application/json')) {
-                    try {
-                        const config = await authRequest('config');
-                        if (config.enabled === true && !controller.signal.aborted && requestNumber === sequence) {
-                            await refreshSession();
-                            response = await fetch('/api/property-finder/properties', options);
-                        }
-                    } catch { /* Failed/disabled refresh keeps the directory locked. */ }
-                }
+                const properties = await fetchFinderProperties(controller.signal);
                 if (controller.signal.aborted || requestNumber !== sequence) return;
-                // During the staged edge transition, a proxy challenge may still
-                // return HTML. It never constitutes an authenticated API response.
-                if ([0, 401, 403].includes(response.status) || !response.headers.get('Content-Type')?.includes('application/json')) {
-                    setState({ kind: 'locked' });
-                    return;
-                }
-                if (!response.ok) { setState({ kind: 'error' }); return; }
-                const data = await response.json();
+                setState({ kind: 'ready', properties });
+            } catch (error) {
                 if (controller.signal.aborted || requestNumber !== sequence) return;
-                if (!Array.isArray(data.properties) || data.count !== data.properties.length) throw new Error('Unexpected directory response');
-                setState({ kind: 'ready', properties: data.properties });
-            } catch {
-                if (!controller.signal.aborted && requestNumber === sequence) setState({ kind: 'error' });
+                const locked = error instanceof Error && ['authentication_required','account_unavailable','active_membership_required','customer_access_disabled'].includes(error.message);
+                setState({ kind: locked ? 'locked' : 'error' });
             }
         };
         void load();

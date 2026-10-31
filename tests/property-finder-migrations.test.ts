@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { before, after, test } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
-import { authorizeMembership, type MembershipSnapshot } from '../server/property-finder/membership';
+import { authorizeMembership, type MembershipSnapshot } from './fixtures/membership-policy';
 
 // In-memory PostgreSQL only: no environment, credentials, network or production URLs.
 let db: PGlite;

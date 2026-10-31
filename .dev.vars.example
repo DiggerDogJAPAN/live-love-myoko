@@ -1,14 +1,7 @@
-# Copy to .dev.vars (Git-ignored). Use your own Supabase/reader configuration.
-FINDER_DATABASE_PROJECT_REF=""
-FINDER_DATABASE_URL=""
-
-# Local workerd preview only: absolute path to the existing trusted DB CA PEM.
-FINDER_LOCAL_CA_FILE=""
-
-# Account authentication is separate from paid listing access; keep off locally
-# until using an isolated test provider/database. These are server-only bindings.
+# Git-ignored .dev.vars: reuse the existing Supabase cookie session over HTTPS.
+FINDER_SUPABASE_PROJECT_REF="fgdoqsepihlzfqlqymet"
 FINDER_AUTH_ENABLED="disabled"
-FINDER_AUTH_SITE_ORIGIN="https://love-live-myoko.com"
+FINDER_AUTH_SITE_ORIGIN="http://127.0.0.1:8788"
 FINDER_SUPABASE_PUBLISHABLE_KEY=""
 FINDER_AUTH_COOKIE_SECRET=""
 FINDER_GOOGLE_LOGIN_ENABLED="disabled"

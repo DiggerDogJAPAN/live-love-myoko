@@ -30,9 +30,8 @@ export function checkFinderExport(directory) {
     }
     const routeFile = path.join(directory, '_routes.json');
     const routes = JSON.parse(fs.readFileSync(routeFile, 'utf8'));
-    if (routes.version !== 1 || !routes.include?.includes('/api/property-finder')
-        || !routes.include?.includes('/api/property-finder/*') || !Array.isArray(routes.exclude) || routes.exclude.length !== 0) {
-        throw new Error('Finder API must always execute Pages Functions');
+    if (routes.version !== 1 || !Array.isArray(routes.exclude) || routes.exclude.length !== 0) {
+        throw new Error('Invalid runtime routing configuration');
     }
     const accountPages = ['login', 'register', 'account', 'forgot-password', 'reset-password', 'verify-email'];
     if (accountPages.some(name => fs.existsSync(path.join(directory, name, 'index.html')))

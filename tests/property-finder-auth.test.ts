@@ -8,12 +8,11 @@ import { authConfiguration, type AuthEnv } from '../server/auth/config';
 import { AUTH_COOKIES, cookieCredentialRequest, readFlow, signFlow } from '../server/auth/cookies';
 import { type AuthDependencies } from '../server/auth/account';
 import { verifySupabaseIdentity } from '../server/property-finder/customer-auth';
-import { authorizeMembership, type MembershipSnapshot } from '../server/property-finder/membership';
-import { handleFinderRequest } from '../server/property-finder/api';
+import type { AccountSnapshot } from '../server/auth/account-rpc';
 
 const origin = 'https://love-live-myoko.com';
 const env: AuthEnv = {
-    FINDER_AUTH_ENABLED: 'enabled', FINDER_DATABASE_PROJECT_REF: 'abcdefghijklmnopqrst',
+    FINDER_AUTH_ENABLED: 'enabled', FINDER_SUPABASE_PROJECT_REF: 'abcdefghijklmnopqrst',
     FINDER_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_unit_test_only',
     FINDER_AUTH_COOKIE_SECRET: 'test-only-cookie-signature-key-not-for-production-0123456789',
 };
@@ -28,14 +27,14 @@ before(async () => {
 });
 async function jwt(patch: Record<string, unknown> = {}) {
     const now = Math.floor(Date.now() / 1000);
-    return new SignJWT({ iss: `https://${env.FINDER_DATABASE_PROJECT_REF}.supabase.co/auth/v1`, aud: 'authenticated',
+    return new SignJWT({ iss: `https://${env.FINDER_SUPABASE_PROJECT_REF}.supabase.co/auth/v1`, aud: 'authenticated',
         sub: userId, session_id: sessionId, is_anonymous: false, role: 'authenticated', iat: now, exp: now + 3600, ...patch,
     }).setProtectedHeader({ alg: 'ES256', kid: 'test-key' }).sign(privateKey);
 }
-function snapshot(patch: Partial<MembershipSnapshot> = {}): MembershipSnapshot {
+function snapshot(patch: Partial<AccountSnapshot> = {}): AccountSnapshot {
     return { schemaVersion: 2, userId, sessionId, sessionActive: true, sessionValidUntil: null, accountActive: true,
         role: 'customer', subscriptionActive: false, tier: null, status: 'inactive', paymentStatus: 'unpaid',
-        accessStartsAt: null, paidThrough: null, revokedAt: null, ...patch };
+        accessStartsAt: null, paidThrough: null, revokedAt: null, finderAccess: patch.role === 'administrator', savedPropertiesAccess: patch.role === 'administrator', paidAccessEnabled: false, membershipActive: false, ...patch };
 }
 const providerUser = () => ({ id: userId, email: 'customer@example.com', email_confirmed_at: '2026-01-01T00:00:00Z', user_metadata: { full_name: 'Customer' } });
 const session = () => ({ access_token: token, refresh_token: 'test-refresh-token-only', expires_in: 3600, user: providerUser() });
@@ -45,7 +44,7 @@ function harness(reply?: (call: Call) => Response | Promise<Response>, record = 
     const dependencies: AuthDependencies = {
         transport: async (input, init) => {
             const call = { url: new URL(String(input)), method: init?.method || 'GET', headers: new Headers(init?.headers), body: init?.body ? JSON.parse(String(init.body)) : null };
-            calls.push(call); assert.equal(call.url.origin, `https://${env.FINDER_DATABASE_PROJECT_REF}.supabase.co`);
+            calls.push(call); assert.equal(call.url.origin, `https://${env.FINDER_SUPABASE_PROJECT_REF}.supabase.co`);
             assert.equal(call.headers.get('apikey'), env.FINDER_SUPABASE_PUBLISHABLE_KEY); assert.equal(init?.redirect, 'manual'); assert.equal(init?.cache, 'no-store');
             if (reply) return reply(call);
             if (call.url.pathname.endsWith('/settings')) return Response.json({ mailer_autoconfirm: false, external: { google: true } });
@@ -198,7 +197,7 @@ test('Signup, resend and recovery ConfirmationURL flows preserve PKCE and return
         assert.equal(flow.kind, action === 'recover' ? 'reset' : 'signup');
         // The template's ConfirmationURL visits Supabase /verify first. PKCE
         // verification redirects to redirect_to?code=..., not to token fragments.
-        const confirmationUrl = new URL(`https://${env.FINDER_DATABASE_PROJECT_REF}.supabase.co/auth/v1/verify`);
+        const confirmationUrl = new URL(`https://${env.FINDER_SUPABASE_PROJECT_REF}.supabase.co/auth/v1/verify`);
         confirmationUrl.searchParams.set('token', 'pkce_provider-email-token');
         confirmationUrl.searchParams.set('type', action === 'recover' ? 'recovery' : 'signup');
         confirmationUrl.searchParams.set('redirect_to', sent.url.searchParams.get('redirect_to')!);
@@ -254,7 +253,7 @@ test('Google is offered only when both configured and enabled, with signed PKCE 
     const disabled = harness(() => Response.json({ external: { google: false } }));
     assert.equal((await handleAuthRequest(req('google', {}), settings, disabled.dependencies)).status, 503);
     const response = await handleAuthRequest(req('google', {}), settings, h.dependencies);
-    const url = new URL((await response.json()).redirect); assert.equal(url.hostname, `${env.FINDER_DATABASE_PROJECT_REF}.supabase.co`); assert.equal(url.pathname, '/auth/v1/authorize');
+    const url = new URL((await response.json()).redirect); assert.equal(url.hostname, `${env.FINDER_SUPABASE_PROJECT_REF}.supabase.co`); assert.equal(url.pathname, '/auth/v1/authorize');
     assert.equal(url.searchParams.get('provider'), 'google'); assert.equal(url.searchParams.get('redirect_to'), origin + '/api/auth/callback');
     const state = cookie(response, AUTH_COOKIES.flow);
     const callback = await handleAuthRequest(req('callback?code=real-provider-code&next=https://attacker.example', undefined, state), settings, h.dependencies);
@@ -323,28 +322,8 @@ test('Account lookup is bound to the verified subject/session; unpaid customers 
     assert.equal(cookieCredentialRequest(req('session', undefined, credentials + '; ' + credentials)).headers.get('Authorization'), null);
 });
 
-test('Unpaid and self-promoted users never read Finder; only private server roles grant subscription-free administrator access', async () => {
-    let loads = 0;
-    const finderRequest = () => new Request(origin + '/api/property-finder/properties?role=administrator&user_id=' + otherId, { headers: { Cookie: AUTH_COOKIES.access + '=' + token } });
-    for (const record of [snapshot(), snapshot({ role: 'administrator' }), snapshot({ schemaVersion: 1, role: 'administrator' })]) {
-        const h = harness(undefined, record);
-        const deps = { verifyIdentity: h.dependencies.verify, loadMembership: h.dependencies.snapshot, load: async () => { loads++; return []; } };
-        const response = await handleFinderRequest(finderRequest(), env, deps);
-        assert.equal(response.status, record.role === 'administrator' && record.schemaVersion === 2 ? 200 : 403);
-    }
-    assert.equal(loads, 1);
-    const paid = snapshot({ subscriptionActive: true, tier: 'basic', status: 'active', paymentStatus: 'paid', accessStartsAt: new Date(Date.now() - 1000).toISOString(), paidThrough: new Date(Date.now() + 60000).toISOString() });
-    const h = harness(undefined, paid); const deps = { verifyIdentity: h.dependencies.verify, loadMembership: h.dependencies.snapshot, load: async () => { loads++; return []; } };
-    assert.equal((await handleFinderRequest(finderRequest(), env, deps)).status, 403);
-    assert.equal((await handleFinderRequest(finderRequest(), { ...env, FINDER_CUSTOMER_ACCESS: 'enabled' }, deps)).status, 200);
-    assert.throws(() => authorizeMembership({ kind: 'customer', userId, sessionId, tokenExpiresAt: Date.now() + 60000 }, paid, 'maps:read'));
-    const admin = harness(undefined, snapshot({ role: 'administrator' }));
-    const details = await (await handleAuthRequest(req('session', undefined, AUTH_COOKIES.access + '=' + token), env, admin.dependencies)).json();
-    assert.equal(details.role, 'administrator'); assert.equal(details.membership.tier, null); assert.equal(details.membership.status, 'not_required'); assert.equal(details.finderAccess, true);
-});
-
-test('A fresh Supabase administrator login reaches account and Finder without Access; logout revokes both', async () => {
-    let record: MembershipSnapshot | null = snapshot({ role: 'administrator' });
+test('A fresh Supabase administrator login reaches its SQL-authorized account without Access; logout revokes it', async () => {
+    let record: AccountSnapshot | null = snapshot({ role: 'administrator' });
     const h = harness(call => {
         if (call.url.pathname.endsWith('/logout')) { record = null; return new Response(null, { status: 204 }); }
         if (call.url.pathname.endsWith('/user')) return Response.json(providerUser());
@@ -357,14 +336,9 @@ test('A fresh Supabase administrator login reaches account and Finder without Ac
     const account = await handleAuthRequest(req('session', undefined, credentials), env, h.dependencies);
     assert.equal(account.status, 200);
     const details = await account.json(); assert.equal(details.role, 'administrator'); assert.equal(details.membership.tier, null); assert.equal(details.finderAccess, true);
-    let reads = 0;
-    const dependencies = { verifyIdentity: h.dependencies.verify, loadMembership: h.dependencies.snapshot, load: async () => { reads++; return []; } };
-    const finder = () => new Request(origin + '/api/property-finder/properties', { headers: { Cookie: credentials, 'Cf-Access-Jwt-Assertion': 'ignored-legacy-header' } });
-    assert.equal((await handleFinderRequest(finder(), env, dependencies)).status, 200); assert.equal(reads, 1);
     const logout = await handleAuthRequest(req('logout', {}, credentials), env, h.dependencies);
     assert.equal(logout.status, 200); cleared(logout);
     assert.equal((await handleAuthRequest(req('session', undefined, credentials), env, h.dependencies)).status, 403);
-    assert.equal((await handleFinderRequest(finder(), env, dependencies)).status, 403); assert.equal(reads, 1);
 });
 
 test('Email operations mask account existence and throttle errors survive without provider internals', async () => {
@@ -449,9 +423,26 @@ test('Provider redirects fail closed without following a Location or proceeding 
 
 test('Static routing includes public Auth Functions and the browser never stores tokens or constructs privileged clients', () => {
     const routes = JSON.parse(readFileSync('public/_routes.json', 'utf8'));
-    for (const route of ['/api/auth', '/api/auth/*', '/api/property-finder', '/api/property-finder/*']) assert(routes.include.includes(route)); assert.deepEqual(routes.exclude, []);
+    for (const route of ['/api/auth', '/api/auth/*']) assert(routes.include.includes(route)); assert.deepEqual(routes.exclude, []);
     assert(readFileSync('functions/api/auth/[[path]].ts', 'utf8').includes('handleAuthRequest(context.request, context.env)'));
     for (const file of ['src/lib/auth/client.ts', 'src/components/auth/AuthForm.tsx', 'src/components/auth/AccountDashboard.tsx']) {
         assert(!/localStorage|sessionStorage|document\.cookie|service_role|sb_secret_|FINDER_AUTH_COOKIE_SECRET|createClient\(/.test(readFileSync(file, 'utf8')), file);
     }
+});
+
+test('Direct Supabase token handoff reuses a verified cookie session, is same-origin/no-store and never opens a database or exposes refresh/private secrets', async () => {
+    const h = harness();
+    h.dependencies.snapshot = async () => { throw new Error('handoff must not use Hyperdrive'); };
+    const response = await handleAuthRequest(req('supabase-access', {}, `${AUTH_COOKIES.access}=${token}; ${AUTH_COOKIES.refresh}=private-refresh-token`), env, h.dependencies);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { accessToken: token, supabaseOrigin: `https://${env.FINDER_SUPABASE_PROJECT_REF}.supabase.co`, publishableKey: env.FINDER_SUPABASE_PUBLISHABLE_KEY });
+    assert.match(response.headers.get('Cache-Control')!, /private, no-store/);
+    assert.equal(response.headers.get('Access-Control-Allow-Origin'), null); assert.equal(response.headers.get('Set-Cookie'), null);
+    assert.equal(h.calls.length, 0);
+    for (const body of [{ userId: otherId }, { tier: 'premium' }, { role: 'administrator' }]) assert.equal((await handleAuthRequest(req('supabase-access', body, `${AUTH_COOKIES.access}=${token}`), env, h.dependencies)).status, 400);
+    const cross = new Request(origin + '/api/auth/supabase-access', { method: 'POST', headers: { Origin: 'https://attacker.invalid', 'Content-Type': 'application/json', Cookie: `${AUTH_COOKIES.access}=${token}` }, body: '{}' });
+    assert.equal((await handleAuthRequest(cross, env, h.dependencies)).status, 403);
+    assert.equal((await handleAuthRequest(req('supabase-access', {}), env, h.dependencies)).status, 401);
+    assert.equal((await handleAuthRequest(req('supabase-access'), env, h.dependencies)).status, 405);
+    assert.equal((await handleAuthRequest(req('supabase-access', {}, `${AUTH_COOKIES.access}=forged`), env, h.dependencies)).status, 401);
 });

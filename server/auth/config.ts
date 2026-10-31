@@ -1,6 +1,6 @@
 import { FinderHttpError } from '../property-finder/errors';
-import type { FinderAuthorizationEnv } from '../property-finder/authorization';
-export interface AuthEnv extends FinderAuthorizationEnv {
+import type { CustomerAuthEnv } from '../property-finder/customer-auth';
+export interface AuthEnv extends CustomerAuthEnv {
     FINDER_AUTH_SITE_ORIGIN?: string;
     FINDER_SUPABASE_PUBLISHABLE_KEY?: string;
     FINDER_AUTH_COOKIE_SECRET?: string;
@@ -23,12 +23,12 @@ export function siteOrigin(env: AuthEnv): string {
     } catch { throw new FinderHttpError(503, 'authentication_not_configured'); }
 }
 export function authConfiguration(env: AuthEnv) {
-    if (env.FINDER_AUTH_ENABLED !== 'enabled' || !/^[a-z0-9]{20}$/.test(env.FINDER_DATABASE_PROJECT_REF || '')
+    if (env.FINDER_AUTH_ENABLED !== 'enabled' || !/^[a-z0-9]{20}$/.test(env.FINDER_SUPABASE_PROJECT_REF || '')
         || !/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(env.FINDER_SUPABASE_PUBLISHABLE_KEY || '')
         || !env.FINDER_AUTH_COOKIE_SECRET || new TextEncoder().encode(env.FINDER_AUTH_COOKIE_SECRET).length < 43) {
         throw new FinderHttpError(503, 'authentication_not_configured');
     }
-    return { origin: siteOrigin(env), provider: `https://${env.FINDER_DATABASE_PROJECT_REF}.supabase.co/auth/v1`,
+    return { origin: siteOrigin(env), provider: `https://${env.FINDER_SUPABASE_PROJECT_REF}.supabase.co/auth/v1`,
         publishableKey: env.FINDER_SUPABASE_PUBLISHABLE_KEY!, secret: new TextEncoder().encode(env.FINDER_AUTH_COOKIE_SECRET) };
 }
 export function requireSameOrigin(request: Request, env: AuthEnv, mutation: boolean): void {
