@@ -1,5 +1,17 @@
 # Administrator-only Stripe Sandbox deployment — 1 November 2026
 
+## Basic purchase and Premium upgrade validation correction
+
+The owner completed one Basic Sandbox purchase for ¥2,000/month. Read-only production checks confirmed exactly one test subscription, active paid Basic state, a paid-through boundary of 1 December 2026, and successfully processed `invoice.paid` and `checkout.session.completed` receipts. No real memberships or live billing records exist; administrator role fingerprints and disabled customer-access settings remain unchanged.
+
+The failed Premium request returned `billing_portal_configuration`. The owner supplied the matching Stripe Workbench configuration response: immediate invoiced proration and the unchanged billing anchor were correct, but the catalog was omitted from the unexpanded response and a `decreasing_item_amount` schedule rule was present. Stripe's product catalog is an expandable field, so the upgrade configuration read now explicitly requests `expand[]=features.subscription_update.products`. See the [Stripe API object](https://docs.stripe.com/api/customer_portal/configurations/object) and the corresponding [catalog-expansion issue in Stripe's repository](https://github.com/stripe/terraform-provider-stripe/issues/54).
+
+The validator permits the single decrease-only rule for this fixed quantity-one, JPY 2,000 Basic → JPY 4,000 Premium increase. That condition is false for this upgrade. It still requires the configured Premium product/price as the only target, price-only changes, `always_invoice` proration and an unchanged billing anchor, and rejects unknown/other scheduling rules. The management Portal still forbids plan updates; application-owned Premium-to-Basic scheduling is unchanged. No Stripe configuration is mutated by this fix.
+
+Known configuration rejections previously returned their safe error code without logging field details; the attempted filtered Cloudflare tail contained no matching historical failure record. Rejections now emit a redacted `billing_portal_configuration` event containing only a request ID, Portal type and fixed failing field names. Tests verify that customer/subscription identifiers, keys and provider bodies are not logged.
+
+For non-payment acceptance, a verified Sandbox administrator can open `/api/billing/status?check=upgrade`. This performs read-only price and upgrade-configuration validation and returns `upgradeConfigurationValid=true` on success. It creates no Portal session, subscription, invoice or payment and does not acquire a billing lease. Normal `/api/billing/status` and the existing Basic subscription are preserved. Actual upgrade confirmation remains the owner's later action.
+
 ## Fixed membership totals without Stripe Tax
 
 The owner confirmed Stripe Tax must remain off and approved reusing existing prices with `tax_behavior=unspecified`. Price validation now accepts `inclusive` or `unspecified`; it still rejects exclusive/unknown behavior, wrong products, wrong amounts/currency, non-monthly/metered prices and live-mode mismatches. No products, prices or Stripe Tax settings are created or changed.

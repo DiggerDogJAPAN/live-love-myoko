@@ -104,7 +104,8 @@ function harness() {
                 const upgrade = url.pathname.endsWith(env.STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID!);
                 return Response.json({ id: upgrade ? env.STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID : env.STRIPE_PORTAL_CONFIGURATION_ID, active: true, livemode: false,
                     features: { subscription_update: { enabled: upgrade || h.badPortal, default_allowed_updates: ['price'], proration_behavior: h.badPortal ? 'none' : 'always_invoice',
-                        products: [{ product: stripeProducts.premium, prices: [stripePrices.premium] }], schedule_at_period_end: { conditions: [] } },
+                        products: url.searchParams.getAll('expand[]').includes('features.subscription_update.products') ? [{ product: stripeProducts.premium, prices: [stripePrices.premium] }] : undefined,
+                        schedule_at_period_end: { conditions: upgrade ? [{ type: 'decreasing_item_amount' }] : [] } },
                     subscription_cancel: { enabled: true, mode: 'at_period_end' }, payment_method_update: { enabled: true }, invoice_history: { enabled: true } } });
             }
             if (url.pathname === '/v1/billing_portal/sessions') return Response.json({ url: 'https://billing.stripe.com/p/session/test_session' });
@@ -438,4 +439,32 @@ test('A billing record with the wrong mode cannot seed reconciliation or receive
     assert.equal((await handleBillingRequest(request('status'), env, dependencies)).status, 503);
     assert(!h.calls.some(c => c.path.startsWith('/v1/')));
     assert(!h.calls.some(c => c.path.includes('finder_billing_apply')));
+});
+test('Rejected upgrade logs only fixed configuration fields and preserves Basic without creating a Portal session or payment', async t => {
+    const logs: string[] = [];
+    t.mock.method(console, 'error', (message: string) => { logs.push(message); });
+    const { h, dependencies } = harness(); h.sub = stripeSubscription('basic'); h.row.state = paidState('basic'); h.badPortal = true;
+    const result = await handleBillingRequest(request('upgrade', {}), env, dependencies);
+    assert.equal(result.status, 503);
+    assert.deepEqual(await result.json(), { code: 'billing_portal_configuration' });
+    assert.equal(h.row.state.entitledPlan, 'basic');
+    assert(!h.calls.some(c => c.path === '/v1/billing_portal/sessions' || c.path === '/v1/checkout/sessions'));
+    assert(h.calls.some(c => c.path.endsWith('/finder_billing_release')));
+    assert.equal(logs.length, 1);
+    const log = JSON.parse(logs[0]);
+    assert.deepEqual(Object.keys(log).sort(), ['configuration', 'event', 'fields', 'requestId']);
+    assert.equal(log.event, 'billing_portal_configuration'); assert.equal(log.configuration, 'upgrade');
+    assert.deepEqual(log.fields, ['subscription_update.proration_behavior']);
+    assert(!logs[0].includes(uid) && !logs[0].includes(stripeCustomer) && !logs[0].includes(env.STRIPE_SECRET_KEY!));
+});
+test('Sandbox administrator can verify upgrade configuration using GET without touching billing state or creating a session', async () => {
+    const { h, dependencies } = harness();
+    const response = await handleBillingRequest(request('status?check=upgrade'), env, dependencies);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { enabled: true, sandbox: true, upgradeConfigurationValid: true });
+    assert(!h.calls.some(c => c.path.includes('finder_billing_') || c.path === '/v1/billing_portal/sessions' || c.path === '/v1/checkout/sessions'));
+    const reads = h.calls.length;
+    h.administrator = false;
+    assert.deepEqual(await (await handleBillingRequest(request('status?check=upgrade'), env, dependencies)).json(), { enabled: false });
+    assert.equal(h.calls.length, reads + 1); // Verified user read only; no Stripe call.
 });

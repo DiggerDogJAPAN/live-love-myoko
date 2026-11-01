@@ -3,7 +3,7 @@ import { AUTH_HEADERS, readAuthBody, requireSameOrigin } from '../auth/config';
 import { FinderHttpError } from '../property-finder/errors';
 import { BillingError, deriveBillingState, emptyState, stripeId, stripeIdentifier, type BillingRecord,
     type StripeInvoice, type StripeSchedule, type StripeSubscription } from './model';
-import { STRIPE_VERSION, billingConfiguration, billingRpc, stripeRequest, validatePrices, validatePortal, type BillingEnv } from './provider';
+import { STRIPE_VERSION, BillingPortalConfigurationError, billingConfiguration, billingRpc, stripeRequest, validatePrices, validatePortal, type BillingEnv } from './provider';
 import { changeDowngrade, currentSubscription, releaseBasicSchedule } from './schedules';
 
 interface Dependencies extends Partial<AuthDependencies> { transport?: typeof fetch }
@@ -176,6 +176,14 @@ export async function handleBillingRequest(request: Request, env: BillingEnv, de
             if (path === 'status') return reply(200, { enabled: true, administrator: true });
             throw new BillingError('billing_admin_no_subscription', 403);
         }
+        // Read-only operator check: exercise the deployed credentials/catalog
+        // without acquiring a billing lease or creating an upgrade session.
+        if (path === 'status' && new URL(request.url).searchParams.get('check') === 'upgrade') {
+            if (!config.sandbox || account.snapshot.role !== 'administrator') throw new BillingError('billing_sandbox_admin_only', 403);
+            await validatePrices(env, transport);
+            await validatePortal(env, transport, true);
+            return reply(200, { enabled: true, sandbox: true, upgradeConfigurationValid: true });
+        }
         if (path === 'checkout' && !config.sandbox && (env.FINDER_CUSTOMER_ACCESS !== 'enabled' || !account.snapshot.paidAccessEnabled)) throw new BillingError('billing_not_launched', 409);
         let body: Record<string, unknown> = {};
         if (path !== 'status') body = await readAuthBody(request);
@@ -276,6 +284,11 @@ export async function handleBillingRequest(request: Request, env: BillingEnv, de
         if (checkout.customer !== row.customer_id || checkout.status !== 'open') throw new BillingError();
         return reply(200, { url: fixedCheckoutUrl(checkout, plan) });
     } catch (error) {
+        if (error instanceof BillingPortalConfigurationError) {
+            // Fixed field names only: no provider bodies, headers, identifiers or
+            // customer/subscription/payment data enter runtime diagnostics.
+            console.error(JSON.stringify({ event: 'billing_portal_configuration', requestId, configuration: error.configuration, fields: error.fields }));
+        }
         if (error instanceof BillingError) return reply(error.status, { code: error.code });
         if (error instanceof FinderHttpError) return reply(error.status, { code: error.code });
         // Never log Stripe/Supabase response bodies, emails, payloads or credentials.

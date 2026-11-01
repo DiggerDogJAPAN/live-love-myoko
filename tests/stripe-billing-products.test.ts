@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { billingConfiguration, validatePortal, validatePrices, type BillingEnv } from '../server/billing/provider';
+import { BillingPortalConfigurationError, billingConfiguration, validatePortal, validatePrices, type BillingEnv } from '../server/billing/provider';
 import { deriveBillingState, type Plan, type StripePrice } from '../server/billing/model';
 import { paidState, stripeCustomer, stripeNow, stripePrice, stripePrices, stripeProducts, stripeSchedule, stripeSubscription } from './fixtures/stripe-billing';
 
@@ -12,6 +12,7 @@ const env: BillingEnv = {
     STRIPE_BASIC_PRODUCT_ID: stripeProducts.basic, STRIPE_PREMIUM_PRODUCT_ID: stripeProducts.premium, STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_ProductsUnitTest', STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID: 'bpc_UpgradeProductsUnitTest',
 };
 function harness(upgrade = false) {
+    const requests: URL[] = [];
     const prices = { basic: stripePrice('basic'), premium: stripePrice('premium') };
     const portal = { id: upgrade ? env.STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID : env.STRIPE_PORTAL_CONFIGURATION_ID, active: true, livemode: false, features: {
         subscription_update: { enabled: upgrade, default_allowed_updates: ['price'], proration_behavior: 'always_invoice', billing_cycle_anchor: null as string | null,
@@ -21,11 +22,15 @@ function harness(upgrade = false) {
     } };
     const transport: typeof fetch = async (input, init) => {
         const url = new URL(String(input)); assert.equal(url.origin, 'https://api.stripe.com'); assert.equal(init?.redirect, 'manual');
+        requests.push(url);
         if (url.pathname.startsWith('/v1/prices/')) return Response.json(prices[url.pathname.endsWith(stripePrices.basic) ? 'basic' : 'premium']);
         assert.equal(url.pathname, '/v1/billing_portal/configurations/' + portal.id);
-        return Response.json(portal);
+        return Response.json({ ...portal, features: { ...portal.features, subscription_update: {
+            ...portal.features.subscription_update,
+            products: url.searchParams.getAll('expand[]').includes('features.subscription_update.products') ? portal.features.subscription_update.products : undefined,
+        } } });
     };
-    return { prices, portal, transport };
+    return { prices, portal, transport, requests };
 }
 test('Separate Basic/Premium products each validate against their own configured monthly JPY tax-inclusive price', async () => {
     const h = harness(); const config = await validatePrices(env, h.transport);
@@ -78,7 +83,7 @@ test('Management Portal disables plan updates; upgrade-only Portal never include
         if (scenario === 'quantity') update.default_allowed_updates.push('quantity');
         if (scenario === 'noProration') update.proration_behavior = 'none';
         if (scenario === 'immediateCancellation') bad.portal.features.subscription_cancel.mode = 'immediately';
-        if (scenario === 'delayedUpgrade') update.schedule_at_period_end.conditions.push({ type: 'decreasing_item_amount' });
+        if (scenario === 'delayedUpgrade') update.schedule_at_period_end.conditions.push({ type: 'shortening_interval' });
         if (scenario === 'disabled') update.enabled = false;
         if (scenario === 'anchorReset') update.billing_cycle_anchor = 'now';
         await assert.rejects(validatePortal(env, bad.transport, true), /billing_portal_configuration/, scenario);
@@ -101,4 +106,22 @@ test('Cross-product schedules and paid/unpaid upgrades retain their existing ent
     assert.equal(deriveBillingState(basic, state, null, stripePrices, stripeCustomer, false, stripeNow).entitledPlan, 'basic');
     basic.items.data[0].quantity = 2;
     assert.throws(() => deriveBillingState(basic, state, null, stripePrices, stripeCustomer, false, stripeNow), /billing_subscription_review/);
+});
+test('Upgrade configuration expands Stripe’s omitted catalog and accepts a decrease-only rule for the fixed price increase', async () => {
+    const h = harness(true);
+    h.portal.features.subscription_update.schedule_at_period_end.conditions.push({ type: 'decreasing_item_amount' });
+    const url = 'https://api.stripe.com/v1/billing_portal/configurations/' + h.portal.id;
+    const unexpanded = await (await h.transport(url, { redirect: 'manual' })).json();
+    assert.equal(unexpanded.features.subscription_update.products, undefined);
+    await validatePortal(env, h.transport, true);
+    assert.deepEqual(h.requests.at(-1)!.searchParams.getAll('expand[]'), [
+        'features.subscription_update.products',
+    ]);
+    h.portal.features.subscription_update.products[0].prices.push(stripePrices.basic);
+    await assert.rejects(validatePortal(env, h.transport, true), error => {
+        assert(error instanceof BillingPortalConfigurationError);
+        assert.deepEqual(error.fields, ['subscription_update.products']);
+        assert.equal(error.configuration, 'upgrade');
+        return true;
+    });
 });

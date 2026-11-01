@@ -64,20 +64,40 @@ interface PortalConfiguration {
         payment_method_update: { enabled: boolean }; invoice_history: { enabled: boolean };
     };
 }
+export class BillingPortalConfigurationError extends BillingError {
+    constructor(readonly configuration: 'management' | 'upgrade', readonly fields: string[]) { super('billing_portal_configuration'); }
+}
 export async function validatePortal(env: BillingEnv, transport: typeof fetch, upgrade = false) {
     const { prices, products, livemode } = billingConfiguration(env);
     const id = upgrade ? env.STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID : env.STRIPE_PORTAL_CONFIGURATION_ID;
-    const portal = await stripeRequest<PortalConfiguration>(env, '/billing_portal/configurations/' + id, transport);
+    // Stripe omits the catalog without expansion; absence is not an empty catalog.
+    const query = new URLSearchParams([
+        ['expand[]', 'features.subscription_update.products'],
+    ]);
+    const portal = await stripeRequest<PortalConfiguration>(env, '/billing_portal/configurations/' + id + (upgrade ? '?' + query : ''), transport);
     const updates = portal.features?.subscription_update, cancel = portal.features?.subscription_cancel;
-    const unsafeUpdate = upgrade ? !updates?.enabled || updates.proration_behavior !== 'always_invoice'
-        || updates.default_allowed_updates?.length !== 1 || updates.default_allowed_updates[0] !== 'price'
-        || updates.products?.length !== 1 || updates.products[0].product !== products.premium
-        || updates.products[0].prices?.length !== 1 || updates.products[0].prices[0] !== prices.premium
-        || (updates.billing_cycle_anchor != null && updates.billing_cycle_anchor !== 'unchanged')
-        || !!updates.schedule_at_period_end?.conditions?.length : updates?.enabled !== false;
-    if (portal.id !== id || !portal.active || portal.livemode !== livemode || unsafeUpdate
-        || !cancel?.enabled || cancel.mode !== 'at_period_end' || !portal.features.payment_method_update?.enabled
-        || !portal.features.invoice_history?.enabled) throw new BillingError('billing_portal_configuration');
+    const conditions = updates?.schedule_at_period_end?.conditions;
+    const checks: [string, boolean][] = [
+        ['id', portal.id === id], ['active', portal.active === true], ['livemode', portal.livemode === livemode],
+        ['subscription_update.enabled', updates?.enabled === upgrade],
+        ['subscription_cancel', cancel?.enabled === true && cancel.mode === 'at_period_end'],
+        ['payment_method_update.enabled', portal.features?.payment_method_update?.enabled === true],
+        ['invoice_history.enabled', portal.features?.invoice_history?.enabled === true],
+    ];
+    if (upgrade) checks.push(
+        ['subscription_update.proration_behavior', updates?.proration_behavior === 'always_invoice'],
+        ['subscription_update.default_allowed_updates', updates?.default_allowed_updates?.length === 1 && updates.default_allowed_updates[0] === 'price'],
+        ['subscription_update.products', updates?.products?.length === 1 && updates.products[0].product === products.premium
+            && updates.products[0].prices?.length === 1 && updates.products[0].prices[0] === prices.premium],
+        ['subscription_update.billing_cycle_anchor', updates?.billing_cycle_anchor == null || updates.billing_cycle_anchor === 'unchanged'],
+        // The only upgrade flow is a quantity-one Basic (2000) -> Premium (4000)
+        // change with the same currency/interval. A decrease-only rule cannot
+        // defer this increase; other scheduling rules remain unsupported.
+        ['subscription_update.schedule_at_period_end', conditions === undefined || (Array.isArray(conditions)
+            && (conditions.length === 0 || (conditions.length === 1 && conditions[0]?.type === 'decreasing_item_amount')))],
+    );
+    const fields = checks.filter(([, valid]) => !valid).map(([field]) => field);
+    if (fields.length) throw new BillingPortalConfigurationError(upgrade ? 'upgrade' : 'management', fields);
 }
 export async function billingRpc<T>(env: BillingEnv, name: string, body: object, transport: typeof fetch): Promise<T> {
     let response: Response;
