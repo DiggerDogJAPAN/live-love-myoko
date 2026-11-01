@@ -119,3 +119,21 @@ test('Failed renewals, cancellation and unsupported billing shapes cannot extend
     const different = stripeSubscription(); different.id = 'sub_NewSubscription'; different.latest_invoice = null;
     assert.equal(derive(different, previous).active, false, 'old subscription payment is not reusable');
 });
+test('Cancelled Basic and Premium expire at the exact paid boundary without a terminal webhook', () => {
+    for (const plan of ['basic', 'premium'] as const) {
+        const sub = stripeSubscription(plan); sub.cancel_at_period_end = true;
+        const previous = paidState(plan), boundary = sub.items.data[0].current_period_end;
+        assert.equal(derive(sub, previous, null, boundary - 1).entitledPlan, plan);
+        assert.equal(derive(sub, previous, null, boundary).active, false);
+        assert.equal(derive(sub, previous, null, boundary + 3600).entitledPlan, null);
+        assert.equal(sub.status, 'active', 'no cancellation webhook changed the provider snapshot');
+    }
+});
+test('Failed payment keeps only already-paid time and never extends into an unpaid renewal period', () => {
+    const sub = stripeSubscription('basic', false); sub.status = 'past_due';
+    const previous = paidState('basic'), boundary = sub.items.data[0].current_period_end;
+    assert.equal(derive(sub, previous, null, boundary - 1).entitledPlan, 'basic');
+    sub.items.data[0].current_period_start = boundary; sub.items.data[0].current_period_end = boundary + 2592000;
+    assert.equal(derive(sub, previous, null, boundary).active, false);
+    assert.equal(derive(sub, previous, null, boundary + 1).paidEnd, null);
+});

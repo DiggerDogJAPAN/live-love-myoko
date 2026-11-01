@@ -35,6 +35,7 @@ export function billingMessage(error: unknown) {
         billing_subscription_exists: 'You already have a subscription. Use Manage Billing to change it.',
         billing_checkout_exists: 'A checkout is already open for another plan. Complete it or let it expire before choosing again.',
         billing_checkout_review: 'Checkout does not match the fixed membership price. No payment has been started. Please contact us for help.',
+        billing_membership_revoked: 'Your membership is revoked. Please contact us before making another purchase or upgrade.',
         billing_busy: 'Your billing information is being updated. Please wait a moment and refresh.',
         billing_not_launched: 'Subscription purchasing is not available yet. No payment has been started.',
         billing_subscription_review: 'Your subscription needs review. Please refresh or contact us before starting another payment.',

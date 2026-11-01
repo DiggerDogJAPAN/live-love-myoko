@@ -41,11 +41,103 @@ before(async () => {
     await db.exec(readFileSync('sql/proposals/008_finder_stripe_billing.sql', 'utf8'));
     // Live-mode ledger behavior is tested only with synthetic in-memory data.
     await db.exec(readFileSync('sql/proposals/008_finder_stripe_billing.verify.sql', 'utf8'));
+    await db.exec(readFileSync('sql/proposals/009_finder_billing_revocation.sql', 'utf8'));
+    await db.exec(readFileSync('sql/proposals/009_finder_billing_revocation.verify.sql', 'utf8'));
     await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE');
     await user(1, true);
     await db.query('INSERT INTO crawler.properties(id) VALUES($1)', [id(999)]);
 });
 after(async () => { if (db) { assert.equal((await db.query<{ n: number }>('SELECT count(*)::integer n FROM crawler.properties')).rows[0].n, 1); await db.close(); } });
+
+test('Prepared Live activation refuses an open customer gate and replay, and changes only database mode', async () => {
+    const sql = readFileSync('sql/operations/009_enable_stripe_live.sql', 'utf8');
+    const before = (await db.query('SELECT * FROM auth.users ORDER BY id')).rows;
+    await db.exec("SET SESSION AUTHORIZATION postgres; RESET ROLE; UPDATE finder_security.billing_settings SET mode='test'; UPDATE finder_security.saved_api_settings SET customer_access_enabled=true");
+    try {
+        await assert.rejects(db.exec(sql), /Customer access must remain disabled/);
+        await db.exec('ROLLBACK');
+        await db.exec('UPDATE finder_security.saved_api_settings SET customer_access_enabled=false');
+        await db.exec(sql);
+        assert.equal((await db.query<{ mode: string }>('SELECT mode FROM finder_security.billing_settings')).rows[0].mode, 'live');
+        assert.deepEqual((await db.query('SELECT * FROM auth.users ORDER BY id')).rows, before);
+        await assert.rejects(db.exec(sql), /Expected test mode/); await db.exec('ROLLBACK');
+    } finally { await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+});
+
+test('Manual membership revocation survives paid refresh, failed renewal and later successful payment', async () => {
+    const u = await user(20); let b = await bind(u, 'cus_RevocationTest');
+    const paid = { ...paidState('basic'), subscriptionId: 'sub_RevocationTest' };
+    await save(b, paid); await unlock(b);
+    await db.query('UPDATE finder_security.memberships SET revoked_at=clock_timestamp() WHERE user_id=$1', [u]);
+    const revoked = (await membership(u)).revoked_at;
+    b = await acquire(u); await save(b, paid); await unlock(b);
+    assert.deepEqual((await membership(u)).revoked_at, revoked, 'a paid webhook must not clear an operator revocation');
+    let account = await rpc('authenticated', 'public.finder_account', [], u);
+    assert.equal(account.finderAccess, false); assert.equal(account.savedPropertiesAccess, false);
+    b = await acquire(u); await save(b, { ...paid, status: 'past_due', active: false, entitledPlan: null }); await unlock(b);
+    b = await acquire(u); await save(b, paid); await unlock(b);
+    assert.deepEqual((await membership(u)).revoked_at, revoked);
+    account = await rpc('authenticated', 'public.finder_account', [], u);
+    assert.equal(account.membershipActive, false);
+    await db.query('UPDATE finder_security.memberships SET revoked_at=NULL WHERE user_id=$1', [u]);
+    b = await acquire(u); await save(b, paid); await unlock(b);
+    assert.equal((await rpc('authenticated', 'public.finder_account', [], u)).membershipActive, true, 'only an explicit operator clearance permits recovery');
+});
+test('Basic and Premium lose protected access at the paid boundary with no webhook, even while stored billing status stays active', async () => {
+    await db.exec('UPDATE finder_security.saved_api_settings SET customer_access_enabled=true');
+    try {
+        for (const [n, plan] of [[21, 'basic'], [22, 'premium']] as const) {
+            const u = await user(n); const b = await bind(u, 'cus_Expiry' + plan);
+            const paid = { ...paidState(plan), subscriptionId: 'sub_Expiry' + plan, cancelAtPeriodEnd: true };
+            await save(b, paid); await unlock(b);
+            let account = await rpc('authenticated', 'public.finder_account', [], u);
+            assert.equal(account.finderAccess, true); assert.equal(account.savedPropertiesAccess, plan === 'premium');
+            const receipts = (await db.query('SELECT count(*) FROM finder_security.billing_events')).rows;
+            // Move the paid boundary to the current database time without a
+            // reconciliation call. Active/paid flags intentionally remain stale.
+            await db.query("UPDATE finder_security.memberships SET access_starts_at=clock_timestamp()-interval '1 day',paid_through=clock_timestamp() WHERE user_id=$1", [u]);
+            account = await rpc('authenticated', 'public.finder_account', [], u);
+            assert.equal(account.membershipActive, false); assert.equal(account.finderAccess, false); assert.equal(account.savedPropertiesAccess, false);
+            assert.deepEqual((await db.query('SELECT count(*) FROM finder_security.billing_events')).rows, receipts);
+            assert.equal((await db.query<{ state: BillingState }>('SELECT state FROM finder_security.billing_customers WHERE id=$1', [b.id])).rows[0].state.active, true);
+        }
+        const administrator = await rpc('authenticated', 'public.finder_account', [], admin);
+        assert.equal(administrator.finderAccess, true); assert.equal(administrator.savedPropertiesAccess, true);
+        assert.equal(await membership(admin), undefined);
+    } finally { await db.exec('UPDATE finder_security.saved_api_settings SET customer_access_enabled=false'); }
+});
+test('Automatic nonpayment removes access without creating an operator revocation and confirmed recovery can restore access', async () => {
+    const u = await user(23); let b = await bind(u, 'cus_RecoveryTest');
+    const paid = { ...paidState(), subscriptionId: 'sub_RecoveryTest' };
+    await save(b, paid); await unlock(b);
+    b = await acquire(u); await save(b, { ...paid, status: 'past_due', active: false, entitledPlan: null }); await unlock(b);
+    assert.equal((await membership(u)).account_active, false); assert.equal((await membership(u)).revoked_at, null);
+    assert.equal((await rpc('authenticated', 'public.finder_account', [], u)).membershipActive, false);
+    b = await acquire(u); await save(b, paid); await unlock(b);
+    assert.equal((await rpc('authenticated', 'public.finder_account', [], u)).membershipActive, true);
+});
+test('A user disabled or unverified while a billing lease is held cannot receive new entitlements', async () => {
+    const u = await user(24); const b = await bind(u, 'cus_DisabledDuringLease');
+    const paid = { ...paidState(), subscriptionId: 'sub_DisabledDuringLease' };
+    await db.query("INSERT INTO finder_security.account_roles(user_id,account_role,is_active) VALUES($1,'customer',false)", [u]);
+    await assert.rejects(save(b, paid), /billing_account_unavailable/);
+    assert.equal(await membership(u), undefined);
+    await db.query('UPDATE finder_security.account_roles SET is_active=true WHERE user_id=$1', [u]);
+    await db.query('UPDATE auth.users SET email_confirmed_at=NULL WHERE id=$1', [u]);
+    await assert.rejects(save(b, paid), /billing_account_unavailable/);
+    assert.equal(await membership(u), undefined);
+    await unlock(b);
+});
+test('Forward correction refuses replay without changing existing data or grants', async () => {
+    const before = (await db.query('SELECT * FROM finder_security.memberships ORDER BY user_id')).rows;
+    await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+    try {
+        await assert.rejects(db.exec(readFileSync('sql/proposals/009_finder_billing_revocation.sql', 'utf8')), /Expected unchanged Finder 008/);
+        await db.exec('ROLLBACK');
+        await db.exec(readFileSync('sql/proposals/009_finder_billing_revocation.verify.sql', 'utf8'));
+    } finally { await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
+    assert.deepEqual((await db.query('SELECT * FROM finder_security.memberships ORDER BY user_id')).rows, before);
+});
 
 test('Billing tables force RLS; only service RPCs can write paid status, and administrators remain subscription-free', async () => {
     for (const role of ['anon', 'authenticated', 'service_role', 'property_finder_web_reader']) {

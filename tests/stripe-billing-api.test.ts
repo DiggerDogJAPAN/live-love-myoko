@@ -17,7 +17,7 @@ const env: BillingEnv = { FINDER_AUTH_SITE_ORIGIN: origin, FINDER_AUTH_ENABLED: 
 const snapshot: AccountSnapshot = { schemaVersion: 2, userId: uid, sessionId: sid, sessionActive: true, sessionValidUntil: null, accountActive: true,
     role: 'customer', subscriptionActive: false, tier: null, status: 'inactive', paymentStatus: 'unpaid', accessStartsAt: null, paidThrough: null, revokedAt: null,
     finderAccess: false, savedPropertiesAccess: false, paidAccessEnabled: true, membershipActive: false };
-function harness() {
+function harness(runtimeEnv: BillingEnv = env) {
     const row: BillingRecord = { id: '00000000-0000-4000-8000-000000000004', user_id: uid, customer_id: stripeCustomer, livemode: false,
         state: paidState(), lease_token: '00000000-0000-4000-8000-000000000005', synced_at: new Date().toISOString() };
     const h = { row, sub: stripeSubscription() as ReturnType<typeof stripeSubscription> | null, schedule: stripeSchedule(), unknownCustomer: false,
@@ -50,9 +50,9 @@ function harness() {
                 if (url.pathname.endsWith('/finder_billing_release')) return Response.json(true);
                 throw Error('Unexpected database operation');
             }
-            assert.equal(url.origin, 'https://api.stripe.com'); assert.equal(call.headers.get('Authorization'), 'Bearer ' + env.STRIPE_SECRET_KEY);
+            assert.equal(url.origin, 'https://api.stripe.com'); assert.equal(call.headers.get('Authorization'), 'Bearer ' + runtimeEnv.STRIPE_SECRET_KEY);
             assert.equal(call.headers.get('Stripe-Version'), '2026-07-29.dahlia');
-            if (url.pathname.startsWith('/v1/prices/')) { const price = stripePrice(url.pathname.endsWith(stripePrices.basic) ? 'basic' : 'premium'); if (h.badPrice) price.unit_amount = 1; if (h.unspecifiedTax) price.tax_behavior = 'unspecified'; return Response.json(price); }
+            if (url.pathname.startsWith('/v1/prices/')) { const price = stripePrice(url.pathname.endsWith(stripePrices.basic) ? 'basic' : 'premium'); price.livemode = runtimeEnv.FINDER_STRIPE_MODE === 'live'; if (h.badPrice) price.unit_amount = 1; if (h.unspecifiedTax) price.tax_behavior = 'unspecified'; return Response.json(price); }
             if (url.pathname === '/v1/subscriptions') return Response.json({ data: h.sub ? [structuredClone(h.sub)] : [], has_more: false });
             if (url.pathname === '/v1/subscriptions/sub_TestSubscription') return Response.json(h.sub);
             if (url.pathname === '/v1/subscription_schedules' && !init?.body) return Response.json({ data: h.terminalSchedules, has_more: h.historyMore });
@@ -102,7 +102,7 @@ function harness() {
             }
             if (url.pathname.startsWith('/v1/billing_portal/configurations/')) {
                 const upgrade = url.pathname.endsWith(env.STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID!);
-                return Response.json({ id: upgrade ? env.STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID : env.STRIPE_PORTAL_CONFIGURATION_ID, active: true, livemode: false,
+                return Response.json({ id: upgrade ? env.STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID : env.STRIPE_PORTAL_CONFIGURATION_ID, active: true, livemode: runtimeEnv.FINDER_STRIPE_MODE === 'live',
                     features: { subscription_update: { enabled: upgrade || h.badPortal, default_allowed_updates: ['price'], proration_behavior: h.badPortal ? 'none' : 'always_invoice',
                         products: url.searchParams.getAll('expand[]').includes('features.subscription_update.products') ? [{ product: stripeProducts.premium, prices: [stripePrices.premium] }] : undefined,
                         schedule_at_period_end: { conditions: upgrade ? [{ type: 'decreasing_item_amount' }] : [] } },
@@ -467,4 +467,32 @@ test('Sandbox administrator can verify upgrade configuration using GET without t
     h.administrator = false;
     assert.deepEqual(await (await handleBillingRequest(request('status?check=upgrade'), env, dependencies)).json(), { enabled: false });
     assert.equal(h.calls.length, reads + 1); // Verified user read only; no Stripe call.
+});
+test('Administrator can preflight both Live Portal configurations with customer purchasing closed and no mutations', async () => {
+    const liveEnv = { ...env, FINDER_STRIPE_MODE: 'live', FINDER_BILLING_SANDBOX_ENABLED: 'disabled',
+        STRIPE_SECRET_KEY: 'sk_live_UnitTestOnly', FINDER_CUSTOMER_ACCESS: 'disabled' };
+    const { h, dependencies } = harness(liveEnv);
+    const response = await handleBillingRequest(request('status?check=configuration'), liveEnv, dependencies);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { enabled: true, sandbox: false, configurationValid: true });
+    assert.equal(h.calls.filter(c => c.path.startsWith('/v1/billing_portal/configurations/')).length, 2);
+    assert(!h.calls.some(c => c.path.includes('finder_billing_') || c.path === '/v1/checkout/sessions' || c.path === '/v1/billing_portal/sessions'));
+    assert.deepEqual(await (await handleBillingRequest(request('status'), liveEnv, dependencies)).json(), { enabled: true, administrator: true });
+    assert.equal((await handleBillingRequest(request('checkout', { plan: 'basic' }), liveEnv, dependencies)).status, 403);
+    h.administrator = false;
+    const calls = h.calls.length;
+    const denied = await handleBillingRequest(request('status?check=configuration'), liveEnv, dependencies);
+    assert.equal(denied.status, 403); assert.deepEqual(await denied.json(), { code: 'billing_admin_only' });
+    assert.equal(h.calls.length, calls + 1);
+});
+test('A revoked customer cannot start a Live purchase or upgrade even when customer launch gates are open', async () => {
+    const liveEnv = { ...env, FINDER_STRIPE_MODE: 'live', FINDER_BILLING_SANDBOX_ENABLED: 'disabled', STRIPE_SECRET_KEY: 'sk_live_UnitTestOnly' };
+    const { h, dependencies } = harness(liveEnv); h.administrator = false;
+    const revoked = { ...dependencies, snapshot: async () => ({ ...snapshot, revokedAt: new Date().toISOString() }) };
+    for (const action of ['checkout', 'upgrade']) {
+        const response = await handleBillingRequest(request(action, action === 'checkout' ? { plan: 'basic' } : {}), liveEnv, revoked);
+        assert.equal(response.status, 403);
+        assert.deepEqual(await response.json(), { code: 'billing_membership_revoked' });
+    }
+    assert(!h.calls.some(c => c.path.startsWith('/v1/') || c.path.includes('finder_billing_')));
 });

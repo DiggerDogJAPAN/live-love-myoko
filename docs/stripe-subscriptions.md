@@ -1,5 +1,7 @@
 # Stripe subscriptions and scheduled two-product downgrades
 
+Production preparation: ordinary settings remain in the existing `wrangler.jsonc`, preserving all Sandbox values. See [production readiness and activation](stripe-production-readiness.md). Finder 009 was applied once and verified as `20261101130422_finder_009_billing_revocation`; it makes manual membership revocation durable across billing reconciliation. The owner has authorized deploying the remaining application safeguards in Sandbox mode. Live activation remains unapproved.
+
 Current fixed-price tax policy, 1 November 2026: the owner elected not to activate Stripe Tax. Existing prices may use `tax_behavior=unspecified` or `inclusive`; exclusive behavior is rejected. New Checkout explicitly disables automatic tax, Adaptive Pricing and promotion codes, uses quantity one and no manual taxes/shipping, and verifies the returned JPY subtotal/total are exactly ¥2,000 or ¥4,000 before returning any new/reused payment URL. No replacement products or prices are needed. Earlier statements below requiring `inclusive` alone describe the superseded initial design.
 
 Current rollout, 1 November 2026: the owner approved the existing Sandbox configuration and GitHub → Cloudflare Pages deployment without another Stripe plugin. The prepared mode-switch transaction completed successfully: database mode is now `test`, customer access remains false, and before/after account/role/membership fingerprints match. The complete CMS export and all 239 tests passed again. See the [deployment record](stripe-sandbox-deployment.md). Earlier preparation-state statements below are historical; migration 008 and the mode switch must not be replayed.
@@ -12,7 +14,7 @@ Prices remain Basic ¥2,000/month and Premium ¥4,000/month, tax included. Admin
 
 ## Prepared Sandbox configuration — not deployed
 
-The existing Wrangler configuration is `wrangler.jsonc`; there is no `wrangler.toml`. Its `env.production.vars` now stages `FINDER_BILLING_ENABLED=enabled`, `FINDER_STRIPE_MODE=test` and `FINDER_BILLING_SANDBOX_ENABLED=enabled`. `FINDER_CUSTOMER_ACCESS=disabled` is preserved in both environments; default/preview billing is explicitly disabled. These are local file changes only, with no Cloudflare runtime update or deployment.
+The Wrangler configuration remains `wrangler.jsonc`; the proposed TOML conversion was withdrawn at the owner’s request because no technical change of format is needed. Its production variables preserve `FINDER_BILLING_ENABLED=enabled`, `FINDER_STRIPE_MODE=test` and `FINDER_BILLING_SANDBOX_ENABLED=enabled`. `FINDER_CUSTOMER_ACCESS=disabled` is preserved in both environments; default/preview billing is explicitly disabled. Live activation remains unapproved.
 
 The owner supplied the following six non-secret Sandbox IDs, now saved in production configuration. Wrangler parsing and exact value comparisons pass. The actual Stripe objects still require authenticated read-only verification; recording an ID does not prove its product assignment or Portal restrictions.
 

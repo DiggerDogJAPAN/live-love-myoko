@@ -172,19 +172,24 @@ export async function handleBillingRequest(request: Request, env: BillingEnv, de
             throw new BillingError('billing_sandbox_admin_only', 403);
         }
         const config = billingConfiguration(env);
+        // Read-only operator check: exercise the deployed credentials/catalog
+        // in either mode, without a lease, customer launch or payment session.
+        const check = path === 'status' ? new URL(request.url).searchParams.get('check') : null;
+        if (check === 'upgrade' || check === 'configuration') {
+            if (account.snapshot.role !== 'administrator') throw new BillingError('billing_admin_only', 403);
+            await validatePrices(env, transport);
+            if (check === 'configuration') await validatePortal(env, transport);
+            await validatePortal(env, transport, true);
+            return reply(200, { enabled: true, sandbox: config.sandbox,
+                ...(check === 'configuration' ? { configurationValid: true } : { upgradeConfigurationValid: true }) });
+        }
         if (account.snapshot.role === 'administrator' && !config.sandbox) {
             if (path === 'status') return reply(200, { enabled: true, administrator: true });
             throw new BillingError('billing_admin_no_subscription', 403);
         }
-        // Read-only operator check: exercise the deployed credentials/catalog
-        // without acquiring a billing lease or creating an upgrade session.
-        if (path === 'status' && new URL(request.url).searchParams.get('check') === 'upgrade') {
-            if (!config.sandbox || account.snapshot.role !== 'administrator') throw new BillingError('billing_sandbox_admin_only', 403);
-            await validatePrices(env, transport);
-            await validatePortal(env, transport, true);
-            return reply(200, { enabled: true, sandbox: true, upgradeConfigurationValid: true });
-        }
         if (path === 'checkout' && !config.sandbox && (env.FINDER_CUSTOMER_ACCESS !== 'enabled' || !account.snapshot.paidAccessEnabled)) throw new BillingError('billing_not_launched', 409);
+        if (!config.sandbox && account.snapshot.revokedAt !== null && ['checkout', 'upgrade'].includes(path || ''))
+            throw new BillingError('billing_membership_revoked', 403);
         let body: Record<string, unknown> = {};
         if (path !== 'status') body = await readAuthBody(request);
         if (Object.keys(body).some(k => path !== 'checkout' || k !== 'plan') || (path === 'checkout' && (typeof body.plan !== 'string' || !['basic', 'premium'].includes(body.plan)))) throw new BillingError('invalid_billing_request', 400);
