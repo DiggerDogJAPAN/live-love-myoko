@@ -21,10 +21,12 @@ function harness() {
     const row: BillingRecord = { id: '00000000-0000-4000-8000-000000000004', user_id: uid, customer_id: stripeCustomer, livemode: false,
         state: paidState(), lease_token: '00000000-0000-4000-8000-000000000005', synced_at: new Date().toISOString() };
     const h = { row, sub: stripeSubscription() as ReturnType<typeof stripeSubscription> | null, schedule: stripeSchedule(), unknownCustomer: false,
-        failApply: false, badPrice: false, badPortal: false, administrator: true, unauthenticated: false,
+        failApply: false, badPrice: false, badPortal: false, administrator: true, unauthenticated: false, unspecifiedTax: false, badCheckoutTotal: false,
         scheduleCount: 0, timeoutCreate: false, timeoutUpdate: false, failUpdate: false, historyMore: false, truncatedEvidence: false,
         terminalSchedules: [] as StripeSchedule[], creations: new Map<string, StripeSchedule>(),
-        sessions: [] as { id: string; customer: string; status: string; expires_at: number; url: string; subscription: unknown; metadata: { finder_plan: string } }[],
+        sessions: [] as { id: string; customer: string; status: string; expires_at: number; url: string; subscription: unknown; metadata: { finder_plan: string };
+            currency: string; amount_subtotal: number; amount_total: number; automatic_tax: { enabled: boolean };
+            total_details: { amount_tax: number; amount_discount: number; amount_shipping: number | null } }[],
         processed: new Set<string>(), calls: [] as { path: string; body: Record<string, unknown>; headers: Headers; form: URLSearchParams }[] };
     const dependencies: Partial<AuthDependencies> = {
         verify: async () => { if (h.unauthenticated) throw new BillingError('authentication_required', 401); return { kind: 'customer', userId: uid, sessionId: sid, tokenExpiresAt: Date.now() + 3600000 }; },
@@ -50,7 +52,7 @@ function harness() {
             }
             assert.equal(url.origin, 'https://api.stripe.com'); assert.equal(call.headers.get('Authorization'), 'Bearer ' + env.STRIPE_SECRET_KEY);
             assert.equal(call.headers.get('Stripe-Version'), '2026-07-29.dahlia');
-            if (url.pathname.startsWith('/v1/prices/')) { const price = stripePrice(url.pathname.endsWith(stripePrices.basic) ? 'basic' : 'premium'); if (h.badPrice) price.unit_amount = 1; return Response.json(price); }
+            if (url.pathname.startsWith('/v1/prices/')) { const price = stripePrice(url.pathname.endsWith(stripePrices.basic) ? 'basic' : 'premium'); if (h.badPrice) price.unit_amount = 1; if (h.unspecifiedTax) price.tax_behavior = 'unspecified'; return Response.json(price); }
             if (url.pathname === '/v1/subscriptions') return Response.json({ data: h.sub ? [structuredClone(h.sub)] : [], has_more: false });
             if (url.pathname === '/v1/subscriptions/sub_TestSubscription') return Response.json(h.sub);
             if (url.pathname === '/v1/subscription_schedules' && !init?.body) return Response.json({ data: h.terminalSchedules, has_more: h.historyMore });
@@ -91,7 +93,10 @@ function harness() {
             if (url.pathname === '/v1/customers') return Response.json({ id: stripeCustomer });
             if (url.pathname === '/v1/checkout/sessions' && !init?.body) return Response.json({ data: h.sessions, has_more: false });
             if (url.pathname === '/v1/checkout/sessions') {
+                const amount = call.form.get('metadata[finder_plan]') === 'basic' ? 2000 : 4000;
                 const session = { id: 'cs_test_CheckoutTest', customer: stripeCustomer, status: 'open', expires_at: stripeNow + 86400,
+                    currency: 'jpy', amount_subtotal: amount, amount_total: h.badCheckoutTotal ? amount + 200 : amount,
+                    automatic_tax: { enabled: false }, total_details: { amount_tax: 0, amount_discount: 0, amount_shipping: 0 },
                     url: 'https://checkout.stripe.com/c/pay/cs_test_CheckoutTest', subscription: null, metadata: { finder_plan: call.form.get('metadata[finder_plan]')! } };
                 h.sessions.push(session); return Response.json(session);
             }
@@ -225,6 +230,9 @@ test('Checkout uses only authenticated owner/configured monthly prices and reuse
     assert.equal(create.form.get('line_items[0][price]'), stripePrices.premium); assert.equal(create.form.get('client_reference_id'), uid);
     assert.equal(create.form.get('success_url'), origin + '/account/?billing=success'); assert(create.headers.has('Idempotency-Key'));
     assert.equal(create.form.get('ui_mode'), 'hosted_page');
+    assert.equal(create.form.get('automatic_tax[enabled]'), 'false');
+    assert.equal(create.form.get('adaptive_pricing[enabled]'), 'false');
+    assert.equal(create.form.get('allow_promotion_codes'), 'false');
     assert.equal(create.form.get('subscription_data[billing_mode][type]'), 'classic');
     assert.equal((await handleBillingRequest(request('checkout', { plan: 'premium' }), env, dependencies)).status, 200);
     assert.equal(h.calls.filter(c => c.form.get('mode') === 'subscription').length, 1);
@@ -243,6 +251,36 @@ test('Management Portal is bound to the authenticated customer and forbids plan 
     assert.equal(create.form.get('customer'), stripeCustomer); assert.equal(create.form.get('configuration'), env.STRIPE_PORTAL_CONFIGURATION_ID);
     h.badPortal = true; assert.equal((await handleBillingRequest(request('portal', {}), env, dependencies)).status, 503);
     h.badPrice = true; assert.equal((await handleBillingRequest(request('checkout', { plan: 'premium' }), env, dependencies)).status, 503);
+});
+test('Unspecified-tax Basic/Premium Checkout totals stay fixed and altered new or reused totals cannot redirect', async () => {
+    for (const plan of ['basic', 'premium'] as const) {
+        const { h, dependencies } = harness(); h.sub = null; h.row.state = emptyState(); h.unspecifiedTax = true;
+        const response = await handleBillingRequest(request('checkout', { plan }), env, dependencies);
+        assert.equal(response.status, 200);
+        assert.equal(h.sessions[0].amount_total, plan === 'basic' ? 2000 : 4000);
+        h.sessions[0].total_details.amount_shipping = null;
+        assert.equal((await handleBillingRequest(request('checkout', { plan }), env, dependencies)).status, 200);
+        for (const scenario of ['total', 'subtotal', 'currency', 'tax', 'discount', 'shipping', 'automaticTax']) {
+            const session = structuredClone(h.sessions[0]);
+            if (scenario === 'total') session.amount_total += 200;
+            if (scenario === 'subtotal') session.amount_subtotal -= 200;
+            if (scenario === 'currency') session.currency = 'usd';
+            if (scenario === 'tax') session.total_details.amount_tax = 200;
+            if (scenario === 'discount') session.total_details.amount_discount = 200;
+            if (scenario === 'shipping') session.total_details.amount_shipping = 200;
+            if (scenario === 'automaticTax') session.automatic_tax.enabled = true;
+            const original = h.sessions[0]; h.sessions[0] = session;
+            const denied = await handleBillingRequest(request('checkout', { plan }), env, dependencies);
+            assert.equal(denied.status, 409, scenario);
+            assert.deepEqual(await denied.json(), { code: 'billing_checkout_review' });
+            h.sessions[0] = original;
+        }
+        assert.equal(h.calls.filter(c => c.form.get('mode') === 'subscription').length, 1);
+        const bad = harness(); bad.h.sub = null; bad.h.row.state = emptyState(); bad.h.badCheckoutTotal = true;
+        const denied = await handleBillingRequest(request('checkout', { plan }), env, bad.dependencies);
+        assert.equal(denied.status, 409);
+        assert.deepEqual(await denied.json(), { code: 'billing_checkout_review' });
+    }
 });
 test('Upgrade confirmation targets only the authenticated Basic item and approved Premium price without granting access', async () => {
     const { h, dependencies } = harness(); h.sub = stripeSubscription('basic'); h.row.state = paidState('basic');

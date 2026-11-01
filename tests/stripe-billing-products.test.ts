@@ -49,13 +49,20 @@ test('Either price fails independently for the wrong product, amount, currency, 
         (p, plan) => { p.product = stripeProducts[plan === 'basic' ? 'premium' : 'basic']; },
         p => { p.product = null; }, p => { p.currency = 'usd'; }, p => { p.unit_amount = 1; },
         p => { p.recurring.interval = 'year'; }, p => { p.recurring.interval_count = 2; }, p => { p.recurring.usage_type = 'metered'; },
-        p => { p.tax_behavior = 'exclusive'; }, p => { p.tax_behavior = 'unspecified'; }, p => { p.active = false; }, p => { p.livemode = true; },
+        p => { p.tax_behavior = 'exclusive'; }, p => { p.tax_behavior = 'unexpected'; }, p => { p.active = false; }, p => { p.livemode = true; },
         p => { p.id = 'price_Unapproved'; },
     ];
     for (const plan of ['basic', 'premium'] as const) for (const mutate of mutations) {
         const h = harness(); mutate(h.prices[plan], plan);
         await assert.rejects(validatePrices(env, h.transport), /billing_price_configuration/);
     }
+});
+test('Fixed JPY memberships accept unspecified tax behavior without enabling Stripe Tax', async () => {
+    const h = harness(); h.prices.basic.tax_behavior = 'unspecified'; h.prices.premium.tax_behavior = 'unspecified';
+    const config = await validatePrices(env, h.transport);
+    assert.deepEqual(config.prices, stripePrices);
+    h.prices.basic.unit_amount = 2200;
+    await assert.rejects(validatePrices(env, h.transport), /billing_price_configuration/);
 });
 test('Management Portal disables plan updates; upgrade-only Portal never includes Basic even in a stale session', async () => {
     const management = harness(); await validatePortal(env, management.transport);

@@ -8,7 +8,11 @@ import { changeDowngrade, currentSubscription, releaseBasicSchedule } from './sc
 
 interface Dependencies extends Partial<AuthDependencies> { transport?: typeof fetch }
 interface StripeList<T> { data: T[]; has_more: boolean }
-interface CheckoutSession { id: string; customer: string; status: string; expires_at: number; url: string | null; subscription: unknown; metadata: { finder_plan?: string } }
+interface CheckoutSession {
+    id: string; customer: string; status: string; expires_at: number; url: string | null; subscription: unknown; metadata: { finder_plan?: string };
+    currency: string | null; amount_subtotal: number | null; amount_total: number | null;
+    automatic_tax: { enabled: boolean }; total_details: { amount_tax: number; amount_discount: number; amount_shipping: number | null };
+}
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const billingEvents = new Set(['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed',
     'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted',
@@ -114,6 +118,14 @@ async function release(env: BillingEnv, row: BillingRecord, transport: typeof fe
 function checkoutUrl(value: string | null) {
     try { const url = new URL(value || ''); if (url.origin !== 'https://checkout.stripe.com' || url.username || url.password) throw Error(); return url.href; }
     catch { throw new BillingError(); }
+}
+function fixedCheckoutUrl(session: CheckoutSession, plan: 'basic' | 'premium') {
+    const amount = plan === 'basic' ? 2000 : 4000;
+    if (session.currency !== 'jpy' || session.amount_subtotal !== amount || session.amount_total !== amount
+        || session.automatic_tax?.enabled !== false || session.total_details?.amount_tax !== 0
+        || session.total_details?.amount_discount !== 0 || ![0, null].includes(session.total_details?.amount_shipping))
+        throw new BillingError('billing_checkout_review', 409);
+    return checkoutUrl(session.url);
 }
 function portalUrl(value: string) {
     try { const url = new URL(value); if (url.origin !== 'https://billing.stripe.com' || url.username || url.password) throw Error(); return url.href; }
@@ -229,7 +241,7 @@ export async function handleBillingRequest(request: Request, env: BillingEnv, de
         if (sessions.has_more !== false || !Array.isArray(sessions.data)) throw new BillingError('billing_subscription_review');
         const open = sessions.data.filter(s => s.status === 'open' && s.expires_at > Date.now() / 1000);
         if (open.length > 1 || open.some(s => s.customer !== row!.customer_id || s.metadata?.finder_plan !== body.plan)) throw new BillingError('billing_checkout_exists', 409);
-        if (open[0]) return reply(200, { url: checkoutUrl(open[0].url) });
+        if (open[0]) return reply(200, { url: fixedCheckoutUrl(open[0], body.plan as 'basic' | 'premium') });
         // Resolve a completed Checkout's subscription directly if it is not yet
         // represented by the list read. Session expiry is not completion time.
         const completed = sessions.data.find(s => s.status === 'complete' && s.subscription);
@@ -250,6 +262,7 @@ export async function handleBillingRequest(request: Request, env: BillingEnv, de
         const attemptKey = [...attempt].map(value => value.toString(16).padStart(2, '0')).join('');
         const checkout = await stripeRequest<CheckoutSession>(env, '/checkout/sessions', transport, new URLSearchParams({
             mode: 'subscription', ui_mode: 'hosted_page', customer: row.customer_id!, client_reference_id: account.identity.userId,
+            'automatic_tax[enabled]': 'false', 'adaptive_pricing[enabled]': 'false', allow_promotion_codes: 'false',
             // Preserve the previous billing calculation mode instead of taking
             // the newer API's flexible-mode default implicitly.
             'subscription_data[billing_mode][type]': 'classic',
@@ -261,7 +274,7 @@ export async function handleBillingRequest(request: Request, env: BillingEnv, de
             success_url: config.origin + '/account/?billing=success', cancel_url: config.origin + '/account/?billing=cancelled',
         }), 'finder-checkout/' + row.id + '/' + plan + '/' + attemptKey);
         if (checkout.customer !== row.customer_id || checkout.status !== 'open') throw new BillingError();
-        return reply(200, { url: checkoutUrl(checkout.url) });
+        return reply(200, { url: fixedCheckoutUrl(checkout, plan) });
     } catch (error) {
         if (error instanceof BillingError) return reply(error.status, { code: error.code });
         if (error instanceof FinderHttpError) return reply(error.status, { code: error.code });

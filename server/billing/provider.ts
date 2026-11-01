@@ -49,7 +49,9 @@ export async function validatePrices(env: BillingEnv, transport: typeof fetch) {
     const premium = await stripeRequest<StripePrice>(env, '/prices/' + config.prices.premium, transport);
     for (const [price, amount, id, product] of [[basic, 2000, config.prices.basic, config.products.basic], [premium, 4000, config.prices.premium, config.products.premium]] as const) {
         if (price.id !== id || !price.active || price.currency !== 'jpy' || price.unit_amount !== amount || price.livemode !== config.livemode
-            || price.tax_behavior !== 'inclusive' || price.recurring?.interval !== 'month' || price.recurring.interval_count !== 1
+            // Stripe Tax is disabled. Unspecified prices still charge their fixed
+            // JPY amount; Checkout separately disables tax and verifies its total.
+            || !['inclusive', 'unspecified'].includes(price.tax_behavior) || price.recurring?.interval !== 'month' || price.recurring.interval_count !== 1
             || price.recurring.usage_type !== 'licensed' || stripeId(price.product) !== product) throw new BillingError('billing_price_configuration');
     }
     return config;

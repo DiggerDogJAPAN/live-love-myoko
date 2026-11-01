@@ -1,5 +1,13 @@
 # Administrator-only Stripe Sandbox deployment — 1 November 2026
 
+## Fixed membership totals without Stripe Tax
+
+The owner confirmed Stripe Tax must remain off and approved reusing existing prices with `tax_behavior=unspecified`. Price validation now accepts `inclusive` or `unspecified`; it still rejects exclusive/unknown behavior, wrong products, wrong amounts/currency, non-monthly/metered prices and live-mode mismatches. No products, prices or Stripe Tax settings are created or changed.
+
+New Checkout requests explicitly disable automatic tax, Adaptive Pricing and promotion codes. They use the same approved price and quantity one, with no manual tax rates or shipping charges. Before returning a new or reused Checkout URL, the server verifies JPY subtotal and total are exactly ¥2,000 for Basic or ¥4,000 for Premium, automatic tax is off, and no tax, discount or shipping amount is added. Unknown/mismatched totals return `billing_checkout_review` without returning a payment URL. This is the owner's fixed tax-inclusive fee policy; Stripe does not calculate or itemize tax under this integration.
+
+This corrects the remaining `billing_price_configuration` rejection when the existing prices use `unspecified`. It does not require replacement Price IDs, a new plugin or weaker payment proof. Administrator access, Sandbox-only billing, customer launch gates and membership rules remain unchanged. Provider references were checked against Stripe's pinned v22.4.0 Checkout types and its [Checkout tax documentation](https://docs.stripe.com/tax/checkout/page).
+
 The owner approved production deployment using the existing six Sandbox IDs and three encrypted Cloudflare Pages Production secrets, without another Stripe plugin. Customer purchasing and live payments remain excluded. The owner will enable the Stripe Sandbox webhook destination and perform the first test payment after deployment verification.
 
 ## Billing status runtime correction
