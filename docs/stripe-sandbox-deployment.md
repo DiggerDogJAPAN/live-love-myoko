@@ -2,6 +2,14 @@
 
 The owner approved production deployment using the existing six Sandbox IDs and three encrypted Cloudflare Pages Production secrets, without another Stripe plugin. Customer purchasing and live payments remain excluded. The owner will enable the Stripe Sandbox webhook destination and perform the first test payment after deployment verification.
 
+## Billing status runtime correction
+
+After the initial deployment, the owner confirmed that administrator login worked but `GET /api/billing/status` returned `billing_unavailable`. Production Sandbox flags and all six IDs matched the source; Supabase mode remained `test`, customer access false, with no memberships or live billing records. A rollback-only call as `service_role` successfully acquired the administrator's test-mode billing lease, confirming the database procedure and its permissions worked without retaining any row or lease.
+
+The root cause was `redirect: 'error'` in both outbound billing transports. Cloudflare Workers accepts `manual`/`follow`; it rejected these requests before any provider call. The new `stripe-billing-worker.test.ts` reproduces the original database request returning 503 instead of 200 in the actual workerd runtime. Switching both transports to `manual` and explicitly rejecting all 3xx responses fixes the test while preventing credential forwarding. The regression covers both Supabase RPC and Stripe HTTP requests, including hostile redirect responses. The earlier mocked transport tests had accepted the unsupported redirect mode; they now require `manual` too.
+
+The correction changes no account roles, membership rules, customer-access gates, Stripe IDs, secrets or database mode. It creates no Checkout session or payment. Its deployment uses another complete CMS download/build/export and the existing GitHub → Pages workflow.
+
 ## Database operation completed
 
 The exact prepared `008_enable_stripe_sandbox.sql` transaction ran once against the existing Supabase project `fgdoqsepihlzfqlqymet`. It returned `mode=test` and `customer_access_enabled=false`. Before/after fingerprints confirm existing Auth accounts, administrator roles and memberships are unchanged. There were no billing customers or event records. Migration 008 was not replayed.

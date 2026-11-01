@@ -32,7 +32,7 @@ function harness() {
         transport: async (input, init) => {
             const url = new URL(String(input)); const body = init?.body && url.hostname.endsWith('supabase.co') ? JSON.parse(String(init.body)) : {};
             const call = { path: url.pathname, body, headers: new Headers(init?.headers), form: new URLSearchParams(String(init?.body || '')) }; h.calls.push(call);
-            assert(['manual', 'error'].includes(String(init?.redirect))); assert.equal(init?.cache, 'no-store');
+            assert.equal(init?.redirect, 'manual'); assert.equal(init?.cache, 'no-store');
             if (url.pathname.endsWith('/auth/v1/user')) return Response.json({ id: uid, email: 'synthetic@example.invalid', email_confirmed_at: new Date().toISOString() });
             if (url.hostname.endsWith('supabase.co')) {
                 assert.equal(call.headers.get('apikey'), env.FINDER_BILLING_SUPABASE_SECRET_KEY);

@@ -32,10 +32,13 @@ export async function stripeRequest<T>(env: BillingEnv, path: string, transport:
     if (!path.startsWith('/') || path.includes('://')) throw new BillingError();
     let response: Response;
     try {
-        response = await transport('https://api.stripe.com/v1' + path, { method: body ? 'POST' : 'GET', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000),
+        // Workers supports manual/follow; reject returned redirects explicitly so
+        // provider credentials never reach another destination.
+        response = await transport('https://api.stripe.com/v1' + path, { method: body ? 'POST' : 'GET', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000),
             headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY, 'Stripe-Version': STRIPE_VERSION, Accept: 'application/json',
                 ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}), ...(key ? { 'Idempotency-Key': key } : {}) }, ...(body ? { body: body.toString() } : {}) });
     } catch { throw new BillingError(); }
+    if (response.status >= 300 && response.status < 400) throw new BillingError();
     const result = await response.json().catch(() => null);
     if (!response.ok || !result || typeof result !== 'object' || Array.isArray(result)) throw new BillingError();
     return result as T;
@@ -78,10 +81,11 @@ export async function billingRpc<T>(env: BillingEnv, name: string, body: object,
     let response: Response;
     try {
         response = await transport('https://fgdoqsepihlzfqlqymet.supabase.co/rest/v1/rpc/' + name, {
-            method: 'POST', redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000),
+            method: 'POST', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(10000),
             headers: { apikey: env.FINDER_BILLING_SUPABASE_SECRET_KEY!, ...(env.FINDER_BILLING_SUPABASE_SECRET_KEY?.startsWith('eyJ') ? { Authorization: 'Bearer ' + env.FINDER_BILLING_SUPABASE_SECRET_KEY } : {}),
                 'Content-Type': 'application/json', 'Content-Profile': 'public', Accept: 'application/json' }, body: JSON.stringify(body) });
     } catch { throw new BillingError(); }
+    if (response.status >= 300 && response.status < 400) throw new BillingError();
     const result = await response.json().catch(() => null);
     if (!response.ok) {
         const code = ['billing_busy', 'billing_lease_expired', 'billing_existing_membership_review'].includes(result?.message) ? result.message : 'billing_unavailable';

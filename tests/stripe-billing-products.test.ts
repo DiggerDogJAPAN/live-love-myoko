@@ -20,7 +20,7 @@ function harness(upgrade = false) {
         subscription_cancel: { enabled: true, mode: 'at_period_end' }, payment_method_update: { enabled: true }, invoice_history: { enabled: true },
     } };
     const transport: typeof fetch = async (input, init) => {
-        const url = new URL(String(input)); assert.equal(url.origin, 'https://api.stripe.com'); assert.equal(init?.redirect, 'error');
+        const url = new URL(String(input)); assert.equal(url.origin, 'https://api.stripe.com'); assert.equal(init?.redirect, 'manual');
         if (url.pathname.startsWith('/v1/prices/')) return Response.json(prices[url.pathname.endsWith(stripePrices.basic) ? 'basic' : 'premium']);
         assert.equal(url.pathname, '/v1/billing_portal/configurations/' + portal.id);
         return Response.json(portal);
