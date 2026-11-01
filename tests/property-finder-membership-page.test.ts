@@ -26,7 +26,7 @@ function section(html: string, plan: 'basic' | 'premium') {
 test('Membership reference layout retains real prices, precise introduction, registration disclaimer and only existing navigation routes', () => {
     const html = renderToStaticMarkup(createElement(Page));
     for (const text of ['LOVE LIVE MYOKO · PROPERTY FINDER', 'A membership for your property search.',
-        'Compare our upcoming monthly membership plans. Subscriptions are not available to purchase yet.', '¥2,000', '¥4,000',
+        'Compare our monthly membership plans. Sign in to your account to check subscription availability.', '¥2,000', '¥4,000',
         'Registration is free and does not provide access to Property Finder listings. No payment is taken and no subscription starts when you register.']) assert(html.includes(text));
     assert.equal((html.match(/<h1\b/g) || []).length, 1); assert.equal((html.match(/<h2\b/g) || []).length, 3);
     for (const [label, href] of [['Already registered? Sign in', '/login'], ['Your account', '/account'], ['About Property Finder', '/property-finder']]) {

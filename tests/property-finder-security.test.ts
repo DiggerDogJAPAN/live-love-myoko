@@ -16,6 +16,20 @@ const user = '00000000-0000-4000-8000-000000000001';
 const session = '00000000-0000-4000-8000-000000000002';
 const anotherUser = '00000000-0000-4000-8000-000000000003';
 const anotherSession = '00000000-0000-4000-8000-000000000004';
+test('Billing credentials cannot enter static artifacts, and billing clients require Functions routing', () => {
+    for (const secret of ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'FINDER_BILLING_SUPABASE_SECRET_KEY', 'sk_test_SyntheticKeyOnly12345', 'whsec_SyntheticSigningKeyOnly'])
+        assert(finderArtifactProblem('app.js', secret));
+    const directory = mkdtempSync(path.join(tmpdir(), 'billing-export-security-'));
+    try {
+        mkdirSync(path.join(directory, 'property-finder/search'), { recursive: true });
+        writeFileSync(path.join(directory, 'property-finder/search/index.html'), '<main>Authentication required</main>');
+        writeFileSync(path.join(directory, 'app.js'), 'fetch("/api/billing/status")');
+        writeFileSync(path.join(directory, '_routes.json'), JSON.stringify({ version: 1, include: [], exclude: [] }));
+        assert.throws(() => checkFinderExport(directory), /Billing API Pages Functions routing/);
+        writeFileSync(path.join(directory, '_routes.json'), JSON.stringify({ version: 1, include: ['/api/billing','/api/billing/*'], exclude: [] }));
+        assert.equal(checkFinderExport(directory), 3);
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 let privateKey: CryptoKey, ecPrivateKey: CryptoKey, keys: JWTVerifyGetKey;
 before(async () => {
     const rsa = await generateKeyPair('RS256', { extractable: true });
@@ -119,8 +133,8 @@ test('Static export guard rejects inventory, RSC leaks, API artifacts, developme
     } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
-test('Only Auth and protected alert Functions remain; production code has no SQL client or Hyperdrive binding', () => {
-    assert.deepEqual(readdirSync('functions', { recursive: true }).filter(n => typeof n === 'string' && n.endsWith('.ts')), ['api/auth/[[path]].ts', 'api/property-alerts/[[path]].ts']);
+test('Only Auth, protected alerts and billing Functions remain; production code has no SQL client or Hyperdrive binding', () => {
+    assert.deepEqual(readdirSync('functions', { recursive: true }).filter(n => typeof n === 'string' && n.endsWith('.ts')), ['api/auth/[[path]].ts', 'api/billing/[[path]].ts', 'api/property-alerts/[[path]].ts']);
     const config = readFileSync('wrangler.jsonc','utf8'); assert(!/hyperdrive|FINDER_DATABASE_URL/i.test(config));
     for (const directory of ['server','src']) for (const name of readdirSync(directory,{recursive:true})) {
         if (typeof name !== 'string' || !/\.tsx?$/.test(name)) continue;

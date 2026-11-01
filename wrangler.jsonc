@@ -11,6 +11,7 @@
         "FINDER_AUTH_ENABLED": "disabled",
         "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
         "FINDER_CUSTOMER_ACCESS": "disabled",
+        "FINDER_BILLING_ENABLED": "disabled",
         "FINDER_GOOGLE_LOGIN_ENABLED": "disabled",
         "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet",
         "FINDER_ALERTS_FROM": "Love Live Myoko <noreply@love-live-myoko.com>"
@@ -21,6 +22,15 @@
                 "FINDER_AUTH_ENABLED": "enabled",
                 "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
                 "FINDER_CUSTOMER_ACCESS": "disabled",
+                "FINDER_BILLING_ENABLED": "enabled",
+                "FINDER_STRIPE_MODE": "test",
+                "FINDER_BILLING_SANDBOX_ENABLED": "enabled",
+                "STRIPE_BASIC_PRODUCT_ID": "prod_VXtd0bhZkd700E",
+                "STRIPE_PREMIUM_PRODUCT_ID": "prod_VXteQEfIzveRCC",
+                "STRIPE_BASIC_PRICE_ID": "price_1UWnqdByKDiZGfxHGAPVvbf7",
+                "STRIPE_PREMIUM_PRICE_ID": "price_1UWnr7ByKDiZGfxHC6NLf8Am",
+                "STRIPE_PORTAL_CONFIGURATION_ID": "bpc_1UWo5ZByKDiZGfxHce7bPGdN",
+                "STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID": "bpc_1UWv8FByKDiZGfxHg6EAnWSE",
                 "FINDER_GOOGLE_LOGIN_ENABLED": "disabled",
                 "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet",
                 "FINDER_ALERTS_FROM": "Love Live Myoko <noreply@love-live-myoko.com>"

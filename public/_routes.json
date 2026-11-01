@@ -4,7 +4,9 @@
         "/api/auth",
         "/api/auth/*",
         "/api/property-alerts",
-        "/api/property-alerts/*"
+        "/api/property-alerts/*",
+        "/api/billing",
+        "/api/billing/*"
     ],
     "exclude": []
 }

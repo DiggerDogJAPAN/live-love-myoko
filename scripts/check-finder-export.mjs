@@ -13,18 +13,21 @@ export function finderArtifactProblem(name, contents) {
     if (/(?:["']originalListingUrl["']|\boriginalListingUrl)\s*:\s*["']https?:\/\//i.test(text)
         || /(?:["']askingPriceJpy["']|\baskingPriceJpy)\s*:\s*\d/.test(text)) return 'embedded Finder inventory';
     if (/postgres(?:ql)?:\/\/|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|Synthetic Akakura|property_finder_web_reader|crawler_writer|FINDER_DATABASE_URL|DIRECTUS_STATIC_TOKEN|FINDER_AUTH_COOKIE_SECRET|FINDER_ALERTS_SUPABASE_SECRET_KEY|FINDER_ALERTS_CRON_SECRET|RESEND_API_KEY|sb_secret_/.test(text)) return 'server credential reference or development fixture';
+    if (/STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|FINDER_BILLING_SUPABASE_SECRET_KEY|sk_(?:test|live)_[A-Za-z0-9]{10,}|whsec_[A-Za-z0-9]{10,}/.test(text)) return 'billing server credential reference';
     return null;
 }
 
 export function checkFinderExport(directory) {
-    let checked = 0;
+    let checked = 0, billingClient = false;
     for (const name of fs.readdirSync(directory, { recursive: true })) {
         const full = path.join(directory, name);
         if (!fs.statSync(full).isFile()) continue;
         const privateName = finderArtifactProblem(name, '');
         if (privateName) throw new Error(`Unsafe static export (${privateName}): ${name}`);
         if (!/\.(html|txt|json|js|map|css)$/i.test(name)) continue;
-        const problem = finderArtifactProblem(name, fs.readFileSync(full, 'utf8'));
+        const contents = fs.readFileSync(full, 'utf8');
+        billingClient ||= contents.includes('/api/billing/');
+        const problem = finderArtifactProblem(name, contents);
         if (problem) throw new Error(`Unsafe static export (${problem}): ${name}`);
         checked++;
     }
@@ -34,6 +37,9 @@ export function checkFinderExport(directory) {
         throw new Error('Invalid runtime routing configuration');
     }
     const accountPages = ['login', 'register', 'account', 'forgot-password', 'reset-password', 'verify-email'];
+    if (billingClient && (!routes.include.includes('/api/billing') || !routes.include.includes('/api/billing/*'))) {
+        throw new Error('Billing controls require Billing API Pages Functions routing');
+    }
     if (accountPages.some(name => fs.existsSync(path.join(directory, name, 'index.html')))
         && (!routes.include.includes('/api/auth') || !routes.include.includes('/api/auth/*'))) {
         throw new Error('Account pages require Auth API Pages Functions routing');

@@ -26,7 +26,8 @@ test('Authenticated navigation shows browse and account actions without granting
 test('Landing retains its content and image with a single clear subscription status and real plan details', () => {
     const html = renderToStaticMarkup(createElement(Page));
     const visible = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
-    for (const text of ['Find Your Place in', 'More local listings. One search.', 'Explore properties listed directly with us.', '/images/akakura-onsen-hero.jpg', 'Basic: ¥2,000/month', 'Premium: ¥4,000/month', 'Saved Properties and Property Alerts', 'Existing administrator access remains available during testing.']) assert(visible.includes(text));
+    assert.match(visible, /<h1><span>Find Your Place<\/span> <em>in Myoko and Beyond<\/em><\/h1>/);
+    for (const text of ['More local listings. One search.', 'Explore properties listed directly with us.', '/images/akakura-onsen-hero.jpg', 'Basic: ¥2,000/month', 'Premium: ¥4,000/month', 'Saved Properties and Property Alerts', 'Existing administrator access remains available during testing.']) assert(visible.includes(text));
     assert.equal((visible.match(/Subscriptions are coming soon/g) || []).length, 1);
     assert(!/In development|Paid membership coming soon|Saved Searches/.test(html));
     assert(!/<article[^>]+data-property|askingPriceJpy|originalListingUrl/.test(html));

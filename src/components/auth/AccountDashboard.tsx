@@ -10,6 +10,7 @@ import layoutStyles from './auth-layout.module.css';
 import PropertyAlerts from '../property-alerts/PropertyAlerts';
 import SavedPropertiesSection from '../property-finder/SavedPropertiesSection';
 import PrivacyRequests from '../privacy/PrivacyRequests';
+import BillingControls from '../billing/BillingControls';
 export default function AccountDashboard() {
     const [account, setAccount] = useState<AccountDetails | null>(null), [loading, setLoading] = useState(true);
     const [message, setMessage] = useState(''), [name, setName] = useState(''), [busy, setBusy] = useState(false);
@@ -54,7 +55,7 @@ export default function AccountDashboard() {
     return <>
         <AccountHeader onSignout={logout} busy={busy} />
         {message && <p className={styles.message} role="status">{message}</p>}
-        <AccountPanels account={account} name={name} busy={busy} onNameChange={setName} onSave={updateProfile} />
+        <AccountPanels account={account} name={name} busy={busy} onNameChange={setName} onSave={updateProfile} onMembershipChanged={load} />
         <SavedPropertiesSection key={account.user.id} account={account} />
         <PropertyAlerts key={`alerts-${account.user.id}`} account={account} />
         <PrivacyRequests key={`privacy-${account.user.id}`} administrator={account.role === 'administrator'} />
@@ -70,8 +71,8 @@ export function AccountHeader({ onSignout, busy = false }: { onSignout?: () => v
     </header>;
 }
 
-export function AccountPanels({ account, name, busy, onNameChange, onSave }: {
-    account: AccountDetails; name: string; busy: boolean; onNameChange: (name: string) => void; onSave: (event: FormEvent<HTMLFormElement>) => void;
+export function AccountPanels({ account, name, busy, onNameChange, onSave, onMembershipChanged }: {
+    account: AccountDetails; name: string; busy: boolean; onNameChange: (name: string) => void; onSave: (event: FormEvent<HTMLFormElement>) => void; onMembershipChanged?: () => Promise<void>;
 }) {
     const administrator = account.role === 'administrator';
     return <div className={accountStyles.panels}>
@@ -99,9 +100,10 @@ export function AccountPanels({ account, name, busy, onNameChange, onSave }: {
                 {account.membership.paidThrough && !administrator && <><dt>Paid through</dt><dd>{new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date(account.membership.paidThrough))}</dd></>}
             </dl>
             {administrator ? <><p>Your administrator role does not require a paid subscription.</p><Link className={`button ${accountStyles.finderButton}`} href="/property-finder/search/">Open administrator Property Finder</Link></>
-                : !account.membership.active ? <><p>You are registered, but you do not have an active paid membership. Property Finder listings remain locked.</p><p>Subscription purchasing is not available yet. Creating an account does not start a subscription or charge you.</p><Link className={`button ${accountStyles.finderButton}`} href="/membership/">View membership options</Link></>
+                : !account.membership.active ? <><p>You are registered, but you do not have an active paid membership. Property Finder listings remain locked.</p><Link className={`button ${accountStyles.finderButton}`} href="/membership/">View membership options</Link></>
                     : account.finderAccess ? <><p>Your membership includes Property Finder access.</p><Link className={`button ${accountStyles.finderButton}`} href="/property-finder/search/">Open Property Finder</Link></>
                         : <p>Your membership is recorded, but member listing access has not been activated yet.</p>}
+            <BillingControls key={`billing-${account.user.id}`} account={account} onMembershipChanged={onMembershipChanged} />
         </section>
     </div>;
 }

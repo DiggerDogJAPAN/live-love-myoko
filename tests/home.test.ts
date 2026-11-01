@@ -18,12 +18,12 @@ before(async () => {
     html = renderToStaticMarkup(createElement(page.default));
 });
 
-test('Homepage retains all 29 original heading/paragraph blocks in their original order', () => {
+test('Homepage retains all 30 approved heading/paragraph blocks in their original order', () => {
     const blocks = [...html.matchAll(/<(h[1-6]|p)\b[^>]*>([\s\S]*?)<\/\1>/g)]
         .map(match => [match[1], clean(match[2])]);
-    assert.equal(blocks.length, 29);
-    // Captured from the original rendered homepage, including its Finder feature.
-    assert.equal(digest(blocks), '630d3484034b2f976c3a1aa39cfded53eb36f2c4257d229e7cfe34ab2db0b278');
+    assert.equal(blocks.length, 30);
+    // Includes the published Premium Property Alerts paragraph from commit 7483589.
+    assert.equal(digest(blocks), '71a42df4eaa754e9c30467070f2f3d2e55ccd3cafd85009599f165972c72aa3f');
 });
 
 test('Homepage preserves every service link, CTA label and destination', () => {
