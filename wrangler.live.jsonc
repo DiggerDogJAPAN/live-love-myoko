@@ -1,0 +1,43 @@
+// Reference copy of the approved Live configuration; active settings are in wrangler.jsonc.
+// Customer purchasing remains disabled. Use the full CMS GitHub deployment workflow.
+// No secrets are stored here. Do not deploy directly from this reference file.
+{
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "livelove",
+    "pages_build_output_dir": "./out",
+    "compatibility_date": "2026-10-27",
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
+    "send_metrics": false,
+    "vars": {
+        "FINDER_AUTH_ENABLED": "disabled",
+        "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
+        "FINDER_CUSTOMER_ACCESS": "disabled",
+        "FINDER_BILLING_ENABLED": "disabled",
+        "FINDER_GOOGLE_LOGIN_ENABLED": "disabled",
+        "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet",
+        "FINDER_ALERTS_FROM": "Love Live Myoko <noreply@love-live-myoko.com>"
+    },
+    "env": {
+        "production": {
+            "vars": {
+                "FINDER_AUTH_ENABLED": "enabled",
+                "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
+                "FINDER_CUSTOMER_ACCESS": "disabled",
+                "FINDER_BILLING_ENABLED": "enabled",
+                "FINDER_STRIPE_MODE": "live",
+                "FINDER_BILLING_SANDBOX_ENABLED": "disabled",
+                "STRIPE_BASIC_PRODUCT_ID": "prod_VXtd0bhZkd700E",
+                "STRIPE_PREMIUM_PRODUCT_ID": "prod_VXteQEfIzveRCC",
+                "STRIPE_BASIC_PRICE_ID": "price_1UXHlkJ3TzZmDKTSP9zyho82",
+                "STRIPE_PREMIUM_PRICE_ID": "price_1UXHloJ3TzZmDKTSJS8D3Ge0",
+                "STRIPE_PORTAL_CONFIGURATION_ID": "bpc_1UXJ06J3TzZmDKTSErM3ocWM",
+                "STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID": "bpc_1UXJ0tJ3TzZmDKTSKIQHEpYG",
+                "FINDER_GOOGLE_LOGIN_ENABLED": "disabled",
+                "FINDER_SUPABASE_PROJECT_REF": "fgdoqsepihlzfqlqymet",
+                "FINDER_ALERTS_FROM": "Love Live Myoko <noreply@love-live-myoko.com>"
+            }
+        }
+    }
+}

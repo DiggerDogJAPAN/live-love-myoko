@@ -1,6 +1,61 @@
 # Stripe membership production preparation — 1 November 2026
 
-**Migration 009 applied with owner approval; the owner has authorized the completed application safeguards for a Sandbox-only release.** Live purchasing remains blocked until the activation requirements below are completed. The website retains administrator-only Sandbox on `https://love-live-myoko.com`, using the existing Supabase Auth project. Live activation is not authorized.
+**Update, 2 November 2026:** the owner has authorized the coordinated Live configuration/database deployment with both customer-purchasing gates disabled. See [the Live cutover record](stripe-live-deployment.md) for current release configuration, preflight and acceptance requirements. Live webhook enablement, customer launch and payments remain excluded. Migration 009 is already applied; do not replay 008 or 009. The preparation notes below record the earlier, superseded Sandbox staging state.
+
+## Live configuration preparation — 2 November 2026
+
+The owner reports that the Stripe account is activated and the Live products, prices and both Portals are configured. All six supplied IDs are saved in **`wrangler.live.jsonc`**, a prepared, non-default configuration for review. **`wrangler.jsonc` is unchanged and continues to select administrator-only Sandbox.** The prepared file preserves all other settings, selects Live mode with Sandbox disabled, and keeps customer access disabled. It is not selected by the existing build/deployment workflow and must not be used for a direct deployment. At a separately approved cutover, merge its reviewed production variable changes into the default JSONC, checking other settings for drift.
+
+The supplied objects have **not been authenticated against Stripe**. Local identifier/configuration checks and fixture tests do not prove provider state. No new products, prices, configurations or customers were created. No application logic change is necessary: the deployed validators already enforce the required catalog, Portal, mode and Checkout restrictions.
+
+Local validation passed: Wrangler parsed the default and prepared configurations; all six supplied IDs match exactly; every other default/production binding and build setting is preserved except the intended Live mode/Sandbox flags; both customer access flags remain disabled; no secret bindings have values in either file. **48 targeted billing API/catalog/model/UI and Finder security tests passed**, including product/amount/mode rejection, Premium-only target restrictions, immediate invoiced proration, unchanged billing anchor, fixed no-tax Checkout totals, administrator protection and read-only Live preflight. These tests use fixtures, not authenticated Live provider responses. The default JSONC, application source, SQL, CMS workflow and tracked `out/` remain unchanged; nothing was committed, pushed or deployed.
+
+Sandbox safeguard release `ed4332e7b86ef44b126b9a93b771e9b86d2e1312` completed successfully through GitHub → Cloudflare Pages. The owner subsequently confirmed administrator sign-in, free Property Finder access, the Sandbox billing interface and the administrator configuration check all pass.
+
+The current integration retrieves **configured** prices and Portal configurations and validates their mode, product relationships, amounts, intervals and restrictions. It does not enumerate the catalog or select IDs automatically. `/api/billing/status?check=configuration` validates the currently configured mode only: while production remains Sandbox, it cannot inspect Live objects or accept arbitrary Live IDs. Do not switch the runtime just to collect these IDs.
+
+No Stripe connector, installed Stripe CLI, process-environment Live API credential or connected browser is available in this session. The existing encrypted Pages Sandbox credentials are not a Live discovery mechanism. No API key, webhook secret or new plugin is needed in chat to complete the Dashboard inspection below. An attempted read-only Supabase snapshot was unavailable because the connector's OAuth token refresh failed; no database writes were attempted, and current hosted state was not revalidated during this preparation. The last successful deployment checks confirmed mode `test`, customer access false, administrator access and preserved Sandbox records.
+
+These **six non-secret owner-supplied Live IDs** are staged, without changing `wrangler.jsonc`:
+
+```text
+STRIPE_BASIC_PRODUCT_ID=prod_VXtd0bhZkd700E
+STRIPE_BASIC_PRICE_ID=price_1UXHlkJ3TzZmDKTSP9zyho82
+STRIPE_PREMIUM_PRODUCT_ID=prod_VXteQEfIzveRCC
+STRIPE_PREMIUM_PRICE_ID=price_1UXHloJ3TzZmDKTSJS8D3Ge0
+STRIPE_PORTAL_CONFIGURATION_ID=bpc_1UXJ06J3TzZmDKTSErM3ocWM
+STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID=bpc_1UXJ0tJ3TzZmDKTSKIQHEpYG
+```
+
+The Product IDs are identical to the IDs in the existing Sandbox configuration. This is not proof of a mismatch or of a valid Live mapping: require authenticated `livemode=true` and each returned price's exact `product` relationship before acceptance. Inspect the already-supplied candidates using these four GET requests in the intended Live account's Workbench Shell; they use the application's pinned API version and do not mutate objects:
+
+```sh
+stripe get /v1/prices/price_1UXHlkJ3TzZmDKTSP9zyho82 --live --stripe-version=2026-07-29.dahlia
+stripe get /v1/prices/price_1UXHloJ3TzZmDKTSJS8D3Ge0 --live --stripe-version=2026-07-29.dahlia
+stripe get /v1/billing_portal/configurations/bpc_1UXJ06J3TzZmDKTSErM3ocWM --live --stripe-version=2026-07-29.dahlia
+stripe get /v1/billing_portal/configurations/bpc_1UXJ0tJ3TzZmDKTSKIQHEpYG --live --stripe-version=2026-07-29.dahlia -d 'expand[]=features.subscription_update.products'
+```
+
+1. Select the intended Stripe account in **Live** mode. In **More → Product catalog**, open each existing membership. Copy its Product ID and the Price ID of its active, flat-rate, licensed, quantity-one **JPY monthly** price. Confirm Basic is ¥2,000 and Premium ¥4,000, interval count one, and each price belongs to the corresponding product. Product names or a `prod_`/`price_` prefix alone do not prove the mode. In Workbench Inspector, the object should show `livemode=true`.
+2. In **Settings → Billing → Customer portal**, inspect the existing default Live settings. Additional configurations may be API-managed and absent from the default settings screen. Inventory existing configurations before creating or changing anything; do not copy/recreate the already-existing products. Stripe supports [multiple Portal configurations through its API](https://docs.stripe.com/customer-management/integrate-customer-portal).
+3. Open **Developers → Workbench → Shell** in the Live account. Run this read-only list request (no key needs to be pasted). Stripe documents that [Workbench Shell is read-only in Live mode](https://docs.stripe.com/workbench/shell):
+
+   ```sh
+   stripe get /v1/billing_portal/configurations --live --stripe-version=2026-07-29.dahlia -d limit=100
+   ```
+
+   Check both default and non-default configurations. If `has_more=true`, repeat with `-d starting_after=<last returned configuration ID>` until all pages are inspected. See the [list API](https://docs.stripe.com/api/customer_portal/configurations/list). For each likely match, retrieve it with the catalog expanded, replacing the example ID below with the actual result:
+
+   ```sh
+   stripe get /v1/billing_portal/configurations/bpc_REPLACE --live --stripe-version=2026-07-29.dahlia -d 'expand[]=features.subscription_update.products'
+   ```
+
+   If a Shell command is unavailable for the account, use Workbench API Explorer with **GET**, the same resource/path, parameters and version. Do not issue POST, save modified Portal settings, open a customer Portal session or create a payment for this inspection.
+4. Return only the six IDs plus each price's non-secret `product`, `active`, `livemode`, `currency`, `unit_amount`, `recurring` and `tax_behavior` fields; for Portal candidates return `id`, `active`, `livemode` and the expanded `features` object. Do not copy API keys, signing secrets, request headers or customer data. If a matching Portal does not exist, report that slot as missing; creating/configuring one is a separate next step, not part of this read-only collection.
+
+Reuse an existing **active Live management** configuration only if `subscription_update.enabled=false`, invoice history and payment-method updates are enabled, and cancellation is enabled with `mode=at_period_end`. Reuse a **different active Live upgrade** configuration only if it also enables invoices/payment methods/end-of-period cancellation and allows `price` updates alone, targeting only the Live Premium product and price, with `proration_behavior=always_invoice`, an unchanged/omitted billing-cycle anchor, and no scheduling conditions or only `decreasing_item_amount`. Downgrades remain application-managed. One Portal ID cannot satisfy both the required enabled and disabled subscription-update settings.
+
+Stripe Tax remains disabled. The current validator accepts `tax_behavior=inclusive` or `unspecified` and rejects `exclusive`; `unspecified` alone is not a reason to replace an existing price. Checkout disables automatic tax, manual extra rates, Adaptive Pricing and promotions, and validates the exact ¥2,000/¥4,000 starting totals before exposing a payment URL. Existing upgrade proration remains separate from the advertised monthly amounts. No runtime/database mode, secrets, purchasing gates or Stripe objects were changed, and no build/deployment/payment was initiated during this collection review.
 
 ## Sandbox safeguard release validation — 1 November 2026
 
@@ -65,9 +120,9 @@ Create or select active **Live** objects in the intended Stripe account, indepen
 | `STRIPE_PORTAL_CONFIGURATION_ID` | Management-only configuration: subscription updates disabled; invoices, payment methods and end-of-period cancellation enabled |
 | `STRIPE_UPGRADE_PORTAL_CONFIGURATION_ID` | Separate configuration: price-only updates targeting only Premium's product/price, quantity one, `always_invoice`, unchanged billing anchor; no scheduling rule or only `decreasing_item_amount`; invoices/payment methods/end-of-period cancellation enabled |
 
-All six Live IDs are still required. Do not substitute Sandbox IDs or synthetic test fixtures. No new product/price is needed merely because tax behavior is `unspecified`: both `unspecified` and `inclusive` are accepted. Stripe Tax stays off. Checkout explicitly disables automatic tax, Adaptive Pricing and promotion codes, supplies no manual tax/shipping rates, and returns a new/reused payment URL only if the JPY subtotal and total equal exactly ¥2,000 or ¥4,000 with zero added tax/discount/shipping. Upgrades retain the approved prorated charge behavior.
+All six Live IDs are supplied and staged above; authenticated validation is still required. Reuse those existing objects if they pass; do not create replacements or substitute Sandbox IDs/synthetic fixtures. No new product/price is needed merely because tax behavior is `unspecified`: both `unspecified` and `inclusive` are accepted. Stripe Tax stays off. Checkout explicitly disables automatic tax, Adaptive Pricing and promotion codes, supplies no manual tax/shipping rates, and returns a new/reused payment URL only if the JPY subtotal and total equal exactly ¥2,000 or ¥4,000 with zero added tax/discount/shipping. Upgrades retain the approved prorated charge behavior.
 
-Create a separate **Live Snapshot** webhook destination for own-account events at:
+In Stripe Dashboard **Live mode → Developers → Workbench → Webhooks**, inspect existing destinations first. Reuse a matching dedicated Live destination or, if missing, create one after authorization. It must be a **Snapshot** destination for **Your account** (not Connect/organization or Thin events) at:
 
 `https://love-live-myoko.com/api/billing/webhook`
 
@@ -107,14 +162,14 @@ For Pages project `livelove`, Production:
 | `STRIPE_WEBHOOK_SECRET` | Matching Live destination's `whsec_…`; not the Sandbox or local CLI secret |
 | `FINDER_BILLING_SUPABASE_SECRET_KEY` | Keep the authorized server API secret for existing project `fgdoqsepihlzfqlqymet`; no new database/password/crawler credential is required |
 
-Preserve existing encrypted Supabase publishable/Auth-cookie and alerts bindings. The Live key and signing secret remain unconfigured/unverified in this task. No secret is to be pasted into chat, a command argument, frontend variables, source files, artifacts or logs.
+Preserve existing encrypted Supabase publishable/Auth-cookie and alerts bindings. The Live key and signing secret remain unconfigured/unverified in this task. When separately authorized, use **Cloudflare Dashboard → Workers & Pages → livelove → Settings → Variables and Secrets → Production**, enter the two Stripe values as encrypted **Secret** bindings, and coordinate them with the approved cutover/deployment. Keep preview/default billing disabled. The existing Supabase billing secret stays unchanged. This hosted Checkout integration does not need a new Stripe publishable-key binding. No secret is to be pasted into chat, a command argument, frontend variables, source files, artifacts or logs.
 
 ## Activation sequence — requires later explicit authorization
 
-1. **Completed for database migration 009:** inspected relevant schema drift and revocations, applied 009 once with owner approval and ran both verifiers. See the receipt and recovery-evidence limitation above. Do not replay 009 or 008. Application/source release approval and the subsequent Live activation steps remain pending.
-2. Finish the Live catalog, both Portal configurations and disabled Live webhook destination above. Resolve/retain Sandbox subscriptions appropriately and disable the Sandbox destination before switching the shared endpoint. Retain clearly marked test history; do not copy it into live rows or seed paid memberships.
+1. **Completed for database migration 009:** inspected relevant schema drift and revocations, applied 009 once with owner approval and ran both verifiers. The Sandbox application safeguards were subsequently deployed and accepted. See the receipt and recovery-evidence limitation above. Do not replay 009 or 008. Reconnect read-only Supabase access and recheck the expected 009 hash, administrator permissions, mode `test`, disabled customer gate, leases and Sandbox/live records before a separately approved Live activation. No Live database operation is authorized now.
+2. Authenticate and validate the supplied Live catalog and both Portal configurations, then prepare the matching disabled Live webhook destination above. Disable the Sandbox destination before switching the shared endpoint. Retain existing Sandbox subscriptions and clearly marked test history without modifying them or copying them into Live rows. Any future cancellation/cleanup of test subscriptions is a separate authorized action.
 3. Pause runtime billing during the configuration switch and wait for leases to clear. Any deployment of this temporary flag must also use the complete CMS workflow in step 6. Leave both customer gates disabled. The setup interval is unavailable for purchasing; do not attempt to run test and live mode concurrently against the same global database mode.
-4. For the coordinated final deployment, set `FINDER_BILLING_ENABLED="enabled"`, `FINDER_STRIPE_MODE="live"`, `FINDER_BILLING_SANDBOX_ENABLED="disabled"` in `wrangler.jsonc` production variables, replace all six IDs with their actual Live counterparts and preserve `FINDER_AUTH_ENABLED="enabled"`, the production origin and `FINDER_CUSTOMER_ACCESS="disabled"`. Configure the two matching Stripe secrets in encrypted Pages Production settings. Never place credentials in JSONC.
+4. For the coordinated final deployment, merge the reviewed `wrangler.live.jsonc` production variable changes into `wrangler.jsonc`: `FINDER_BILLING_ENABLED="enabled"`, `FINDER_STRIPE_MODE="live"`, `FINDER_BILLING_SANDBOX_ENABLED="disabled"`, all six verified Live IDs, preserved `FINDER_AUTH_ENABLED="enabled"`, the production origin and `FINDER_CUSTOMER_ACCESS="disabled"`. Recheck unrelated settings for drift against the then-current default config. Configure the two matching Stripe secrets in encrypted Pages Production settings. Never place credentials in JSONC, and do not deploy directly from the prepared file.
 5. As the approved operator, run the guarded `009_enable_stripe_live.sql` transaction. It leaves database customer access false. Coordinate this with the matching runtime deployment; no customer purchasing may be enabled while the two modes differ.
 6. When deployment is authorized, inventory all current published CMS records/assets, run the established full **`npm run build`** including CMS downloads, independently verify every CMS URL/title/description/featured/gallery asset and preserve prior routes/assets. Commit/push the complete tracked **`out/`** and source through the existing GitHub → Cloudflare Pages workflow. Remote Pages remains `npm ci`, output `out`; it does not replace the local CMS build. Stop for missing content/assets.
 7. Verify the exact deployed revision, encrypted secret names/types, production flags, Auth and free administrator access. As an existing administrator, open `/api/billing/status?check=configuration`; require `configurationValid=true` and `sandbox=false`. This can validate real Live settings while customer purchasing is still closed.
@@ -123,4 +178,4 @@ Preserve existing encrypted Supabase publishable/Auth-cookie and alerts bindings
 
 ## Remaining blockers
 
-Correction 009 is applied and verified, but **Live activation is not yet ready**: all six Live IDs, Live API key and matching destination secret must be supplied/validated; the Live destination and runtime/database alignment must be verified; and ordinary-customer launch/payment acceptance needs separate authorization. The authorized application release above remains Sandbox-only. Monitor failed deliveries and use Stripe redelivery for event loss; no background reconciliation scheduler has been added. Missed renewal/cancellation events still cannot extend paid access beyond the server-enforced paid-through timestamp.
+Correction 009 is applied and verified, and all six Live IDs are staged, but **Live activation is not yet ready**: obtain authenticated validation of the supplied prices/Portals; verify the dedicated Live Snapshot destination and all 19 events; configure the matching Live server key and destination signing secret as encrypted Pages Production bindings only after authorization; reconnect/recheck Supabase; and coordinate the approved database mode operation with the full CMS deployment. Both customer launch gates must remain disabled through configuration verification. Enabling customer purchasing and ordinary-customer Live payment acceptance need separate authorization. The running release remains Sandbox-only. Monitor failed deliveries and use Stripe redelivery for event loss; no background reconciliation scheduler has been added. Missed renewal/cancellation events still cannot extend paid access beyond the server-enforced paid-through timestamp.
