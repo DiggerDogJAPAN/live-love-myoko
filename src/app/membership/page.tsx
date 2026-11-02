@@ -30,7 +30,7 @@ export default function MembershipPage() {
             </section>
             <section className={styles.information} aria-label="Membership information">
                 <p>Registration is free and does not provide access to Property Finder listings. No payment is taken and no subscription starts when you register.</p>
-                <p>Saved Properties and Property Alerts are implemented. Subscription availability is shown in your account. Interactive map viewing is planned for a future release. The eligible membership-fee refund is an intended Premium benefit, not an active online refund service. Any refund would be subject to verification and would not be automatic.</p>
+                <p>Premium membership includes Saved Properties and Property Alerts. Choose your membership through your account. The eligible membership-fee refund is an intended Premium benefit, not an active online refund service. Any refund would be subject to verification and would not be automatic.</p>
                 <nav className={styles.links} aria-label="Membership navigation">
                     <Link href="/login">Already registered? Sign in</Link>
                     <Link href="/account">Your account</Link>

@@ -26,7 +26,7 @@ const reviewedMyoko = [
     ['柳井田町', 'Yanaidacho', 'Arai'], ['栄町', 'Sakaecho', 'Arai'],
     ['田切', 'Tagiri', 'Myoko Kogen'], ['錦町', 'Nishikicho', 'Arai'],
     ['長森', 'Nagamori', 'Arai'], ['高柳', 'Takayanagi', 'Arai'],
-    ['葎生字江端', 'Moguro', 'Myoko'],
+    ['葎生字江端', 'Moguro', 'Arai'],
 ] as const;
 
 test('Every audited Myoko locality normalizes to reviewed English geography for municipal, SUUMO and Rakusumu records', () => {
@@ -44,7 +44,7 @@ test('Every audited Myoko locality normalizes to reviewed English geography for 
     const options = locationOptions(reviewedMyoko.map(([ja]) => property(ja)), 'Myoko');
     assert.equal(options.length, 27);
     assert(options.every(o => !/[\u3040-\u30ff\u3400-\u9fff]/.test(o.label)));
-    assert.deepEqual(options.filter(o => o.label.startsWith('Myoko (')), [{ value: 'Myoko (Moguro)', label: 'Myoko (Moguro)' }], 'only the verified former-village area uses Myoko');
+    assert.deepEqual(options.filter(o => o.label.startsWith('Myoko (')), []);
 });
 
 test('Japanese, English, chome, full-width and reviewed romanization variants deduplicate and filter across sources', () => {
@@ -61,12 +61,12 @@ test('Japanese, English, chome, full-width and reviewed romanization variants de
     assert.equal(propertyLocation(property('Shinonome-cho')), 'Arai (Shinonomecho)');
 });
 
-test('Sekigawa, Suginosawa, Taguchi and Tagiri stay in Myoko Kogen; Moguro/Sekiyama never become Arai', () => {
+test('Sekigawa, Suginosawa, Taguchi and Tagiri stay in Myoko Kogen; Sekiyama stays Myoko; Moguro uses the requested Arai label', () => {
     for (const [ja, en] of [['関川', 'Sekigawa'], ['杉野沢', 'Suginosawa'], ['田口', 'Taguchi'], ['田切', 'Tagiri']]) {
         const p = { ...property(ja), regionEn: 'Arai', regionJa: '新井' };
         assert.equal(propertyLocation(p), `Myoko Kogen (${en})`, 'verified locality cannot inherit an unrelated source district');
     }
-    assert.equal(propertyLocation(property('葎生')), 'Myoko (Moguro)');
+    assert.equal(propertyLocation(property('葎生')), 'Arai (Moguro)');
     assert.equal(propertyLocation(property('関山')), 'Myoko (Sekiyama)');
     assert.equal(propertyLocation(property('未確認地区')), 'Myoko (未確認地区)', 'unknown readings are never invented');
     const p = property('Sekigawa', 'SUUMO', 'Myoko', '中央町');
@@ -108,4 +108,29 @@ test('Cards and enquiries use the same canonical label while original links, Jap
     for (const text of ['¥5,000,000', 'Rakusumu', '原文を保持', p.originalListingUrl!]) assert(html.includes(text));
     const enquiry = new URL(enquiryMailto(p)).searchParams.get('body')!;
     assert(enquiry.includes('Area: Arai (Himegawara)') && enquiry.includes('原文を保持'));
+});
+
+// Display corrections preserve stored records and old option values.
+test('New Arai district labels retain existing identifiers and merge language variants', () => {
+    for (const [ja, en] of [['窪松原', 'Kubomatsubara'], ['五日市', 'Itsukaichi'], ['広島', 'Hiroshima']]) {
+        const records = [property(ja), property(en, 'Myoko Akiya Bank')];
+        const original = JSON.stringify(records);
+        assert.equal(propertyArea(records[0]), `Myoko (${ja})`);
+        assert.equal(propertyArea(records[1]), `Myoko (${en})`);
+        assert.deepEqual(locationOptions(records), [{ value: `Myoko (${en})`, label: `Arai (${en})` }]);
+        for (const selection of [`Myoko (${ja})`, `Myoko (${en})`, `Arai (${ja})`, `Arai (${en})`]) {
+            assert.equal(searchProperties(records, { ...initialFilters, area: selection }).length, 2);
+        }
+        assert(records.every(p => propertyLocation(p) === `Arai (${en})`));
+        assert.equal(JSON.stringify(records), original);
+    }
+});
+test('Joetsu display aliases deduplicate without rewriting original option keys or mixing municipalities', () => {
+    const records = [property('稲田三丁目', 'SUUMO', 'Joetsu'), property('Inada', 'Rakusumu', 'Joetsu'), property('稲田', 'SUUMO', 'Joetsu')];
+    assert.equal(propertyArea(records[0]), 'Joetsu (稲田三丁目)');
+    assert.deepEqual(locationOptions(records), [{ value: 'Joetsu (Inada)', label: 'Joetsu (Inada)' }]);
+    for (const area of ['Joetsu (Inada)', 'Joetsu (稲田三丁目)', 'Joetsu (稲田)']) assert.equal(searchProperties(records, { ...initialFilters, area }).length, 3);
+    assert.equal(searchProperties(records, { ...initialFilters, area: 'Myoko (稲田)' }).length, 0);
+    assert.equal(propertyLocation(property('東雲町', 'SUUMO', 'Joetsu')), 'Joetsu (Touncho)');
+    assert.equal(propertyLocation(property('東雲町')), 'Arai (Shinonomecho)');
 });

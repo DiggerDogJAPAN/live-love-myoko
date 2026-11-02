@@ -85,7 +85,7 @@ export default function PropertyFinderPage() {
                         <p>With Basic membership, search listings from multiple local sources and explore the original Japanese property advertisements.</p>
                         <p>With Premium, save properties you&apos;re interested in and receive email alerts when new listings appear in your preferred areas. Saved Properties and Property Alerts are included, with one daily email only when there are new matching listings.</p>
                         <p>Basic: ¥2,000/month · Premium: ¥4,000/month.</p>
-                        <p>Subscriptions are coming soon. Existing administrator access remains available during testing.</p>
+                        <p>Prices include tax. Choose a membership and subscribe through your account.</p>
                         <Link href="/membership/" className="button button--primary">View Membership Plans</Link>
                     </div>
                     <aside className={styles.directProperties}><p className={styles.eyebrow}>Looking to buy now?</p><h3>Explore properties listed directly with us.</h3><p>Alongside Property Finder, Love Live Myoko offers a selection of properties for sale through our <Link href="/purchase-property/">local real estate services</Link>. Browse our own listings or get in touch if you&apos;d like help finding a property in the Myoko area.</p><Link href="/properties" className={styles.textLink}>View Our Properties <span aria-hidden="true">↗</span></Link></aside>

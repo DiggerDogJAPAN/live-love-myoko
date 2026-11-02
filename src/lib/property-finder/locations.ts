@@ -16,8 +16,8 @@ const myoko: readonly (readonly [string, string, string, ...string[]])[] = [
     ['Yanaidacho', '柳井田町', 'Arai'], ['Sakaecho', '栄町', 'Arai'],
     ['Tagiri', '田切', 'Myoko Kogen'], ['Nishikicho', '錦町', 'Arai'],
     ['Nagamori', '長森', 'Arai'], ['Takayanagi', '高柳', 'Arai'],
-    // These belong to the separate former Myoko village, not Arai/Myoko Kogen.
-    ['Moguro', '葎生', 'Myoko', 'Mogurou', '葎生字江端'],
+    // Owner-requested directory area label; municipality/source records stay unchanged.
+    ['Moguro', '葎生', 'Arai', 'Mogurou', '葎生字江端'],
     ['Sekiyama', '関山', 'Myoko'],
 ];
 const otherMunicipalities: Record<string, readonly (readonly [string, string, ...string[]])[]> = {
@@ -62,6 +62,93 @@ for (const [name, ja, area, ...aliases] of myoko) add('Myoko', { name, japanese:
 for (const [municipality, entries] of Object.entries(otherMunicipalities)) {
     for (const [name, ja, ...aliases] of entries) add(municipality, { name, japanese: ja }, [ja, ...(municipality === 'Joetsu' ? [ja.replace(/区$/, '')] : []), ...aliases]);
 }
+// Preserve pre-existing option identifiers while extending visitor-facing labels.
+const filterNames = new Map([...names].map(([municipality, map]) => [municipality, new Map(map)]));
+export function filterNeighbourhood(municipality: string | null, value: string): string {
+    return filterNames.get(locationMunicipality(municipality) || '')?.get(nameKey(value))?.name || value.trim();
+}
+for (const [name, japanese] of [
+    ['Kubomatsubara', '窪松原'], ['Itsukaichi', '五日市'], ['Hiroshima', '広島'],
+]) add('Myoko', { name, japanese, area: 'Arai' }, [japanese]);
+
+// Japan Post romanized address register; see docs/property-finder-areas.md.
+const joetsuDistricts: readonly (readonly [string, string])[] = [
+    ['Mitsuyacho', '三ツ屋町'],
+    ['Mitsuhashi', '三ツ橋'],
+    ['Sandashinden', '三田新田'],
+    ['Kamigokanno', '上五貫野'],
+    ['Kamishowamachi', '上昭和町'],
+    ['Shimogennyu', '下源入'],
+    ['Shimonoda', '下野田'],
+    ['Shimomonzen', '下門前'],
+    ['Chuo', '中央'],
+    ['Nakadahara', '中田原'],
+    ['Nakahakoi', '中箱井'],
+    ['Nakadorimachi', '中通町'],
+    ['Nakamonzen', '中門前'],
+    ['Gochi', '五智'],
+    ['Gochishimmachi', '五智新町'],
+    ['Nakamachi', '仲町'],
+    ['Sumiyoshicho', '住吉町'],
+    ['Sanaicho', '佐内町'],
+    ['Kagacho', '加賀町'],
+    ['Kitashirocho', '北城町'],
+    ['Kitahoncho', '北本町'],
+    ['Minamishirocho', '南城町'],
+    ['Minamihoncho', '南本町'],
+    ['Minamitakadamachi', '南高田町'],
+    ['Shikasho', '四ケ所'],
+    ['Kokufu', '国府'],
+    ['Tsuchihashi', '土橋'],
+    ['Yamato', '大和'],
+    ['Daigakumae', '大学前'],
+    ['Otemachi', '大手町'],
+    ['Omachi', '大町'],
+    ['Onuki', '大貫'],
+    ['Koyasu', '子安'],
+    ['Yasue', '安江'],
+    ['Tomioka', '富岡'],
+    ['Koizumi', '小泉'],
+    ['Iwaki', '岩木'],
+    ['Heiseicho', '平成町'],
+    ['Saiwaicho', '幸町'],
+    ['Gotenyamacho', '御殿山町'],
+    ['Shinkocho', '新光町'],
+    ['Kasugayamamachi', '春日山町'],
+    ['Kasugashinden', '春日新田'],
+    ['Kasugano', '春日野'],
+    ['Showamachi', '昭和町'],
+    ['Kijima', '木島'],
+    ['Kida', '木田'],
+    ['Higashinakajima', '東中島'],
+    ['Higashishirocho', '東城町'],
+    ['Higashihoncho', '東本町'],
+    ['Touncho', '東雲町'],
+    ['Takidera', '滝寺'],
+    ['Ishibashi', '石橋'],
+    ['Inada', '稲田'],
+    ['Araya', '荒屋'],
+    ['Fujizuka', '藤塚'],
+    ['Fujimaki', '藤巻'],
+    ['Fujishinden', '藤新田'],
+    ['Nishishirocho', '西城町'],
+    ['Nishihoncho', '西本町'],
+    ['Nojiri', '野尻'],
+    ['Kodocho', '高土町'],
+    ['Takasakishinden', '高崎新田'],
+    ['Kamojima', '鴨島'],
+    ['Kuroi', '黒井'],
+    ['Daizu', '大豆'],
+    ['Yokozone', '横曽根'],
+    // Keep qualified source areas distinct; do not invent a subarea reading.
+    ['Tomioka / Southern redevelopment area', '富岡南部土地区画整理事業'],
+    ['Yukojihama / Southern subarea', '遊光寺浜字南原'],
+    // Postal readings differ by block; the source omits that distinction.
+    ['Sakae district', '栄町'],
+    ['Teramachi', '寺町'],
+];
+for (const [name, japanese] of joetsuDistricts) add('Joetsu', { name, japanese }, [japanese]);
+
 export function reviewedLocation(municipality: string | null, value: string | null | undefined): ReviewedLocation | null {
     if (!value) return null;
     return names.get(locationMunicipality(municipality) || '')?.get(nameKey(value)) || null;

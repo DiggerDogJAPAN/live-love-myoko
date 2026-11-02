@@ -18,12 +18,12 @@ before(async () => {
     html = renderToStaticMarkup(createElement(page.default));
 });
 
-test('Homepage retains all 30 approved heading/paragraph blocks in their original order', () => {
+test('Homepage retains the page structure with the updated membership promotion', () => {
     const blocks = [...html.matchAll(/<(h[1-6]|p)\b[^>]*>([\s\S]*?)<\/\1>/g)]
         .map(match => [match[1], clean(match[2])]);
-    assert.equal(blocks.length, 30);
-    // Includes the published Premium Property Alerts paragraph from commit 7483589.
-    assert.equal(digest(blocks), '71a42df4eaa754e9c30467070f2f3d2e55ccd3cafd85009599f165972c72aa3f');
+    assert.equal(blocks.length, 31);
+    // All unaffected sections, headings and the revised Finder paragraphs retain their order.
+    assert.equal(digest(blocks), '0c23f3a445eca2f2ec397b1e433bef5430533c962197015020c9664236b5eafa');
 });
 
 test('Homepage preserves every service link, CTA label and destination', () => {

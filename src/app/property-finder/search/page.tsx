@@ -3,7 +3,7 @@ import PropertyFinderAccess from '@/components/property-finder/PropertyFinderAcc
 
 export const metadata: Metadata = {
     title: 'Search Properties | Property Finder | Love Live Myoko',
-    description: 'Secure Property Finder administrator preview. Paid membership access is coming soon.',
+    description: 'Search the Property Finder directory with your active Basic or Premium membership.',
     alternates: { canonical: 'https://love-live-myoko.com/property-finder/search/' },
     robots: { index: false, follow: false },
 };

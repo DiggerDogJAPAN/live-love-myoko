@@ -47,12 +47,12 @@ export default function PropertyFinderAccess() {
     return (
         <section className={styles.gated}>
             <div className="layout__container">
-                <p className={styles.eyebrow}>Property Finder · Administrator preview</p>
+                <p className={styles.eyebrow}>Property Finder</p>
                 <span className={styles.gateMark} aria-hidden="true">↗</span>
                 <h1>Your next property search.<br /><em>Securely, with local insight.</em></h1>
                 <div role="status" aria-live="polite">
                     {state.kind === 'loading' && <p>Checking your directory access…</p>}
-                    {state.kind === 'locked' && <><p>Live Property Finder access is currently limited to approved administrators and developers.</p><p>Sign in with your authorized account. Paid membership access will follow in a later phase.</p></>}
+                    {state.kind === 'locked' && <><p>Sign in with your account to access Property Finder.</p><p>Customers need an active Basic or Premium membership to browse listings.</p></>}
                     {state.kind === 'error' && <p>The live directory is not available right now. Please try again later.</p>}
                 </div>
                 <div className={styles.gatedActions}>

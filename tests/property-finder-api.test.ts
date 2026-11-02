@@ -300,6 +300,9 @@ test('Rendered live directory offers Myoko/Shinano municipalities and consistent
     assert(html.includes('id="finder-max"'));
     assert(html.includes('Price: low to high'));
     assert(html.includes('Price: high to low'));
+    assert(html.includes('Property information is collected from third-party sources. Please confirm availability and details with the original listing provider.'));
+    assert(!html.includes('Authorized administrator directory'));
+    assert(!html.includes('Paid membership access is not yet open.'));
 });
 
 

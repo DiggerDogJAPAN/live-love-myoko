@@ -73,6 +73,7 @@
 .resultsBar label > span { white-space: nowrap; }
 .resultsBar select { width: auto; }
 .sortNote { font-size: 0.8rem; margin-top: -0.7rem; }
+.sourceDisclaimer { margin: var(--space-sm) 0 0; color: var(--color-text-muted); font-size: .8rem; line-height: 1.6; }
 .resultsGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--space-md); align-items: stretch; }
 .card { --card-text: var(--color-text); --card-green: var(--color-primary); --card-muted: var(--color-text-muted); width: 100%; min-width: 0; background: var(--color-surface); color: var(--card-text); border: 1px solid var(--color-border); border-radius: var(--radius-card); overflow: hidden; display: flex; flex-direction: column; font-family: var(--font-body); }
 .cardImage { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--color-placeholder); }

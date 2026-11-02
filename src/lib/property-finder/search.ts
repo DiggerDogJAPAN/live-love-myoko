@@ -14,16 +14,21 @@ export const initialFilters: FinderFilters = {
     keyword: '', municipality: '', area: '', minPrice: '', maxPrice: '', propertyType: '', sort: 'price-asc',
 };
 
-/** One canonical locality key is shared by Japanese/English records from all sources. */
+/** Group reviewed display aliases, retaining an existing underlying filter value. */
 export function locationOptions(properties: readonly FinderProperty[], municipality = ''): { value: string; label: string }[] {
     const options = new Map<string, string>();
     for (const property of properties) {
         if (municipality && municipalityLabel(property.municipality) !== municipalityLabel(municipality)) continue;
         const value = propertyArea(property);
         const label = propertyDisplayArea(property);
-        if (value && label) options.set(value, label);
+        if (value && label) {
+            const previous = options.get(label);
+            // Prefer existing English keys; selection still matches Japanese aliases.
+            const rank = (key: string) => /[\u3040-\u30ff\u3400-\u9fff]/.test(key) ? 1 : 0;
+            if (!previous || rank(value) < rank(previous) || (rank(value) === rank(previous) && value.localeCompare(previous) < 0)) options.set(label, value);
+        }
     }
-    return [...options].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+    return [...options].map(([label, value]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
 }
 
 export function priceError(filters: FinderFilters): string | null {

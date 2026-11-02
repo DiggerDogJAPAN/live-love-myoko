@@ -2,7 +2,7 @@
  * The authenticated backend projects and authorizes records before delivery.
  * Neither a browser flag nor this model is an entitlement/eligibility check.
  */
-import { locationMunicipality, normalizedNeighbourhood, reviewedLocation } from './locations';
+import { filterNeighbourhood, locationMunicipality, normalizedNeighbourhood, reviewedLocation } from './locations';
 export const finderMunicipalities = ['Myoko', 'Shinano', 'Joetsu', 'Iizuna Town'] as const;
 
 export interface FinderProperty {
@@ -68,8 +68,8 @@ function sourceDisplayArea(property: FinderProperty): string | null {
 function neighbourhoodValue(property: FinderProperty): string {
     return (property.neighbourhood ?? (property.locationNeedsReview ? property.areaJa : property.area))?.trim() || '';
 }
-function locationLabel(property: FinderProperty, area: string | null): string {
-    const neighbourhood = normalizedNeighbourhood(property.municipality, neighbourhoodValue(property));
+function locationLabel(property: FinderProperty, area: string | null, filter = false): string {
+    const neighbourhood = (filter ? filterNeighbourhood : normalizedNeighbourhood)(property.municipality, neighbourhoodValue(property));
     const valid = neighbourhood && !/^(unknown|undefined|null|n[/.]?a|not (provided|available))$/i.test(neighbourhood)
         && !/[<>()[\]{}]/.test(neighbourhood);
     if (!valid) return area || '';
@@ -85,7 +85,7 @@ export function propertyLocation(property: FinderProperty): string {
 
 /** Canonical municipality/locality filter key; existing English keys stay stable. */
 export function propertyArea(property: FinderProperty): string | null {
-    return locationLabel(property, municipalityLabel(property.municipality)) || null;
+    return locationLabel(property, municipalityLabel(property.municipality), true) || null;
 }
 
 export function propertyDisplayArea(property: FinderProperty): string | null {

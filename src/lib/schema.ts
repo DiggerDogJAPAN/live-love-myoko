@@ -30,7 +30,7 @@ export function generatePropertyFinderSchema(name: string, description: string) 
         name: 'Love Live Myoko Property Finder',
         url,
         serviceType: 'Local property listing search',
-        description: 'An English-language property discovery service focused on Myoko City and nearby Joetsu, Shinano Town / Kurohime and Iizuna. Listings are aggregated from multiple local Japanese property sources and link to their original websites. Basic membership covers directory searches; Premium adds Saved Properties and Property Alerts. Paid subscriptions are coming soon, with administrator access available during testing.',
+        description: 'An English-language property discovery service focused on Myoko City and nearby Joetsu, Shinano Town / Kurohime and Iizuna. Listings are aggregated from multiple local Japanese property sources and link to their original websites. Basic membership covers directory searches; Premium adds Saved Properties and Property Alerts. Basic and Premium memberships are available through your account.',
         provider: { '@id': `${SITE_URL}/#organization` },
         subjectOf: { '@id': `${url}#webpage` },
         areaServed: [

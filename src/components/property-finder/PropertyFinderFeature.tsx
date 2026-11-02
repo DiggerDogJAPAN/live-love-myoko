@@ -11,11 +11,12 @@ export default function PropertyFinderFeature() {
                     <span>Property Finder</span>
                 </div>
                 <div className={styles.featureCopy}>
-                    <p className={styles.eyebrow}>A new way to explore · In development</p>
+                    <p className={styles.eyebrow}>EXPLORE MYOKO PROPERTY</p>
                     <h2>Find Your Next Property in Myoko</h2>
                     <p>Discover properties collected from Japanese real estate sources in one searchable, English-language directory.</p>
-                    <p>Property Finder is being built for Myoko, Joetsu, Shinano Town/Kurohime and Iizuna, with additional sources being added. Paid membership is coming soon.</p>
-                    <p>Premium membership includes Saved Properties and exclusive Property Alerts: choose your preferred areas and receive an email only when new matching properties are discovered.</p>
+                    <p>Explore property listings across Myoko, Joetsu, Shinano Town, Kurohime and Iizuna, with new properties and sources added regularly.</p>
+                    <p>Choose a Basic or Premium membership to unlock Property Finder and discover more opportunities across the region.</p>
+                    <p>Premium membership includes Saved Properties and Property Alerts, helping you keep track of interesting listings and discover new matches.</p>
                     <Link href="/property-finder" className="button button--primary">Discover Property Finder <span aria-hidden="true">↗</span></Link>
                 </div>
             </div>

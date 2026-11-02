@@ -31,16 +31,11 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
 
     return (
         <SavedPropertiesProvider enabled={mode === 'live'}><div className={styles.directory}>
-            {mode === 'synthetic' ? <div className={styles.previewNotice} data-fixture-preview="SYNTHETIC_FINDER_FIXTURE_V1">
+            {mode === 'synthetic' && <div className={styles.previewNotice} data-fixture-preview="SYNTHETIC_FINDER_FIXTURE_V1">
                 <div className="layout__container">
                     <strong>Local development preview · Synthetic properties</strong>
                     <p>These invented examples demonstrate the interface. They are not real listings, prices, availability or evidence of source coverage.</p>
                     <p id="fixture-link-note">Original listing buttons are disabled because these examples have no genuine listing URLs. Enquiry buttons open your email application with the synthetic example’s details.</p>
-                </div>
-            </div> : <div className={styles.previewNotice}>
-                <div className="layout__container">
-                    <strong>Authorized administrator directory</strong>
-                    <p>Eligible listings from the original sources. Please confirm current details and availability with the source. Paid membership access is not yet open.</p>
                 </div>
             </div>}
             <div className="layout__container">
@@ -87,6 +82,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
                 </section>
 
                 <SavedPropertiesStatus />
+                {mode === 'live' && <p className={styles.sourceDisclaimer}>Property information is collected from third-party sources. Please confirm availability and details with the original listing provider.</p>}
                 <div className={styles.resultsBar}>
                     <p role="status" aria-live="polite" aria-atomic="true"><strong>{results.length}</strong> {results.length === 1 ? 'property' : 'properties'}{activeCount > 0 ? ' match your search' : mode === 'synthetic' ? ' in the preview' : ' in the directory'}{results.length > 0 && <span> · Showing {Math.min(visibleCount, results.length)}</span>}</p>
                     <label htmlFor="finder-sort"><span>Sort by</span>
@@ -113,7 +109,7 @@ export default function PropertyFinderDirectory({ properties, mode = 'synthetic'
                     </div>
                 )}
                 <div className={styles.directoryFootnote}>
-                    <p>{mode === 'synthetic' ? 'The full directory will require verified membership. This preview contains synthetic development fixtures only.' : 'Live access is restricted to authorized administrators. Source listings may change; confirm details before making a purchase decision.'}</p>
+                    {mode === 'synthetic' && <p>This preview contains synthetic development fixtures only. The live directory requires authorized access.</p>}
                     <Link href="/properties">Looking for properties handled directly by Love Live Myoko? →</Link>
                 </div>
             </div>
