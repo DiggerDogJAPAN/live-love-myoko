@@ -34,9 +34,9 @@ test('Auth forms have associated labels, correct password autofill, verification
     assert(!form('login').includes('Continue with Google'), 'unconfigured Google provider is hidden');
 });
 
-test('Pricing communicates both real planned prices without granting access or presenting a payment/upgrade bypass', () => {
+test('Pricing communicates tax-inclusive monthly prices without granting access or presenting a payment bypass', () => {
     const html = renderToStaticMarkup(createElement(Pricing));
-    for (const text of ['¥2,000', '¥4,000', 'Basic', 'Premium', 'check subscription availability', 'does not provide access', 'up to three months', 'Saved Properties', 'Interactive Map Viewing', 'intended Premium benefit']) assert(html.includes(text));
+    for (const text of ['¥2,000', '¥4,000', 'Basic', 'Premium', 'Prices include tax', 'Sign in to your account to subscribe', 'does not provide access', 'up to three months', 'Saved Properties', 'Interactive Map Viewing', 'intended Premium benefit']) assert(html.includes(text));
     assert(!/<form|checkout|fake-payment|role=administrator/.test(html));
     assert(!/saved searches/i.test(html)); assert.equal((html.match(/PLANNED/g) || []).length, 1);
     assert(renderToStaticMarkup(createElement(Dashboard)).includes('Checking your account'));

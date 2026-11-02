@@ -4,7 +4,7 @@ import styles from './membership.module.css';
 
 export const metadata = {
     title: 'Property Finder memberships | Love Live Myoko',
-    description: 'Compare Basic and Premium Property Finder memberships, including Premium Saved Properties and Property Alerts. Check subscription availability in your account.',
+    description: 'Choose Basic at ¥2,000/month or Premium at ¥4,000/month, tax included. Subscribe through your account for Property Finder access.',
 };
 
 export default function MembershipPage() {
@@ -12,7 +12,7 @@ export default function MembershipPage() {
         <div className={styles.container}>
             <header className={styles.intro}>
                 <div><p className={styles.eyebrow}>LOVE LIVE MYOKO · PROPERTY FINDER</p><h1>A membership for your property search.</h1></div>
-                <p className={styles.description}>Compare our monthly membership plans. Sign in to your account to check subscription availability.</p>
+                <p className={styles.description}>Choose Basic at ¥2,000/month or Premium at ¥4,000/month. Prices include tax. Sign in to your account to subscribe.</p>
             </header>
             <MembershipPlans />
             <section id="property-alerts" className={styles.alertDetails} aria-labelledby="property-alerts-title">

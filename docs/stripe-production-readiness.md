@@ -1,6 +1,6 @@
 # Stripe membership production preparation — 1 November 2026
 
-**Update, 2 November 2026:** the owner has authorized the coordinated Live configuration/database deployment with both customer-purchasing gates disabled. See [the Live cutover record](stripe-live-deployment.md) for current release configuration, preflight and acceptance requirements. Live webhook enablement, customer launch and payments remain excluded. Migration 009 is already applied; do not replay 008 or 009. The preparation notes below record the earlier, superseded Sandbox staging state.
+**Customer-launch update, 2 November 2026:** the owner has authorized enabling both customer-access gates in Live mode. See [the customer launch record](stripe-customer-launch.md) for the current release and [the earlier Live cutover](stripe-live-deployment.md) for its history. The owner reports the Live webhook enabled and old Sandbox webhook disabled. First real payment and signed-delivery acceptance remain separately authorized work. Migration 009 is already applied; do not replay 008 or 009. The preparation notes below record the earlier, superseded staging state.
 
 ## Live configuration preparation — 2 November 2026
 

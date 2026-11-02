@@ -1,5 +1,5 @@
 // Reference copy of the approved Live configuration; active settings are in wrangler.jsonc.
-// Customer purchasing remains disabled. Use the full CMS GitHub deployment workflow.
+// Customer purchasing is enabled in production only. Use the full CMS GitHub deployment workflow.
 // No secrets are stored here. Do not deploy directly from this reference file.
 {
     "$schema": "node_modules/wrangler/config-schema.json",
@@ -24,7 +24,7 @@
             "vars": {
                 "FINDER_AUTH_ENABLED": "enabled",
                 "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
-                "FINDER_CUSTOMER_ACCESS": "disabled",
+                "FINDER_CUSTOMER_ACCESS": "enabled",
                 "FINDER_BILLING_ENABLED": "enabled",
                 "FINDER_STRIPE_MODE": "live",
                 "FINDER_BILLING_SANDBOX_ENABLED": "disabled",

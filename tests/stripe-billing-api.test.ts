@@ -496,3 +496,26 @@ test('A revoked customer cannot start a Live purchase or upgrade even when custo
     }
     assert(!h.calls.some(c => c.path.startsWith('/v1/') || c.path.includes('finder_billing_')));
 });
+
+test('Eligible Live customers can choose either fixed-price plan only when both customer gates are open', async () => {
+    const liveEnv = { ...env, FINDER_STRIPE_MODE: 'live', FINDER_BILLING_SANDBOX_ENABLED: 'disabled', STRIPE_SECRET_KEY: 'sk_live_UnitTestOnly' };
+    for (const plan of ['basic', 'premium'] as const) {
+        const { h, dependencies } = harness(liveEnv);
+        h.administrator = false; h.row.livemode = true; h.sub = null; h.row.state = emptyState();
+        const runtimeClosed = await handleBillingRequest(request('checkout', { plan }), { ...liveEnv, FINDER_CUSTOMER_ACCESS: 'disabled' }, dependencies);
+        assert.equal(runtimeClosed.status, 409); assert.equal((await runtimeClosed.json()).code, 'billing_not_launched');
+        const databaseClosed = await handleBillingRequest(request('checkout', { plan }), liveEnv,
+            { ...dependencies, snapshot: async () => ({ ...snapshot, paidAccessEnabled: false }) });
+        assert.equal(databaseClosed.status, 409); assert.equal((await databaseClosed.json()).code, 'billing_not_launched');
+        assert(!h.calls.some(c => c.path.includes('finder_billing_') || c.path.startsWith('/v1/')));
+        const open = await handleBillingRequest(request('checkout', { plan }), liveEnv, dependencies);
+        assert.equal(open.status, 200); assert.match((await open.json()).url, /^https:\/\/checkout\.stripe\.com\//);
+        const create = h.calls.find(c => c.path === '/v1/checkout/sessions' && c.form.get('mode'))!;
+        assert.equal(create.form.get('line_items[0][price]'), stripePrices[plan]);
+        assert.equal(create.form.get('automatic_tax[enabled]'), 'false');
+        assert.equal(create.form.get('line_items[0][quantity]'), '1');
+        assert.equal(create.form.get('metadata[finder_mode]'), 'live');
+        assert.equal(h.sessions[0].amount_total, plan === 'basic' ? 2000 : 4000);
+        assert.equal(h.row.state.active, false, 'starting Checkout cannot grant paid access');
+    }
+});

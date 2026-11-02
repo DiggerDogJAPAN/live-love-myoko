@@ -21,7 +21,7 @@
             "vars": {
                 "FINDER_AUTH_ENABLED": "enabled",
                 "FINDER_AUTH_SITE_ORIGIN": "https://love-live-myoko.com",
-                "FINDER_CUSTOMER_ACCESS": "disabled",
+                "FINDER_CUSTOMER_ACCESS": "enabled",
                 "FINDER_BILLING_ENABLED": "enabled",
                 "FINDER_STRIPE_MODE": "live",
                 "FINDER_BILLING_SANDBOX_ENABLED": "disabled",

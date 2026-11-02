@@ -64,6 +64,39 @@ test('Prepared Live activation refuses an open customer gate and replay, and cha
     } finally { await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE'); }
 });
 
+test('Customer launch requires Live mode, changes only the rollout gate and still denies unpaid accounts', async () => {
+    const sql = readFileSync('sql/operations/enable_live_customer_memberships.sql', 'utf8');
+    const u = await user(30);
+    const tables = ['account_roles', 'memberships', 'billing_customers', 'billing_events'];
+    const protectedRows = async () => Promise.all(tables.map(t => db.query(`SELECT * FROM finder_security.${t}`).then(r => r.rows)));
+    const before = await protectedRows();
+    await db.exec("SET SESSION AUTHORIZATION postgres; RESET ROLE; UPDATE finder_security.billing_settings SET mode='test'");
+    try {
+        await assert.rejects(db.exec(sql), /Expected Live billing mode/); await db.exec('ROLLBACK');
+        await db.exec("UPDATE finder_security.billing_settings SET mode='live'");
+        // This isolated fixture creates the settings table by hand. Exercise
+        // drift rejection, then mirror the actual production forced-RLS table.
+        await db.exec('ALTER TABLE finder_security.saved_api_settings DISABLE ROW LEVEL SECURITY');
+        await assert.rejects(db.exec(sql), /Customer setting security drift/); await db.exec('ROLLBACK');
+        await db.exec('ALTER TABLE finder_security.saved_api_settings ENABLE ROW LEVEL SECURITY; ALTER TABLE finder_security.saved_api_settings FORCE ROW LEVEL SECURITY');
+        await db.exec(sql);
+        assert.deepEqual(await protectedRows(), before);
+        const unpaid = await rpc('authenticated', 'public.finder_account', [], u);
+        assert.equal(unpaid.paidAccessEnabled, true);
+        assert.equal(unpaid.finderAccess, false); assert.equal(unpaid.savedPropertiesAccess, false);
+        assert.equal(unpaid.membershipActive, false);
+        const administrator = await rpc('authenticated', 'public.finder_account', [], admin);
+        assert.equal(administrator.finderAccess, true); assert.equal(administrator.savedPropertiesAccess, true);
+        assert.equal(await membership(admin), undefined);
+        await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
+        await assert.rejects(db.exec(sql), /Expected closed customer gate/); await db.exec('ROLLBACK');
+    } finally {
+        await db.exec('ROLLBACK');
+        await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE; UPDATE finder_security.saved_api_settings SET customer_access_enabled=false');
+        await db.exec('SET SESSION AUTHORIZATION fixture_superuser; RESET ROLE');
+    }
+});
+
 test('Manual membership revocation survives paid refresh, failed renewal and later successful payment', async () => {
     const u = await user(20); let b = await bind(u, 'cus_RevocationTest');
     const paid = { ...paidState('basic'), subscriptionId: 'sub_RevocationTest' };
