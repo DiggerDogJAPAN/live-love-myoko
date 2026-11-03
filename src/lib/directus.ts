@@ -1,5 +1,7 @@
 import { createDirectus, rest, staticToken, readItems, readItem } from '@directus/sdk';
 
+import { staticCmsHtml } from './cms-inline-assets.mjs';
+
 // Define the schema types
 export interface Property {
     id: number;
@@ -118,6 +120,7 @@ export async function getProperty(slug: string) {
             property.amenities = [];
         }
     }
+    if (property?.description && process.env.NODE_ENV === 'production') property.description = staticCmsHtml(property.description, DIRECTUS_URL);
     return property || null;
 }
 
@@ -148,5 +151,7 @@ export async function getAccommodation(slug: string) {
         })
     );
 
-    return result[0] || null;
+    const accommodation = result[0];
+    if (accommodation?.about && process.env.NODE_ENV === 'production') accommodation.about = staticCmsHtml(accommodation.about, DIRECTUS_URL);
+    return accommodation || null;
 }

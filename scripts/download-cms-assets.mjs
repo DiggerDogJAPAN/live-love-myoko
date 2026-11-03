@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createDirectus, rest, staticToken, readItems } from '@directus/sdk';
 import dotenv from 'dotenv';
+import { inlineCmsImages } from '../src/lib/cms-inline-assets.mjs';
 dotenv.config({ path: '.env.local' });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,11 +34,26 @@ async function downloadImage(id, destPath) {
     console.log(`Downloaded: ${destPath}`);
 }
 
+async function downloadInlineImages(items, field) {
+    const images = new Map();
+    for (const item of items) for (const image of inlineCmsImages(item[field] || '', DIRECTUS_URL)) images.set(image.publicPath, image);
+    for (const image of images.values()) {
+        const response = await fetch(image.url, { headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }, redirect: 'error' });
+        if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Failed to export an inline CMS image');
+        const buffer = Buffer.from(await response.arrayBuffer());
+        if (!buffer.length) throw new Error('Empty inline CMS image');
+        const destPath = path.join(__dirname, '../public', image.publicPath);
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+        fs.writeFileSync(destPath, buffer);
+        console.log(`Downloaded inline CMS image: ${image.publicPath}`);
+    }
+}
+
 async function run() {
     console.log('--- Downloading CMS Assets ---');
     try {
         const properties = await directus.request(readItems('properties', {
-            fields: ['slug', 'featured_image', { gallery: ['directus_files_id'] }],
+            fields: ['slug', 'featured_image', 'description', { gallery: ['directus_files_id'] }],
             filter: { published: { _eq: true } }
         }));
 
@@ -58,9 +74,11 @@ async function run() {
             }
         }
 
+        await downloadInlineImages(properties, 'description');
+
         console.log('--- Downloading Accommodation Assets ---');
         const accommodations = await directus.request(readItems('accommodations', {
-            fields: ['slug', 'featured_image', { gallery: ['directus_files_id'] }],
+            fields: ['slug', 'featured_image', 'about', { gallery: ['directus_files_id'] }],
             filter: { published: { _eq: true } }
         }));
 
@@ -81,6 +99,7 @@ async function run() {
             }
         }
 
+        await downloadInlineImages(accommodations, 'about');
         console.log('--- Assets Downloaded Successfully ---');
     } catch (error) {
         console.error('Error downloading assets:', error);
